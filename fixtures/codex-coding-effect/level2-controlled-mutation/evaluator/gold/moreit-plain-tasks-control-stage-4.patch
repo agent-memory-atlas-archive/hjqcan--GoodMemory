@@ -1,0 +1,33 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..18903b54b1e0df8f64d40322e113871679082921
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -145,6 +145,7 @@ __all__ = [
+     'rlocate',
+     'rstrip',
+     'run_length',
++    'run_lengths',
+     'sample',
+     'seekable',
+     'set_partitions',
+@@ -3101,6 +3102,18 @@ class run_length:
+         return chain.from_iterable(starmap(repeat, iterable))
+ 
+ 
++def run_lengths(iterable):
++    """Yield ``(item, count)`` pairs for each run of equal consecutive items
++    in *iterable*.
++
++    >>> list(run_lengths('aabbbc'))
++    [('a', 2), ('b', 3), ('c', 1)]
++
++    """
++    for item, group in groupby(iterable):
++        yield item, ilen(group)
++
++
+ def exactly_n(iterable, n, predicate=bool):
+     """Return ``True`` if exactly ``n`` items in the iterable are ``True``
+     according to the *predicate* function.

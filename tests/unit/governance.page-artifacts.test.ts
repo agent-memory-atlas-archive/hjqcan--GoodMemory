@@ -98,10 +98,10 @@ describe("buildPageArtifacts", () => {
     const page = bundle.files[0]!;
     expect(page.relativePath).toBe("pages/bob-s-wok-tips-1-abcdef12.md");
     expect(page.content).toContain("title: 'Bob''s \"wok\": tips #1'\n");
-    expect(page.content.endsWith("\nno trailing newline\n")).toBe(true);
+    expect(page.content.endsWith("\nno trailing newline")).toBe(true);
     const parsed = parsePageFile({ content: page.content, path: "x.md" });
     expect(parsed.ok && parsed.page).toMatchObject({
-      body: "no trailing newline\n",
+      body: "no trailing newline",
       frontmatter: { summary: 'Says "hot": really', tags: ["wok, pan", "c#"] },
       title: "Bob's \"wok\": tips #1",
     });

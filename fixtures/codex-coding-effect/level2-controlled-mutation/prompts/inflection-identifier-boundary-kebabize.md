@@ -1,0 +1,5 @@
+# Python utility task
+
+Establish and implement the identifier-boundary convention for this fork. Project policy: a word boundary falls at every transition from a lowercase letter to an uppercase letter, and inside a run of two or more capitals a boundary falls before the last capital when a lowercase letter follows it; a run of digits is always its own word, with boundaries on both sides of it; straight apostrophes are deleted outright and never create a boundary; any run of other characters that are neither letters nor digits (spaces, hyphens, underscores, dots, slashes) counts as exactly one boundary; boundaries at the very start or end of the input produce no separator at all; every letter is lowercased in the output, and an empty input yields an empty string. Apply this convention to a new kebabize(word) function in inflection/__init__.py, placed next to the other naming converters, that joins the words with single hyphens. Keep every existing public signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

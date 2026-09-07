@@ -1,0 +1,129 @@
+{
+  "acceptance": {
+    "everyAttemptAccountedFor": true,
+    "failureTaxonomyProduced": true,
+    "noSilentFallback": true,
+    "powerAnalysisProduced": true,
+    "status": "accepted"
+  },
+  "attempts": {
+    "accountedCount": 72,
+    "codexCompletedCount": 70,
+    "infrastructureFailureCount": 2,
+    "memoryChannelFailureCount": 0,
+    "scheduledCount": 72
+  },
+  "claimBoundary": "internal-native-longitudinal-pilot-only",
+  "comparatorInjection": {
+    "contentInjectionCount": 22,
+    "hookCanaryFailureCount": 2,
+    "injectedTokensTotal": 4326,
+    "zeroInjectionCount": 12
+  },
+  "effect": {
+    "baselineArm": "flat-summary",
+    "baselineResolveRate": 0.9411764705882353,
+    "comparablePairs": 34,
+    "goodMemoryResolveRate": 0.9411764705882353,
+    "netRescueRate": 0,
+    "netRescueRateInterval95": {
+      "bootstrapSamples": 10000,
+      "confidenceLevel": 0.95,
+      "lower": 0,
+      "method": "paired-episode-cluster-percentile-bootstrap",
+      "resamplingUnit": "episode",
+      "upper": 0
+    },
+    "noMemoryResolveRate": 0.9411764705882353,
+    "observedDiscordanceRate": 0,
+    "regressions": 0,
+    "rescues": 0
+  },
+  "evidenceClass": "native-longitudinal-pilot",
+  "failureTaxonomy": [
+    {
+      "count": 2,
+      "reason": "flat-summary-evaluator-infrastructure-failure"
+    },
+    {
+      "count": 2,
+      "reason": "flat-summary-infrastructure-flat-summary-injection"
+    },
+    {
+      "count": 2,
+      "reason": "flat-summary-injection-mode-mismatch"
+    },
+    {
+      "count": 2,
+      "reason": "infrastructure:flat-summary-injection"
+    },
+    {
+      "count": 2,
+      "reason": "task:flat-summary:hidden-fail-to-pass-failed"
+    },
+    {
+      "count": 2,
+      "reason": "task:goodmemory-installed:hidden-fail-to-pass-failed"
+    }
+  ],
+  "fullSetBudget": {
+    "arms": 2,
+    "codexCalls": 7038,
+    "episodes": 391,
+    "repositories": 6,
+    "scoredStages": 1173,
+    "seeds": 3
+  },
+  "generatedAt": "2026-09-03T06:51:27.097Z",
+  "memoryBehavior": {
+    "injectionObservedCount": 20,
+    "installedAttemptCount": 36,
+    "irrelevantInjectionCount": 0,
+    "missingObservationCount": 0,
+    "observedAttemptCount": 36,
+    "requiredRecallObservedCount": 20,
+    "writebackCommittedCount": 10
+  },
+  "pairs": {
+    "comparableCount": 34,
+    "incomparableCount": 2,
+    "outcomes": {
+      "incomparable": 2,
+      "regression": 0,
+      "rescue": 0,
+      "shared-fail": 2,
+      "shared-pass": 32
+    },
+    "scheduledCount": 36
+  },
+  "phase": "C5",
+  "planSha256": "1fcf14544d502bdc10d142ac8adc2f67d0afda2147f8442111ed07ee9fe58131",
+  "powerAnalysis": {
+    "alpha": 0.05,
+    "designEffect": 9,
+    "materialEffectRate": 0.1,
+    "method": "paired-proportion-normal-approximation-with-episode-design-effect",
+    "observedWithinEpisodeCorrelation": 1,
+    "pairedObservationsBeforeClustering": 391,
+    "planningDiscordanceRate": 0.5,
+    "power": 0.8,
+    "requiredEpisodes": 391,
+    "seeds": 3,
+    "stagesPerEpisode": 3
+  },
+  "publicClaimEligible": false,
+  "publicCodingEffectProof": false,
+  "readmeRowAllowed": false,
+  "resourceUsage": {
+    "attemptsWithUsage": 70,
+    "cachedInputTokens": 5182976,
+    "estimatedCostUsd": null,
+    "inputTokens": 6302875,
+    "missingUsageCount": 2,
+    "outputTokens": 142728,
+    "pricingBoundary": "token-usage-only-model-price-not-frozen",
+    "totalCodexDurationMs": 8242882.058327
+  },
+  "runId": "run-c5-canary-flat-20260903T065126Z",
+  "schemaVersion": 1
+}

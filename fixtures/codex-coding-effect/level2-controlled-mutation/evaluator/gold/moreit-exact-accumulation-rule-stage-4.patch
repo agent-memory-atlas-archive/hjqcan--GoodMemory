@@ -1,0 +1,46 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index dacf61407d454907d661edde2d774bee11cec92a..66ea493c3da9549c2f814d52cac7de6718d6ed5d 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -31,7 +31,7 @@ from itertools import (
+     tee,
+     zip_longest,
+ )
+-from math import prod, comb, isqrt, gcd
++from math import prod, comb, isqrt, gcd, fsum
+ from operator import mul, not_, itemgetter, getitem, index
+ from random import randrange, sample, choice
+ from sys import hexversion
+@@ -1091,13 +1091,27 @@ def matmul(m1, m2):
+     >>> list(matmul([(7, 5), (3, 5)], [(2, 5), (7, 9)]))
+     [(49, 80), (41, 60)]
+ 
+-    The caller should ensure that the dimensions of the input matrices are
+-    compatible with each other.
+-
+-    Supports all numeric types: int, float, complex, Decimal, Fraction.
++    Each entry is an exactly accumulated dot product of a row of *m1* and a
++    column of *m2*: integer entries stay integers, float entries are added
++    with :func:`math.fsum`, and a row whose length differs from the column
++    length raises ``ValueError``.
+     """
+     n = len(m2[0])
+-    return batched(starmap(_sumprod, product(m1, transpose(m2))), n)
++    columns = list(transpose(m2))
++    return batched(starmap(_exact_sumprod, product(m1, columns)), n)
++
++
++def _exact_sumprod(vec1, vec2):
++    products = []
++    for left, right in zip_longest(vec1, vec2, fillvalue=_marker):
++        if left is _marker or right is _marker:
++            raise ValueError('vectors must have the same length')
++        products.append(left * right)
++    if all(isinstance(value, int) for value in products):
++        return sum(products)
++    if all(isinstance(value, (int, float)) for value in products):
++        return fsum(products)
++    return sum(products)
+ 
+ 
+ def _factor_pollard(n):

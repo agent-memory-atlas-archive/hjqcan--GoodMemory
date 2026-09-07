@@ -1,0 +1,24 @@
+{
+  "baseCommit": "708233f1c2fc7dd5dfc65405156f27e31458ffb0",
+  "baseTree": "c6dc577b7002fae7be81cec944a50ed00a7707da",
+  "canonicalUrl": "https://github.com/more-itertools/more-itertools",
+  "ecosystem": "python",
+  "licenseSpdx": "MIT",
+  "notes": [
+    "RE-PINNED. Default-branch (master) HEAD bc8be101 (version 11.1.0) declares requires-python >=3.10 and uses a `match` statement in more_itertools/recipes.py plus unguarded zip(strict=True), giving SyntaxError on 3.9.6. Pinned to tag v10.8.0 (commit 8c1a6ef2), the most recent tag whose pyproject declares requires-python >=3.9 (v11.0.0, v11.0.1, v11.0.2, v11.1.0 all declare >=3.10). Re-cloned fresh with --depth 1 --branch v10.8.0; imports cleanly on 3.9.6 (zip strict is feature-detected in a try/except there).",
+    "setup.cfg is included as a manifest per the rules but contains only bumpversion and mypy config; the real build metadata is pyproject.toml (flit_core). Package ships .pyi stubs (more_itertools/__init__.pyi, more.pyi, recipes.pyi) and py.typed, all included.",
+    "Public namespace has 168 names: 166 callables (154 functions + 12 classes, all defined in more.py or recipes.py) plus the submodules `more` and `recipes`. No __all__ at package level (star re-export). more_itertools/more.py carries the executable bit in git (mode 100755), preserved in projected/.",
+    "Runtime imports are stdlib only. Excluded: tests/, docs/, requirements/, Makefile, MANIFEST.in, tox.ini, .readthedocs.yaml, .gitattributes, .gitignore, .github/, README.rst."
+  ],
+  "overlayFiles": [
+    "AGENTS.md",
+    "tests/base_health.py"
+  ],
+  "projectedFileCount": 10,
+  "projectionPolicy": "source-only-no-upstream-tests-v1",
+  "repositoryId": "more-itertools-more-itertools",
+  "schemaVersion": 1,
+  "upstreamCommit": "8c1a6ef241b51ff055e89219f050ccf4f15f37f6",
+  "upstreamRef": "tag v10.8.0",
+  "upstreamTree": "d51c2945f7845be1511f54781de34f0d1c292003"
+}

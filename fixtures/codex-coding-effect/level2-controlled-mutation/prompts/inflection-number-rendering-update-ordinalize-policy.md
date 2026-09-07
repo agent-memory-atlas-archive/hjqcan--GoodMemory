@@ -1,0 +1,5 @@
+# Python utility task
+
+Establish and implement the number-rendering policy for this fork. Project policy: a float with no fractional part is rendered as an integer without a decimal point; a value with a fractional part is rejected with the built-in value error; booleans are rejected with the built-in type error because they are not counts; a string is accepted only when, after trimming surrounding whitespace, it consists of an optional sign followed by digits, in which case it is treated as that integer, and any other string is rejected with the built-in value error; a negative value keeps exactly one leading minus sign directly before its digits, and an explicit plus sign is not rendered; digits are rendered plainly with no grouping separators regardless of size; the ordinal suffix is still chosen from the last two digits of the absolute value as it is today. Apply this policy to ordinalize in inflection/__init__.py and keep its signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

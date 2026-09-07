@@ -1,0 +1,56 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..22ad4a7985e4af646e09f3d1ec23665c84df1d89 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -144,6 +144,27 @@ def _irregular(singular: str, plural: str) -> None:
+         ))
+ 
+ 
++
++def _integer_value(value: typing.Any) -> int:
++    """
++    Coerce a count to an integer under the fork's number-rendering policy.
++    """
++    if isinstance(value, bool):
++        raise TypeError("booleans are not counts: %r" % (value,))
++    if isinstance(value, str):
++        text = value.strip()
++        if not re.fullmatch(r"[+-]?\d+", text):
++            raise ValueError("not an integer string: %r" % (value,))
++        return int(text)
++    if isinstance(value, float):
++        if not value.is_integer():
++            raise ValueError("count has a fractional part: %r" % (value,))
++        return int(value)
++    if isinstance(value, int):
++        return value
++    raise TypeError("unsupported count: %r" % (value,))
++
++
+ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+     """
+     Convert strings to CamelCase.
+@@ -236,6 +257,23 @@ def ordinal(number: int) -> str:
+         }.get(number % 10, "th")
+ 
+ 
++
++def ordinal_noun(position: typing.Any, noun: str) -> str:
++    """
++    Render a position as an ordinal followed by the singular form of a noun.
++
++    Examples::
++
++        >>> ordinal_noun(1, "octopi")
++        '1st octopus'
++        >>> ordinal_noun(22, "octopus")
++        '22nd octopus'
++
++    """
++    value = _integer_value(position)
++    return "{:,}{} {}".format(value, ordinal(value), singularize(noun))
++
++
+ def ordinalize(number: int) -> str:
+     """
+     Turn a number into an ordinal string used to denote the position in an

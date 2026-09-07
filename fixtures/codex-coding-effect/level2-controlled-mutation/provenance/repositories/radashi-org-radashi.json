@@ -1,0 +1,24 @@
+{
+  "baseCommit": "31f39282f83e82280dbed009d0443547167b70e0",
+  "baseTree": "525c4a2591eaa6ca59f9f6a79083ec38a881133b",
+  "canonicalUrl": "https://github.com/radashi-org/radashi",
+  "ecosystem": "bun",
+  "licenseSpdx": "MIT",
+  "notes": [
+    "Default branch main, cloned at HEAD with --depth 1; bundle contains the single HEAD commit (shallow). package.json version 12.2.0.",
+    "Entry is src/mod.ts (package.json main/exports point only at dist/; the source entry is declared by deno.json `exports` and tsup.config.ts `entry`). mod.ts is 174 lines of `export * from './<dir>/<fn>.ts'` (163 re-export specifiers, explicit .ts extensions).",
+    "LOAD-BEARING: 65 source files import from the bare specifier 'radashi' (package self-reference), resolved only via tsconfig.json compilerOptions.paths {\"radashi\": [\"./src/mod.ts\"]}. Bun honours tsconfig paths, so tsconfig.json must remain in the projection; without it the import fails. No other bare imports; no runtime dependencies in package.json.",
+    "166 runtime exports: 164 functions + 2 non-function objects (DefaultCloningStrategy, FastCloningStrategy) which are excluded from surface.json. surface.json also carries byDirectory grouping (11 dirs: array 35, async 14, curry 13, function 5, number 12, object 24, oop 6, random 6, series 1, string 12, typed 36)."
+  ],
+  "overlayFiles": [
+    "AGENTS.md",
+    "tests/base-health.test.ts"
+  ],
+  "projectedFileCount": 169,
+  "projectionPolicy": "source-only-no-upstream-tests-v1",
+  "repositoryId": "radashi-org-radashi",
+  "schemaVersion": 1,
+  "upstreamCommit": "aee417134d49eb814b7252b3949e2926ca443aa0",
+  "upstreamRef": "main (default branch HEAD)",
+  "upstreamTree": "bb0eb0298e0797c3b7d57cc1e73472b8e5883f3a"
+}

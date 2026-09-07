@@ -30,6 +30,14 @@ import {
   materializeC4SourceRepository,
 } from "./c4-controlled-dataset";
 import { validateC4ControlledPilotDataset } from "./c4-contracts";
+import {
+  expectedControlledPlanTopology,
+  resolveControlledDatasetProfile,
+} from "./controlled-dataset-profile";
+import type {
+  ControlledDatasetProfile,
+  ControlledPlanTopology,
+} from "./controlled-dataset-profile";
 import { auditC4SurfaceHiddenArtifactMatrix } from "./c4-leakage";
 import type {
   C4HiddenArtifact,
@@ -60,6 +68,7 @@ import {
 } from "./c6-flat-summary";
 import { EMPTY_FROZEN_PREHISTORY_SHA256 } from "./frozen-prehistory";
 
+import { clusterRowCounts } from "./c5-ledger";
 import type {
   C5BaselineArm,
   C5PilotArm,
@@ -72,6 +81,7 @@ import {
   C5_COMPARATOR_GENERATION_POLICY,
   C5_COMPARATOR_INJECTION_CAPS,
   c5PlanBaselineArm,
+  c5PlanStagesPerEpisode,
   serializeC5PilotPlan,
 } from "./c5-pilot-plan";
 import { verifyC5PilotPrerequisiteEvidence } from "./c5-readiness";
@@ -87,10 +97,19 @@ import {
 
 const CLAIM_BOUNDARY = "internal-native-longitudinal-pilot-only";
 const EVIDENCE_CLASS = "native-longitudinal-pilot";
-const C4_DATASET_ROOT = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../fixtures/codex-coding-effect/c4-controlled-pilot",
-);
+const REPOSITORY_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+
+function planProfile(plan: Pick<C5PilotPlan, "datasetId">): ControlledDatasetProfile {
+  return resolveControlledDatasetProfile(plan.datasetId);
+}
+
+function planTopology(plan: Pick<C5PilotPlan, "datasetId">): ControlledPlanTopology {
+  return expectedControlledPlanTopology(planProfile(plan));
+}
+
+function planDatasetRoot(plan: Pick<C5PilotPlan, "datasetId">): string {
+  return resolve(REPOSITORY_ROOT, planProfile(plan).datasetRootPath);
+}
 const REQUIRED_ALIAS_LABELS = [
   "current-runtime-auth",
   "evaluator-runner",
@@ -909,28 +928,32 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
     plan.frozenPrehistoryUse !== "leakage-audit-reference-only-never-seeded" ||
     plan.sessionPolicy !== "fresh-codex-process-no-resume-per-stage" ||
     plan.datasetSnapshotMode !== "asset-locked-copy" ||
-    plan.datasetId !== "codex-c4-controlled-pilot-v2" ||
+    typeof plan.datasetId !== "string" ||
     !Array.isArray(plan.arms) ||
     plan.arms.length !== 2 ||
     (plan.arms[0] !== "no-memory" && plan.arms[0] !== "flat-summary") ||
     plan.arms[1] !== "goodmemory-installed" ||
-    !sameStrings(plan.repetitions.map(String), ["1", "2"]) ||
     !sameStrings(plan.excludedHosts, ["claude-code"])
   ) {
+    throw new Error("C5 pilot plan changed its frozen claim or execution boundary");
+  }
+  const profile = planProfile(plan);
+  const topology = planTopology(plan);
+  if (!sameStrings(plan.repetitions.map(String), profile.repetitions.map(String))) {
     throw new Error("C5 pilot plan changed its frozen claim or execution boundary");
   }
   const baselineArm = c5PlanBaselineArm(plan);
   assertFrozenComparatorProtocol(plan, baselineArm);
   if (
     plan.counts.arms !== 2 ||
-    plan.counts.codexProcesses !== 72 ||
-    plan.counts.episodeArmRuns !== 24 ||
-    plan.counts.episodes !== 6 ||
-    plan.counts.repetitions !== 2 ||
-    plan.counts.stageRuns !== 72 ||
-    plan.counts.stages !== 18 ||
-    plan.clusters.length !== 12 ||
-    plan.episodeArmRuns.length !== 24 ||
+    plan.counts.codexProcesses !== topology.stageRuns ||
+    plan.counts.episodeArmRuns !== topology.episodeArmRuns ||
+    plan.counts.episodes !== profile.episodeCount ||
+    plan.counts.repetitions !== profile.repetitions.length ||
+    plan.counts.stageRuns !== topology.stageRuns ||
+    plan.counts.stages !== topology.stages ||
+    plan.clusters.length !== topology.clusters ||
+    plan.episodeArmRuns.length !== topology.episodeArmRuns ||
     plan.analysis.bootstrapSamples !== 10_000 ||
     plan.analysis.confidenceLevel !== 0.95 ||
     plan.analysis.power !== 0.8 ||
@@ -939,7 +962,9 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
     plan.analysis.materialEffectPercentagePoints < 1 ||
     plan.analysis.materialEffectPercentagePoints > 50
   ) {
-    throw new Error("C5 pilot plan does not have the exact 72-stage topology");
+    throw new Error(
+      `C5 pilot plan does not have the exact ${topology.stageRuns}-stage topology`,
+    );
   }
   for (const digest of Object.values(plan.bindings)) {
     assertSha256(digest, "C5 plan binding");
@@ -953,8 +978,9 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
     : "noMemoryFirstClusters";
   if (
     plan.randomization.algorithm !== "sha256-ranked-balanced-pair-order-v1" ||
-    plan.randomization.goodMemoryFirstClusters !== 6 ||
-    randomization[baselineFirstKey] !== 6 ||
+    plan.randomization.goodMemoryFirstClusters !==
+      topology.goodMemoryFirstClusters ||
+    randomization[baselineFirstKey] !== topology.goodMemoryFirstClusters ||
     absentFirstKey in randomization ||
     !Number.isSafeInteger(plan.randomization.orderSeed) ||
     plan.randomization.orderSeed <= 0
@@ -972,10 +998,10 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
   for (const cluster of plan.clusters) {
     if (
       cluster.id !== `${cluster.episodeId}/repetition-${cluster.repetition}` ||
-      (cluster.repetition !== 1 && cluster.repetition !== 2) ||
+      !profile.repetitions.includes(cluster.repetition) ||
       !Number.isSafeInteger(cluster.executionPosition) ||
       cluster.executionPosition < 1 ||
-      cluster.executionPosition > 12 ||
+      cluster.executionPosition > topology.clusters ||
       cluster.armOrder.length !== 2 ||
       new Set(cluster.armOrder).size !== 2 ||
       !cluster.armOrder.includes(baselineArm) ||
@@ -997,12 +1023,15 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
     episodeRepetitions.set(cluster.episodeId, repetitions);
   }
   if (
-    episodeRepetitions.size !== 6 ||
+    episodeRepetitions.size !== profile.episodeCount ||
     [...episodeRepetitions.values()].some((values) =>
-      values.size !== 2 || !values.has(1) || !values.has(2)
+      values.size !== profile.repetitions.length ||
+      profile.repetitions.some((repetition) => !values.has(repetition))
     )
   ) {
-    throw new Error("C5 plan must cover six episodes at both repetitions");
+    throw new Error(
+      `C5 plan must cover ${profile.episodeCount} episodes at every repetition`,
+    );
   }
   const expectedClusterBinding = sha256(JSON.stringify(plan.clusters.map(
     (cluster) => ({ armOrder: cluster.armOrder, id: cluster.id }),
@@ -1026,7 +1055,7 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
         run.executionPosition !==
           ((cluster.executionPosition - 1) * 2) + armIndex + 1 ||
         run.stateMode !== "canonical-snapshot" ||
-        run.stages.length !== 3 ||
+        run.stages.length !== profile.stagesPerEpisode ||
         runIds.has(run.id)
       ) {
         throw new Error(`invalid C5 episode-arm run ${run.id}`);
@@ -1076,7 +1105,10 @@ function assertFrozenPlan(plan: C5PilotPlan): void {
       }
     }
   }
-  if (runIds.size !== 24 || stageRunIds.size !== 72) {
+  if (
+    runIds.size !== topology.episodeArmRuns ||
+    stageRunIds.size !== topology.stageRuns
+  ) {
     throw new Error("C5 plan identities are incomplete");
   }
 }
@@ -1145,6 +1177,7 @@ async function verifyFrozenDatasetPlan(
   planBytes: string,
   prerequisiteEvidenceBytes: string,
 ): Promise<FrozenC5DatasetVerification> {
+  const datasetRoot = planDatasetRoot(plan);
   const readinessWorkspace = await mkdtemp(join(
     tmpdir(),
     "goodmemory-c5-c4-readiness-",
@@ -1158,7 +1191,7 @@ async function verifyFrozenDatasetPlan(
       baselineArm: c5PlanBaselineArm(plan),
       c4ReadinessWorkspaceRoot: join(readinessWorkspace, "core"),
       ...(comparator === undefined ? {} : { comparator }),
-      datasetRoot: C4_DATASET_ROOT,
+      datasetRoot: datasetRoot,
       materialEffectPercentagePoints:
         plan.analysis.materialEffectPercentagePoints,
       orderSeed: plan.randomization.orderSeed,
@@ -1173,7 +1206,7 @@ async function verifyFrozenDatasetPlan(
     );
   }
 
-  const loaded = await loadCodexCodingEffectDataset(C4_DATASET_ROOT);
+  const loaded = await loadCodexCodingEffectDataset(datasetRoot);
   const dataset = validateC4ControlledPilotDataset(loaded.dataset);
 
   const promptContents = new Map<string, string>();
@@ -1193,7 +1226,7 @@ async function verifyFrozenDatasetPlan(
           c4RepositoryIdForUrl(episode.repository.url),
         );
         const identity = await materializeC4SourceRepository({
-          datasetRoot: C4_DATASET_ROOT,
+          datasetRoot: datasetRoot,
           destination: repositoryRoot,
           repositoryId: c4RepositoryIdForUrl(episode.repository.url),
         });
@@ -1207,14 +1240,14 @@ async function verifyFrozenDatasetPlan(
         const prompt = buildC4BaselinePrompt({
           allowedFeedback: stage.allowedFeedback,
           prompt: await readFile(
-            join(C4_DATASET_ROOT, stage.promptPath),
+            join(datasetRoot, stage.promptPath),
             "utf8",
           ),
         });
         promptContents.set(key, prompt);
         promptSha256.set(key, sha256(prompt));
         leakageInputs.set(key, await buildC5StageLeakageInput({
-          datasetRoot: C4_DATASET_ROOT,
+          datasetRoot: datasetRoot,
           episode,
           repositoryRoot,
           stage,
@@ -1537,8 +1570,9 @@ function verifyStageExecutions(
   plan: C5PilotPlan,
   rows: Record<string, unknown>[],
 ): Map<string, Record<string, unknown>> {
-  if (rows.length !== 72) {
-    throw new Error("C5 stage ledger must contain exactly 72 rows");
+  const expectedRows = planTopology(plan).stageRuns;
+  if (rows.length !== expectedRows) {
+    throw new Error(`C5 stage ledger must contain exactly ${expectedRows} rows`);
   }
   const expected = new Map(plan.episodeArmRuns.flatMap((run) =>
     run.stages.map((stage) => [stage.id, { run, stage }] as const)
@@ -1711,8 +1745,9 @@ function verifyPairs(
   plan: C5PilotPlan,
   rows: Record<string, unknown>[],
 ): Map<string, Record<string, unknown>> {
-  if (rows.length !== 36) {
-    throw new Error("C5 pair ledger must contain exactly 36 rows");
+  const expectedRows = planTopology(plan).pairs;
+  if (rows.length !== expectedRows) {
+    throw new Error(`C5 pair ledger must contain exactly ${expectedRows} rows`);
   }
   const baselineArm = c5PlanBaselineArm(plan);
   const expected: Map<string, {
@@ -1780,6 +1815,10 @@ function verifyInterruptedAttempts(input: {
   rows: Record<string, unknown>[];
 }): void {
   const clusterIds = new Set(input.plan.clusters.map((cluster) => cluster.id));
+  // A partial cluster holds at most one cluster's worth of durable rows; the
+  // cluster shape (two stage rows and one pair per planned stage) comes from
+  // the frozen plan rather than a fixed count.
+  const perCluster = clusterRowCounts(input.plan);
   const attemptIds = new Set<string>();
   const safeArtifactNames = new Set([
     "agent.patch",
@@ -1865,8 +1904,8 @@ function verifyInterruptedAttempts(input: {
       "C5 interrupted cluster commit tail",
     );
     if (
-      stageRows.length > 6 ||
-      pairRows.length > 3
+      stageRows.length > perCluster.stageRuns ||
+      pairRows.length > perCluster.pairs
     ) {
       throw new Error("C5 interrupted attempt does not describe a partial cluster");
     }
@@ -1923,16 +1962,23 @@ function verifyClusterCommits(input: {
   if (input.rows.length !== input.plan.clusters.length) {
     throw new Error("C5 projection requires one cleanup-safe commit per cluster");
   }
+  const perCluster = planTopology(input.plan);
   for (const [index, row] of input.rows.entries()) {
     assertExactKeys(row, ["clusterId", "schemaVersion"], "C5 cluster commit");
     const cluster = input.plan.clusters[index];
-    const stages = input.stages.slice(index * 6, (index + 1) * 6);
-    const pairs = input.pairs.slice(index * 3, (index + 1) * 3);
+    const stages = input.stages.slice(
+      index * perCluster.stageRunsPerCluster,
+      (index + 1) * perCluster.stageRunsPerCluster,
+    );
+    const pairs = input.pairs.slice(
+      index * perCluster.pairsPerCluster,
+      (index + 1) * perCluster.pairsPerCluster,
+    );
     if (
       row.schemaVersion !== 1 ||
       row.clusterId !== cluster?.id ||
-      stages.length !== 6 ||
-      pairs.length !== 3 ||
+      stages.length !== perCluster.stageRunsPerCluster ||
+      pairs.length !== perCluster.pairsPerCluster ||
       stages.some((stage) => stage.clusterId !== row.clusterId) ||
       pairs.some((pair) => pair.clusterId !== row.clusterId)
     ) {
@@ -4951,7 +4997,7 @@ function verifyReport(input: {
     comparableCount: input.pairs.filter((pair) => pair.comparable === true).length,
     incomparableCount: outcomes.incomparable,
     outcomes,
-    scheduledCount: 36,
+    scheduledCount: input.plan.clusters.length * c5PlanStagesPerEpisode(input.plan),
   }, "C5 report pairs");
 
   const observedStages = installed.filter((stage) =>
@@ -5053,9 +5099,11 @@ function verifyReport(input: {
   const correlation = independentlyEstimateEpisodeCorrelation(comparablePairs);
   const materialEffectRate =
     input.plan.analysis.materialEffectPercentagePoints / 100;
+  const stagesPerEpisode = c5PlanStagesPerEpisode(input.plan);
   const powerAnalysis = independentlyBuildPowerAnalysis({
     materialEffectRate,
     observedWithinEpisodeCorrelation: correlation,
+    stagesPerEpisode,
   });
   assertExactRecord(
     input.report.powerAnalysis,
@@ -5064,10 +5112,10 @@ function verifyReport(input: {
   );
   assertExactRecord(input.report.fullSetBudget, {
     arms: 2,
-    codexCalls: powerAnalysis.requiredEpisodes * 3 * 2 * 3,
+    codexCalls: powerAnalysis.requiredEpisodes * stagesPerEpisode * 2 * 3,
     episodes: powerAnalysis.requiredEpisodes,
     repositories: 6,
-    scoredStages: powerAnalysis.requiredEpisodes * 3,
+    scoredStages: powerAnalysis.requiredEpisodes * stagesPerEpisode,
     seeds: 3,
   }, "C5 full-set budget");
 }
@@ -5216,6 +5264,7 @@ function independentlyEstimateEpisodeCorrelation(
 function independentlyBuildPowerAnalysis(input: {
   materialEffectRate: number;
   observedWithinEpisodeCorrelation: number;
+  stagesPerEpisode: number;
 }): {
   alpha: 0.05;
   designEffect: number;
@@ -5227,14 +5276,17 @@ function independentlyBuildPowerAnalysis(input: {
   power: 0.8;
   requiredEpisodes: number;
   seeds: 3;
-  stagesPerEpisode: 3;
+  stagesPerEpisode: number;
 } {
   const pairedObservationsBeforeClustering = Math.ceil((
     1.959963984540054 * Math.sqrt(0.5) +
     0.8416212335729143 * Math.sqrt(0.5 - input.materialEffectRate ** 2)
   ) ** 2 / input.materialEffectRate ** 2);
+  // Each full-set episode contributes one paired observation per scored stage
+  // per seed; the design effect and the episode floor follow that count.
+  const observationsPerEpisode = input.stagesPerEpisode * 3;
   const designEffect = 1 +
-    8 * input.observedWithinEpisodeCorrelation;
+    (observationsPerEpisode - 1) * input.observedWithinEpisodeCorrelation;
   return {
     alpha: 0.05,
     designEffect,
@@ -5246,10 +5298,13 @@ function independentlyBuildPowerAnalysis(input: {
     power: 0.8,
     requiredEpisodes: Math.max(
       30,
-      Math.ceil(pairedObservationsBeforeClustering * designEffect / 9),
+      Math.ceil(
+        pairedObservationsBeforeClustering * designEffect /
+          observationsPerEpisode,
+      ),
     ),
     seeds: 3,
-    stagesPerEpisode: 3,
+    stagesPerEpisode: input.stagesPerEpisode,
   };
 }
 

@@ -1,0 +1,2 @@
+{"payload":{"content":[{"text":"Add the constant-path and table-name helpers to this fork as four separate, self-contained tasks.","type":"input_text"}],"role":"user","type":"message"},"type":"response_item"}
+{"payload":{"content":[{"text":"Recorded four independent helper tasks, each fully specified by its own prompt.","type":"output_text"}],"role":"assistant","type":"message"},"type":"response_item"}

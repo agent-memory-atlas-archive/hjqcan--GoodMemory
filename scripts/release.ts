@@ -55,6 +55,7 @@ export async function runReleaseCli(
   archivePath?: string;
   integrity?: string;
   manifestPath?: string;
+  pluginArchivePath?: string;
   summaryPath?: string;
   tarballPath?: string;
 }> {
@@ -69,11 +70,15 @@ export async function runReleaseCli(
   const tarball = result.manifest.artifacts.find(
     (artifact) => artifact.id === "release-tarball",
   );
+  const pluginArchive = result.manifest.artifacts.find(
+    (artifact) => artifact.id === "kimi-plugin-archive",
+  );
   return {
     allRequiredPassed: result.manifest.allRequiredPassed,
     archivePath: result.archivePath,
     integrity: tarball?.integrity,
     manifestPath: result.manifestPath,
+    pluginArchivePath: pluginArchive ? resolve(options.outputDir, pluginArchive.path) : undefined,
     summaryPath: result.summaryPath,
     tarballPath: result.tarballPath,
   };

@@ -1,0 +1,48 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..2955d1ad8eeddc9e09c7c5591249eb79c22fdf65 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -192,11 +192,12 @@ export function withTrailingSlash(
+   input = "",
+   respectQueryAndFragment?: boolean,
+ ): string {
+-  if (!respectQueryAndFragment) {
+-    return input.endsWith("/") ? input : input + "/";
++  void respectQueryAndFragment;
++  if (!input) {
++    return "/";
+   }
+-  if (hasTrailingSlash(input, true)) {
+-    return input || "/";
++  if (input.startsWith("//") || input.startsWith("#")) {
++    return input;
+   }
+   let path = input;
+   let fragment = "";
+@@ -204,12 +205,21 @@ export function withTrailingSlash(
+   if (fragmentIndex !== -1) {
+     path = input.slice(0, fragmentIndex);
+     fragment = input.slice(fragmentIndex);
+-    if (!path) {
+-      return fragment;
+-    }
+   }
+-  const [s0, ...s] = path.split("?");
+-  return s0 + "/" + (s.length > 0 ? `?${s.join("?")}` : "") + fragment;
++  let query = "";
++  const queryIndex = path.indexOf("?");
++  if (queryIndex !== -1) {
++    query = path.slice(queryIndex);
++    path = path.slice(0, queryIndex);
++  }
++  if (path.endsWith("/")) {
++    return input;
++  }
++  const lastSegment = path.slice(path.lastIndexOf("/") + 1);
++  if (lastSegment.includes(".")) {
++    return input;
++  }
++  return path + "/" + query + fragment;
+ }
+ 
+ /**

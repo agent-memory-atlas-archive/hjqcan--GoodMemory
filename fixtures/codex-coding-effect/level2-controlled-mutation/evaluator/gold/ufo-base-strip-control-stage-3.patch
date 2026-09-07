@@ -1,0 +1,21 @@
+diff --git a/src/parse.ts b/src/parse.ts
+index b2a2e7e03e14976f33e999eca25c04939b2f91aa..23984f6ce18ae2e57f71e0985ec9779b0c5d6a6f 100644
+--- a/src/parse.ts
++++ b/src/parse.ts
+@@ -131,10 +131,13 @@ export function parsePath(input = ""): ParsedPath {
+  * @returns An object with two properties: username and password.
+  */
+ export function parseAuth(input = ""): ParsedAuth {
+-  const [username, password] = input.split(":");
++  const text = input.trim().replace(/^@+|@+$/g, "");
++  const colonIndex = text.indexOf(":");
++  const username = colonIndex === -1 ? text : text.slice(0, colonIndex);
++  const password = colonIndex === -1 ? "" : text.slice(colonIndex + 1);
+   return {
+-    username: decode(username),
+-    password: decode(password),
++    username: decode(username.trim()),
++    password: decode(password.trim()),
+   };
+ }
+ 

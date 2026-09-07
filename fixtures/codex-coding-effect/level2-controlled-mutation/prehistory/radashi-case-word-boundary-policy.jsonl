@@ -1,0 +1,2 @@
+{"payload":{"content":[{"text":"The case converters in this fork need one shared rule set for where words begin and end. Establish it on the first converter, then apply it to its siblings later without changing exported signatures.","type":"input_text"}],"role":"user","type":"message"},"type":"response_item"}
+{"payload":{"content":[{"text":"Recorded that the first task establishes the word-boundary policy that the other case converters must follow.","type":"output_text"}],"role":"assistant","type":"message"},"type":"response_item"}

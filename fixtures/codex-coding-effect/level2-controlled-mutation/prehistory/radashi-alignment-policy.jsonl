@@ -1,0 +1,2 @@
+{"payload":{"content":[{"text":"The grouping helpers in this fork need one rule for how groups line up. Establish it on cluster; the team may revise a rule later, and the siblings must follow whatever is current.","type":"input_text"}],"role":"user","type":"message"},"type":"response_item"}
+{"payload":{"content":[{"text":"Recorded that the first task establishes the alignment policy, that a later session may supersede one rule, and that the sibling helpers must follow the updated policy.","type":"output_text"}],"role":"assistant","type":"message"},"type":"response_item"}

@@ -1,0 +1,5 @@
+# Python utility task
+
+Establish the metric-prefix policy for this fork and apply it to metric in src/humanize/number.py. Project policy: a percent sign or a per-mille sign given as the unit attaches directly to the amount with no space, exactly as the degree family already does; a numeric string is accepted and converted before the prefix is chosen, ignoring surrounding whitespace and accepting underscores between digits; input that cannot be converted comes back as its text form instead of raising; booleans come back as their text form; zero keeps rendering with no prefix; values beyond the prefix table keep falling back to scientific notation; a negative value keeps its sign in front of the amount; the unit argument is never trimmed or altered, and an empty unit leaves the amount and prefix rendering as they are today; the precision argument keeps its meaning as the total number of digits shown. Keep the exported signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

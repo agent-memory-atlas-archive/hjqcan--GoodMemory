@@ -1,7 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, relative, resolve } from "node:path";
 
 const REPOSITORY_ROOT = resolve(import.meta.dir, "../..");
 const EVIDENCE_ROOT = join(
@@ -26,6 +26,33 @@ const ARTIFACT_SHA256 = {
 // history injected at the same placements. Its tracked evidence binds the
 // negative answer and keeps every public-claim flag false.
 describe("Codex coding-effect C5 flat-summary comparator tracked evidence", () => {
+  it("keeps only the five frozen comparator summaries eligible for source control", async () => {
+    const evidenceRoot = relative(REPOSITORY_ROOT, EVIDENCE_ROOT);
+    const checkIgnored = async (paths: string[]) => {
+      const child = Bun.spawn(["git", "check-ignore", "--no-index", ...paths], {
+        cwd: REPOSITORY_ROOT,
+        stderr: "pipe",
+        stdout: "pipe",
+      });
+      const [exitCode, stderr, stdout] = await Promise.all([
+        child.exited,
+        new Response(child.stderr).text(),
+        new Response(child.stdout).text(),
+      ]);
+      return { exitCode, stderr, stdout };
+    };
+    const summaries = Object.keys(ARTIFACT_SHA256).map((name) => join(evidenceRoot, name));
+    expect(await checkIgnored(summaries)).toEqual({ exitCode: 1, stderr: "", stdout: "" });
+
+    const excluded = ["raw/transcript.jsonl", "runner-source-state.json", "unexpected.json"]
+      .map((name) => join(evidenceRoot, name));
+    expect(await checkIgnored(excluded)).toEqual({
+      exitCode: 0,
+      stderr: "",
+      stdout: `${excluded.join("\n")}\n`,
+    });
+  });
+
   it("binds the gate-accepted comparator run and its null effect without a public claim", async () => {
     const artifacts = new Map<string, string>();
     for (const [name, expectedSha256] of Object.entries(ARTIFACT_SHA256)) {

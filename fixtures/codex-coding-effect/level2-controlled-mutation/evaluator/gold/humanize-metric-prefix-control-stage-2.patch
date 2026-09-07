@@ -1,0 +1,75 @@
+diff --git a/src/humanize/__init__.py b/src/humanize/__init__.py
+index 6fb9959379d7469d7c5f5d06a6a5d1e51e680939..e26391ee81432a49b83e930e289d9603628149db 100644
+--- a/src/humanize/__init__.py
++++ b/src/humanize/__init__.py
+@@ -12,6 +12,7 @@ from humanize.number import (
+     intcomma,
+     intword,
+     metric,
++    natural_percent,
+     ordinal,
+     scientific,
+ )
+@@ -37,6 +38,7 @@ __all__ = [
+     "intword",
+     "metric",
+     "natural_list",
++    "natural_percent",
+     "naturaldate",
+     "naturalday",
+     "naturaldelta",
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..42affa05d60bede5dbddf569ffa35e33f568979b 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -387,6 +387,50 @@ def fractional(value: NumberOrString) -> str:
+     return f"{whole_number:.0f} {numerator:.0f}/{denominator:.0f}"
+ 
+ 
++def natural_percent(value: NumberOrString, precision: int = 0) -> str:
++    """Render a ratio of one as a percentage.
++
++    Examples:
++        ```pycon
++        >>> natural_percent(0.25)
++        '25%'
++        >>> natural_percent(0.3333, 1)
++        '33.3%'
++        >>> natural_percent("foo")
++        'foo'
++
++        ```
++
++    Args:
++        value (int, float, str): Ratio of one to convert.
++        precision (int): Largest number of decimals to keep.
++
++    Returns:
++        str: The percentage with a percent sign, or `str(value)` when it is not
++            a number.
++    """
++    import math
++    from decimal import ROUND_HALF_UP, Decimal, localcontext
++
++    try:
++        number = float(value)
++        if not math.isfinite(number):
++            return _format_not_finite(number)
++    except (TypeError, ValueError):
++        return str(value)
++    with localcontext() as context:
++        context.prec = 100
++        rounded = (Decimal(repr(number)) * 100).quantize(
++            Decimal(1).scaleb(-int(precision)), rounding=ROUND_HALF_UP
++        )
++        text = "{:f}".format(rounded)
++    if "." in text:
++        text = text.rstrip("0").rstrip(".")
++    if text.lstrip("-").replace(".", "").strip("0") == "":
++        text = "0"
++    return f"{text}%"
++
++
+ def scientific(value: NumberOrString, precision: int = 2) -> str:
+     """Return number in string scientific notation z.wq x 10ⁿ.
+ 

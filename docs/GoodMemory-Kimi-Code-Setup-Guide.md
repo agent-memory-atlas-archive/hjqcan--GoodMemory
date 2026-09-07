@@ -47,9 +47,37 @@ activate the managed copy with either:
 
 or start a clean session with `/new`.
 
+### Upcoming 0.8 plugin-only ZIP (not yet published)
+
+The 0.8 release preparation produces `goodmemory-kimi-plugin-0.8.0.zip` as
+a separate, manifest-hashed release asset. It contains only the plugin
+manifest, license, Skill, and four commands; the MCP runtime remains pinned
+to the same npm version. After publication, the version-specific install
+command will be:
+
+```text
+/plugins install https://github.com/hjqcan/GoodMemory/releases/download/v0.8.0/goodmemory-kimi-plugin-0.8.0.zip
+```
+
+Do not use this URL before the asset exists. The local development archive
+has passed native Kimi 0.41.0 ZIP-URL installation, trust, byte-preserving
+managed-copy, reload, and nine-tool MCP checks over loopback HTTP. This is
+not verification of a public 0.8 download. Bare GitHub source installation
+has separately timed out in the test environment; that failure remains
+recorded rather than being treated as a successful onboarding flow.
+
+The candidate allows up to 300 seconds for MCP startup (including `npx`
+dependency installation). This is a timeout budget, not a promise about
+network speed. It does not change Kimi's per-tool approval policy.
+
 Kimi Code installs plugins at user-level, so the plugin is available in all
-projects for that OS user. GoodMemory still derives a separate workspace scope
-from the current project absolute path supplied to every tool call.
+projects for that OS user. Pass the current project absolute path to every
+tool call. The published 0.7.5 runtime nevertheless derives only its basename:
+two different paths named `project-a` collide. Do not treat them as isolated
+without distinct explicit workspace IDs. The unpublished 0.8 candidate fixes
+the default with an absolute-path fingerprint; it does not migrate old scopes
+or rewrite existing IDs. See the
+[workspace migration boundary](./GoodMemory-0.7-to-0.8-Migration-Guide.md#default-workspace-identity).
 
 ## Verify
 

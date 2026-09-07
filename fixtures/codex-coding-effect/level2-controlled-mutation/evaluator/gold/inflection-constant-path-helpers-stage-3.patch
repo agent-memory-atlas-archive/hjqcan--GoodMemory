@@ -1,0 +1,31 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..f6b1cb4603d3f2accf5fa9186fc367c40e0deff4 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -183,6 +183,26 @@ def dasherize(word: str) -> str:
+     return word.replace('_', '-')
+ 
+ 
++
++def foreign_key(word: str,
++                separate_class_name_and_id_with_underscore: bool = True) -> str:
++    """
++    Create a foreign key name from a class name.
++
++    Examples::
++
++        >>> foreign_key("Widgets::Frobnicator")
++        'frobnicator_id'
++        >>> foreign_key("Frobnicator", False)
++        'frobnicatorid'
++
++    """
++    name = underscore(word.rsplit('::', 1)[-1])
++    if separate_class_name_and_id_with_underscore:
++        return name + '_id'
++    return name + 'id'
++
++
+ def humanize(word: str) -> str:
+     """
+     Capitalize the first word and turn underscores into spaces and strip a

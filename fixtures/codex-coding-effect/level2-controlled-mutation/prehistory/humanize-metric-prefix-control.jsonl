@@ -1,0 +1,2 @@
+{"payload":{"content":[{"text":"Start with the SI-prefix formatter policy for this fork. The tasks after it touch other helpers and each carries its own small rule set; nothing from the prefix policy should bleed into them.","type":"input_text"}],"role":"user","type":"message"},"type":"response_item"}
+{"payload":{"content":[{"text":"Recorded that the first task establishes the metric-prefix policy and that the later tasks are self-contained and unrelated to it.","type":"output_text"}],"role":"assistant","type":"message"},"type":"response_item"}

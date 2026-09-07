@@ -82,6 +82,7 @@ import {
   parseC5HostEnvironment,
 } from "./c5-host-environment";
 import { buildC5StageLeakageInput } from "./c5-leakage-input";
+import { controlledRepositoryManifestFile } from "./controlled-dataset-profile";
 import type {
   C5LivePilotAdapter,
   C5LivePilotHandle,
@@ -1408,7 +1409,10 @@ function buildTaskDeniedReadProbes(input: {
     },
     {
       label: "other-arm-workspace",
-      path: join(input.other.plan.paths.workspace, "package.json"),
+      path: join(
+        input.other.plan.paths.workspace,
+        controlledRepositoryManifestFile(input.other.episode.ecosystem),
+      ),
     },
     {
       label: "output-root",
@@ -1422,7 +1426,10 @@ function buildTaskDeniedReadProbes(input: {
     { label: "runner-source", path: RUNNER_SOURCE_FILE },
     {
       label: "source-repository",
-      path: join(input.state.repository.path, "package.json"),
+      path: join(
+        input.state.repository.path,
+        controlledRepositoryManifestFile(input.state.episode.ecosystem),
+      ),
     },
   ];
 }
@@ -1455,7 +1462,10 @@ function buildTaskAliasReadTargets(input: {
     },
     {
       label: "other-arm-workspace",
-      path: join(input.other.plan.paths.workspace, "package.json"),
+      path: join(
+        input.other.plan.paths.workspace,
+        controlledRepositoryManifestFile(input.other.episode.ecosystem),
+      ),
     },
   ];
 }

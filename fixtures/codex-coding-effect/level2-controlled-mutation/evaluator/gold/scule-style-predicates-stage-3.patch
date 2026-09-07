@@ -1,0 +1,37 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..fdf8c8217facfcaf9995c5e3f3881e3abb3dd881 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -88,6 +88,8 @@ export function lowerFirst<S extends string>(str: S): Uncapitalize<S> {
+   return (str ? str[0].toLowerCase() + str.slice(1) : "") as Uncapitalize<S>;
+ }
+ 
++const PASCAL_SEPARATOR_RE = /[^\p{L}\p{N}]+/u;
++
+ export function pascalCase(): "";
+ export function pascalCase<
+   T extends string | readonly string[],
+@@ -97,11 +99,18 @@ export function pascalCase<
+   T extends string | readonly string[],
+   UserCaseOptions extends CaseOptions = CaseOptions,
+ >(str?: T, opts?: UserCaseOptions) {
+-  return str
+-    ? ((Array.isArray(str) ? str : splitByCase(str as string))
+-        .map((p) => upperFirst(opts?.normalize ? p.toLowerCase() : p))
+-        .join("") as PascalCase<T, UserCaseOptions["normalize"]>)
+-    : "";
++  if (!str) {
++    return "";
++  }
++  const words = Array.isArray(str)
++    ? [...str]
++    : (str as string)
++        .split(PASCAL_SEPARATOR_RE)
++        .flatMap((chunk) => splitByCase(chunk, []));
++  return words
++    .filter(Boolean)
++    .map((p) => upperFirst(opts?.normalize ? p.toLowerCase() : p))
++    .join("") as PascalCase<T, UserCaseOptions["normalize"]>;
+ }
+ 
+ export function camelCase(): "";

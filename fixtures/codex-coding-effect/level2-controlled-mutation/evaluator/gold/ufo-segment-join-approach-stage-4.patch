@@ -1,0 +1,74 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..38c46258f525a347093cf959369903e3f1b7af9e 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -442,6 +442,37 @@ export function joinURL(base: string, ...input: string[]): string {
+   return url;
+ }
+ 
++/**
++ * Joins multiple URL segments into a single URL and also handles relative paths with `./` and `../`.
++ *
++ * @example
++ *
++ * ```js
++ * joinRelativeURL("/a", "../b", "./c"); // "/b/c"
++ * ```
++ *
++ * @group utils
++ */
++const JOIN_TAIL_RE = /[?#]/;
++const JOIN_PROTOCOL_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
++
++interface PreparedSegment {
++  absolute: boolean;
++  path: string;
++  tail: string;
++}
++
++function prepareJoinSegment(segment: string): PreparedSegment {
++  const trimmed = (segment || "").trim().replace(/\\/g, "/");
++  const tailIndex = trimmed.search(JOIN_TAIL_RE);
++  const rawPath = tailIndex === -1 ? trimmed : trimmed.slice(0, tailIndex);
++  const tail = tailIndex === -1 ? "" : trimmed.slice(tailIndex);
++  const protocolMatch = rawPath.match(JOIN_PROTOCOL_RE);
++  const prefix = protocolMatch ? protocolMatch[0] : "";
++  const path = prefix + rawPath.slice(prefix.length).replace(/\/{2,}/g, "/");
++  return { absolute: prefix.length > 0, path, tail };
++}
++
+ /**
+  * Joins multiple URL segments into a single URL and also handles relative paths with `./` and `../`.
+  *
+@@ -457,7 +488,21 @@ export function joinRelativeURL(..._input: string[]): string {
+   // Inlined regex to increase browser compatibility
+   const JOIN_SEGMENT_SPLIT_RE = /\/(?!\/)/;
+ 
+-  const input = _input.filter(Boolean);
++  const input: string[] = [];
++  let tail = "";
++  for (const raw of _input) {
++    const prepared = prepareJoinSegment(raw);
++    if (prepared.tail) {
++      tail = prepared.tail;
++    }
++    if (!prepared.path) {
++      continue;
++    }
++    if (prepared.absolute) {
++      input.length = 0;
++    }
++    input.push(prepared.path);
++  }
+ 
+   const segments: string[] = [];
+ 
+@@ -509,7 +554,7 @@ export function joinRelativeURL(..._input: string[]): string {
+     url += "/";
+   }
+ 
+-  return url;
++  return url + tail;
+ }
+ 
+ /**

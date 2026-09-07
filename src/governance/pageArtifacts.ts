@@ -104,8 +104,9 @@ function renderPage(note: NoteMemory): string {
     "---",
     "",
   ];
-  const body = note.body.endsWith("\n") ? note.body : `${note.body}\n`;
-  return `${lines.join("\n")}\n${body}`;
+  // Body bytes are canonical data. Appending even one newline can make a
+  // valid 8192-byte note impossible to import under the same byte limit.
+  return `${lines.join("\n")}\n${note.body}`;
 }
 
 function listingLabel(title: string): string {

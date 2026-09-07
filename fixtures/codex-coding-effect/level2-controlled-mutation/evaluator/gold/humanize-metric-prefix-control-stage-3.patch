@@ -1,0 +1,21 @@
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..55e9d51391d28144029f63b8d3801aef457674e1 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -508,6 +508,16 @@ def clamp(
+     if value is None:
+         return None
+ 
++    if isinstance(value, str):
++        try:
++            value = float(value)
++        except ValueError:
++            return value
++
++    if floor is not None and ceil is not None and floor > ceil:
++        msg = "floor must not be above ceil."
++        raise ValueError(msg)
++
+     if not math.isfinite(value):
+         return _format_not_finite(value)
+ 

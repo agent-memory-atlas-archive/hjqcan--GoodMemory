@@ -1,0 +1,38 @@
+diff --git a/src/array/zip.ts b/src/array/zip.ts
+index 02b2f8a66782f38ef03328eccd9a6f489cde8d6b..515e963184f30d161cc5839f65bcf1b60af540e1 100644
+--- a/src/array/zip.ts
++++ b/src/array/zip.ts
+@@ -1,10 +1,12 @@
+-import { unzip } from 'radashi'
+-
+ /**
+  * Creates an array of grouped elements, the first of which contains
+  * the first elements of the given arrays, the second of which
+  * contains the second elements of the given arrays, and so on.
+  *
++ * Under the alignment policy the output stops at the length of the
++ * shortest input array, so incomplete groups are dropped, and a
++ * nullish input array counts as empty.
++ *
+  * @see https://radashi.js.org/reference/array/zip
+  * @example
+  * ```ts
+@@ -36,5 +38,17 @@ export function zip<T1, T2>(
+   array2: readonly T2[],
+ ): [T1, T2][]
+ export function zip<T>(...arrays: (readonly T[])[]): T[][] {
+-  return unzip(arrays)
++  if (arrays.length === 0) {
++    return []
++  }
++  const lists = arrays.map(list => list ?? [])
++  let width = Number.POSITIVE_INFINITY
++  for (const list of lists) {
++    width = Math.min(width, list.length)
++  }
++  const out: T[][] = []
++  for (let index = 0; index < width; index++) {
++    out.push(lists.map(list => list[index]))
++  }
++  return out
+ }

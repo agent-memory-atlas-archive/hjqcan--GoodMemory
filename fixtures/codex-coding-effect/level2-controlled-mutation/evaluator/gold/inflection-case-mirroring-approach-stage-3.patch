@@ -1,0 +1,26 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..ba22231f2e07594c458d51b0aa92bdb5454e8318 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -171,8 +171,9 @@ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+         return string[0].lower() + camelize(string)[1:]
+ 
+ 
++
+ def dasherize(word: str) -> str:
+-    """Replace underscores with dashes in the string.
++    """Replace underscore and whitespace runs with single dashes.
+ 
+     Example::
+ 
+@@ -180,7 +181,9 @@ def dasherize(word: str) -> str:
+         'puni-puni'
+ 
+     """
+-    return word.replace('_', '-')
++    word = re.sub(r"[\s_]+", "-", word)
++    word = re.sub(r"-{2,}", "-", word)
++    return word.strip("-")
+ 
+ 
+ def humanize(word: str) -> str:

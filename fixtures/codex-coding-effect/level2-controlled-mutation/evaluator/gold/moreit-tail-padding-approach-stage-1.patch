@@ -1,0 +1,57 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index dacf61407d454907d661edde2d774bee11cec92a..e0a111b97f847671be4f0b6471885c019087cf46 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -405,11 +405,11 @@ def grouper(iterable, n, incomplete='fill', fillvalue=None):
+     The keyword arguments *incomplete* and *fillvalue* control what happens for
+     iterables whose length is not a multiple of *n*.
+ 
+-    When *incomplete* is `'fill'`, the last group will contain instances of
+-    *fillvalue*.
++    When *incomplete* is `'fill'`, the last group is padded at the front with
++    instances of *fillvalue*, so the real items end the group.
+ 
+     >>> list(grouper('ABCDEFG', 3, incomplete='fill', fillvalue='x'))
+-    [('A', 'B', 'C'), ('D', 'E', 'F'), ('G', 'x', 'x')]
++    [('A', 'B', 'C'), ('D', 'E', 'F'), ('x', 'x', 'G')]
+ 
+     When *incomplete* is `'ignore'`, the last group will not be emitted.
+ 
+@@ -424,16 +424,29 @@ def grouper(iterable, n, incomplete='fill', fillvalue=None):
+     ...
+     UnequalIterablesError
+ 
++    A group size below one raises ``ValueError``, and an empty iterable
++    yields no groups in any mode.
+     """
+-    iterators = [iter(iterable)] * n
+-    if incomplete == 'fill':
+-        return zip_longest(*iterators, fillvalue=fillvalue)
+-    if incomplete == 'strict':
+-        return _zip_equal(*iterators)
+-    if incomplete == 'ignore':
+-        return zip(*iterators)
+-    else:
++    if incomplete not in ('fill', 'strict', 'ignore'):
+         raise ValueError('Expected fill, strict, or ignore')
++    if n < 1:
++        raise ValueError('n must be at least one')
++    return _grouper_tail_padded(iter(iterable), n, incomplete, fillvalue)
++
++
++def _grouper_tail_padded(iterator, n, incomplete, fillvalue):
++    while True:
++        group = tuple(islice(iterator, n))
++        if not group:
++            return
++        if len(group) == n:
++            yield group
++            continue
++        if incomplete == 'fill':
++            yield (fillvalue,) * (n - len(group)) + group
++        elif incomplete == 'strict':
++            raise UnequalIterablesError()
++        return
+ 
+ 
+ def roundrobin(*iterables):

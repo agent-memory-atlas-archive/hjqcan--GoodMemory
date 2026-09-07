@@ -1,0 +1,26 @@
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..e42b6a2d2f7a24bbe0213ef2aaca942dc04d7823 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -570,6 +570,12 @@ def metric(value: float, unit: str = "", precision: int = 3) -> str:
+     """
+     import math
+ 
++    if isinstance(value, bool):
++        return str(value)
++    try:
++        value = float(value)
++    except (TypeError, ValueError):
++        return str(value)
+     if not math.isfinite(value):
+         return _format_not_finite(value)
+     exponent = int(math.floor(math.log10(abs(value)))) if value != 0 else 0
+@@ -585,7 +591,7 @@ def metric(value: float, unit: str = "", precision: int = 3) -> str:
+     else:
+         ordinal_ = ""
+     value_ = format(value, f".{int(max(0, precision - exponent % 3 - 1))}f")
+-    if not (unit or ordinal_) or unit in ("°", "′", "″"):
++    if not (unit or ordinal_) or unit in ("°", "′", "″", "%", "‰"):
+         space = ""
+     else:
+         space = " "

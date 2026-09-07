@@ -1,0 +1,42 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..0b03c396de63c392bdc40626a98ec1babd847163 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -316,22 +316,30 @@ export function withBase(input: string, base: string) {
+  * @group utils
+  */
+ export function withoutBase(input: string, base: string) {
+-  if (isEmptyURL(base)) {
++  const _base = withoutTrailingSlash((base || "").trim());
++  if (isEmptyURL(_base)) {
+     return input;
+   }
+-  const _base = withoutTrailingSlash(base);
+-  if (!input.startsWith(_base)) {
++  if (hasProtocol(input, { acceptRelative: true })) {
++    return input;
++  }
++  if (!input.toLowerCase().startsWith(_base.toLowerCase())) {
+     return input;
+   }
+   // Ensure '/admin-dashboard' is not considered as having base '/admin/'
+   const nextChar = input[_base.length];
+-  if (nextChar && nextChar !== "/" && nextChar !== "?") {
++  if (nextChar && nextChar !== "/" && nextChar !== "?" && nextChar !== "#") {
+     return input;
+   }
+   // Collapse leading slashes to prevent protocol-relative URL injection
+-  // e.g. withoutBase("/legacy//evil.com", "/legacy") must not return "//evil.com"
+-  const trimmed = input.slice(_base.length).replace(/^\/+/, "");
+-  return "/" + trimmed;
++  const remainder = input.slice(_base.length).replace(/^\/+/, "");
++  const tailIndex = remainder.search(/[?#]/);
++  let path = tailIndex === -1 ? remainder : remainder.slice(0, tailIndex);
++  const tail = tailIndex === -1 ? "" : remainder.slice(tailIndex);
++  if (path.endsWith("/")) {
++    path = path.slice(0, -1);
++  }
++  return "/" + path + tail;
+ }
+ 
+ /**

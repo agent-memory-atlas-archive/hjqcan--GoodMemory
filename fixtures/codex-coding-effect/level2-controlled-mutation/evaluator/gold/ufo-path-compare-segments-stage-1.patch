@@ -1,0 +1,58 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..675ddd4577519159d43308d01ba623d539fa533d 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -662,6 +662,41 @@ export function resolveURL(base = "", ...inputs: string[]): string {
+   return stringifyParsedURL(url);
+ }
+ 
++/**
++ * Check if two paths are equal or not. Trailing slash and encoding are normalized before comparison.
++ *
++ * @example
++ * ```js
++ * isSamePath("/foo", "/foo/"); // true
++ * ```
++ *
++ * @group utils
++ */
++interface ComparablePath {
++  leading: boolean;
++  segments: string[];
++  trailing: boolean;
++}
++
++function comparablePath(input: string, decodeSegments: boolean): ComparablePath {
++  const text = input || "";
++  const tailIndex = text.search(/[?#]/);
++  const path = tailIndex === -1 ? text : text.slice(0, tailIndex);
++  const segments = path
++    .split("/")
++    .filter((segment) => segment !== "" && segment !== ".")
++    .map((segment) => (decodeSegments ? decode(segment) : segment));
++  return {
++    leading: path.startsWith("/"),
++    segments,
++    trailing: path.length > 1 && path.endsWith("/"),
++  };
++}
++
++function sameSegments(a: readonly string[], b: readonly string[]): boolean {
++  return a.length === b.length && a.every((segment, index) => segment === b[index]);
++}
++
+ /**
+  * Check if two paths are equal or not. Trailing slash and encoding are normalized before comparison.
+  *
+@@ -673,7 +708,10 @@ export function resolveURL(base = "", ...inputs: string[]): string {
+  * @group utils
+  */
+ export function isSamePath(p1: string, p2: string) {
+-  return decode(withoutTrailingSlash(p1)) === decode(withoutTrailingSlash(p2));
++  return sameSegments(
++    comparablePath(p1, true).segments,
++    comparablePath(p2, true).segments,
++  );
+ }
+ 
+ interface CompareURLOptions {

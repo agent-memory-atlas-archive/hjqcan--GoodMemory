@@ -1,0 +1,24 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index dacf61407d454907d661edde2d774bee11cec92a..e269621936854c9c2b2fd5ec3ce24b17663597bd 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -1015,10 +1015,17 @@ def transpose(it):
+     >>> list(transpose([(1, 2, 3), (11, 22, 33)]))
+     [(1, 11), (2, 22), (3, 33)]
+ 
+-    The caller should ensure that the dimensions of the input are compatible.
++    Every row must have the same length; rows of different lengths raise
++    ``ValueError`` when :func:`transpose` is called.
+     If the input is empty, no output will be produced.
+     """
+-    return _zip_strict(*it)
++    rows = [tuple(row) for row in it]
++    if not rows:
++        return iter(())
++    width = len(rows[0])
++    if any(len(row) != width for row in rows):
++        raise ValueError('rows must have the same length')
++    return zip(*rows)
+ 
+ 
+ def _is_scalar(value, stringlike=(str, bytes)):

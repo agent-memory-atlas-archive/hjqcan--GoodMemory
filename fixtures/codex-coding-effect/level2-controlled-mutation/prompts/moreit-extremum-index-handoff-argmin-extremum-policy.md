@@ -1,0 +1,5 @@
+# Python utility task
+
+First part of the extremum-index change in more_itertools/more.py. Project policy for argmin and argmax: a None item is skipped, it can never be the answer, but it keeps its position so the returned index refers to the original input; when several items share the extreme value, the index of the last one is returned; text items are compared case-insensitively (case-folded), the original index is returned, and a tie after folding follows the last-wins rule; an empty input, or one holding only None, raises ValueError; mixed numbers and text raise TypeError as they do today, with no coercion; the key argument, when given, is applied before all of the above. Apply the policy to argmin now and keep its signature unchanged. Deferred next step for a later session: argmax has not been touched yet and must get the mirror-image treatment under exactly this policy (same skipping, same last-wins tie rule, same folding, same errors).
+
+Keep the implementation dependency-free and run the visible test.

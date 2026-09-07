@@ -46,6 +46,7 @@ import type { PageChunk, ParsedPage } from "../interchange/pages";
 import { describeInvalidDurable } from "../interchange/durableEnvelope";
 import type { LanguageService } from "../language";
 import type { GoodMemoryPolicyHooks, PolicyContext } from "../policy/hooks";
+import { rollbackRememberWrites } from "../remember/vectorOps";
 import type { DocumentStore } from "../storage/contracts";
 import type { RememberVectorPort } from "../storage/ports";
 import type {
@@ -55,6 +56,7 @@ import type {
   ImportMemoryResult,
 } from "./contracts";
 import { recordMatchesScope } from "./memoryAdminOps";
+import { publicDurableRecord } from "./publicRecords";
 
 export interface ImportMemoryDeps {
   documentStore: DocumentStore;
@@ -85,15 +87,12 @@ function parseableTimestamp(value: string | undefined): string | undefined {
   return value && Number.isFinite(Date.parse(value)) ? value : undefined;
 }
 
-// Best effort, newest first; the caller rethrows the original failure.
-async function rollback(undo: Undo[]): Promise<void> {
-  for (const step of undo.reverse()) {
-    try {
-      await step();
-    } catch {
-      // The original error is what the caller reports.
-    }
+async function rollback(undo: Undo[], error: unknown): Promise<never> {
+  const errors = await rollbackRememberWrites(undo);
+  if (errors.length > 0) {
+    throw new AggregateError([error, ...errors], "Import failed and rollback encountered errors.");
   }
+  throw error;
 }
 
 async function shouldRememberPage(
@@ -234,10 +233,11 @@ async function importPages(
         }));
         retiredVectorIds.push(previous.id);
       }
-      undo.push(async () => {
-        await deps.documentStore.delete("notes", note.id);
-        await deps.vectorIndex?.deleteNoteEmbedding(note.id);
-      });
+      const vectorIndex = deps.vectorIndex;
+      if (vectorIndex) {
+        undo.push(() => vectorIndex.deleteNoteEmbedding(note.id));
+      }
+      undo.push(() => deps.documentStore.delete("notes", note.id));
       await deps.documentStore.set("notes", note.id, note);
       pendingEmbeddings.push(buildNoteEmbeddingWrite(note));
     }
@@ -314,13 +314,19 @@ async function importPages(
     }
     if (!dryRun) {
       await writeEmbeddings(deps, pendingEmbeddings);
+      const vectorIndex = deps.vectorIndex;
       for (const id of retiredVectorIds) {
-        await deps.vectorIndex?.deleteNoteEmbedding(id);
+        if (vectorIndex) {
+          const previous = await vectorIndex.getNoteEmbedding(id);
+          if (previous) {
+            undo.push(() => vectorIndex.upsertNoteEmbedding([previous]));
+          }
+          await vectorIndex.deleteNoteEmbedding(id);
+        }
       }
     }
   } catch (error) {
-    await rollback(undo);
-    throw error;
+    return rollback(undo, error);
   }
   return {
     counts,
@@ -401,7 +407,7 @@ async function importDurable(
   ): Promise<void> => {
     const existing = await deps.documentStore.get<object>(collection, id);
     if (existing) {
-      if (isDeepStrictEqual(existing, record)) {
+      if (isDeepStrictEqual(publicDurableRecord(collection, existing), publicDurableRecord(collection, record))) {
         counts.unchanged += 1;
       } else {
         counts.conflicts += 1;
@@ -409,12 +415,12 @@ async function importDurable(
       return;
     }
     if (!dryRun) {
-      undo.push(async () => {
-        await deps.documentStore.delete(collection, id);
-        if (entry?.unembed && deps.vectorIndex) {
-          await entry.unembed(deps.vectorIndex, id);
-        }
-      });
+      const unembed = entry?.unembed;
+      const vectorIndex = deps.vectorIndex;
+      if (unembed && vectorIndex) {
+        undo.push(() => unembed(vectorIndex, id));
+      }
+      undo.push(() => deps.documentStore.delete(collection, id));
       await deps.documentStore.set(collection, id, record);
       if (entry?.embed) {
         pendingEmbeddings.push(entry.embed(record as never));
@@ -435,8 +441,7 @@ async function importDurable(
       await writeEmbeddings(deps, pendingEmbeddings);
     }
   } catch (error) {
-    await rollback(undo);
-    throw error;
+    return rollback(undo, error);
   }
   return {
     counts,

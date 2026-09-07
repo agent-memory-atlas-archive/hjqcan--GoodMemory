@@ -835,18 +835,25 @@ curl http://localhost:11434/v1/embeddings \
 - This is not `createLocalEmbeddingAdapter()` (below), which is
   hashed-lexical, not semantic, and is rejected by the recommended preset.
 
-### Opt-in long-record admission
+### Long-record admission
 
 Default recall scores a fact by shared tokens over the *larger* token set, so a
-page-sized record (a `note`, or a long imported fact) can cover the whole query
-and still score near zero. `retrieval.longRecordAdmission: true` adds a second,
+long imported fact can cover the whole query and still score near zero.
+`retrieval.longRecordAdmission: true` adds a second,
 query-side coverage signal for records above the long-record floor (32 overlap
 tokens): such a record is admitted when it matches at least 60% of the query
 tokens and at least two of them. It runs legacy-first and only fills capacity
-the calibrated selection left free, so every existing selection stays
-byte-identical; traces show `fallback=long_record_coverage` or
-`below long-record coverage floor`. It is off by default until the paired
-LongMemEval/LoCoMo protection run records its effect.
+the calibrated fact selection left free, without reranking its existing
+members; traces show `fallback=long_record_coverage` or
+`below long-record coverage floor`. Notes use their own recall lane and do not
+depend on this flag. The final rendered context still obeys its token budget.
+
+In the unpublished v0.8 development tree, fresh Codex and Claude installations
+enable this flag after the full paired LongMemEval/LoCoMo protection gate
+passed. Reinstallation preserves existing settings, including an absent key
+or explicit `false`. The library remains opt-in, and file mirroring remains
+off by default. The [Phase 75 evidence](reports/quality-gates/phase-75/default-enablement-20260905.md)
+records the scope and limitations; it does not change public benchmark claims.
 
 ```ts
 const memory = createGoodMemory({ retrieval: { longRecordAdmission: true } });

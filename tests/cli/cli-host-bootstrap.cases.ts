@@ -1,3 +1,4 @@
+import { resolveWorkspaceId } from "../../src/host/managedFiles";
 import {
   EVIDENCE_COLLECTION,
   HOST_BOOTSTRAP_SCRIPT_TEST_TIMEOUT_MS,
@@ -863,9 +864,10 @@ describe("goodmemory cli host bootstrap", () => {
     const workspace = await createTempWorkspace("goodmemory-claude-bootstrap");
 
     try {
-      const result = await withCwd(workspace.root, async () =>
-        runCLI(["claude", "bootstrap", "--user-id", "claude-user", "--json"]),
-      );
+      const { cwd, result } = await withCwd(workspace.root, async () => ({
+        cwd: process.cwd(),
+        result: await runCLI(["claude", "bootstrap", "--user-id", "claude-user", "--json"]),
+      }));
 
       expect(result.exitCode).toBe(0);
       const payload = JSON.parse(result.stdout) as {
@@ -876,8 +878,7 @@ describe("goodmemory cli host bootstrap", () => {
         host: string;
         workspaceId: string;
       };
-      const expectedWorkspaceId =
-        workspace.root.split("/").at(-1) ?? "goodmemory-claude-bootstrap";
+      const expectedWorkspaceId = resolveWorkspaceId(cwd, undefined);
       expect(payload.host).toBe("claude");
       expect(payload.workspaceId).toBe(expectedWorkspaceId);
       expect(

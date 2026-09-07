@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import * as z from "zod/v4";
 import { createGoodMemory } from "../../src";
 import type { GoodMemoryConfig } from "../../src";
 import type { GoodMemoryMcpServerDependencies } from "../../src/install/hostMcpServer";
@@ -16,7 +17,7 @@ interface InspectableTool {
     isError?: boolean;
     structuredContent?: Record<string, unknown>;
   }>;
-  inputSchema?: { safeParse(value: unknown): { success: boolean } };
+  inputSchema?: z.ZodType;
 }
 
 function inspectServer(server: object): { _registeredTools: Record<string, InspectableTool | undefined> } {
@@ -65,6 +66,68 @@ function createDependencies(homeRoot: string): GoodMemoryMcpServerDependencies {
 }
 
 describe("goodmemory_write_note MCP tool", () => {
+  it("accepts null only for optional wire inputs and normalizes it before handlers", () => {
+    const server = inspectServer(createGoodMemoryMcpServer({
+      allowWrite: true,
+      standalone: { userId: "nullable-schema-test", storage: { provider: "memory" } },
+    }));
+    const requiredInputs: Record<string, Record<string, unknown>> = {
+      goodmemory_get_context: { query: "project storage" },
+      goodmemory_get_records: { recordRefs: ["gm:fact:example"] },
+      goodmemory_inspect_memory: {},
+      goodmemory_read_artifacts: {},
+      goodmemory_remember: { content: "Use PostgreSQL for project storage." },
+      goodmemory_search_index: { query: "project storage" },
+      goodmemory_stats: {},
+      goodmemory_timeline: { query: "project storage" },
+      goodmemory_trace_recall: { query: "project storage" },
+      goodmemory_write_note: { body: BODY, title: "MediaWiki" },
+    };
+    for (const [name, tool] of Object.entries(server._registeredTools)) {
+      const schema = tool!.inputSchema!;
+      const wire = z.toJSONSchema(schema, { io: "input" });
+      const optional = Object.keys(wire.properties ?? {}).filter((key) => !wire.required?.includes(key));
+      const parsed = schema.safeParse({ ...requiredInputs[name], ...Object.fromEntries(optional.map((key) => [key, null])) });
+      expect(parsed.success, name).toBe(true);
+      if (!parsed.success) continue;
+      for (const key of optional) expect((parsed.data as Record<string, unknown>)[key], `${name}.${key}`).toBeUndefined();
+      for (const key of wire.required ?? []) {
+        expect(schema.safeParse({ ...requiredInputs[name], [key]: null }).success, `${name}.${key}`).toBe(false);
+      }
+    }
+  });
+
+  it("tells recall callers to omit unspecified temporal controls", () => {
+    const server = inspectServer(createGoodMemoryMcpServer({
+      standalone: { userId: "temporal-schema-test", storage: { provider: "memory" } },
+    }));
+    for (const name of ["goodmemory_get_context", "goodmemory_trace_recall", "goodmemory_search_index"]) {
+      const schema = z.toJSONSchema(server._registeredTools[name]!.inputSchema!, { io: "input" });
+      for (const key of ["referenceTime", "timezone"]) {
+        const property = schema.properties?.[key];
+        expect(typeof property === "object" ? property.description : undefined).toContain("Omit");
+        expect(schema.required).not.toContain(key);
+      }
+    }
+  });
+
+  it("tells callers to omit unknown write timestamps instead of inventing dates", async () => {
+    const server = inspectServer(createGoodMemoryMcpServer({
+      allowWrite: true,
+      standalone: { userId: "temporal-schema-test", storage: { provider: "memory" } },
+    }));
+    for (const name of ["goodmemory_remember", "goodmemory_write_note"]) {
+      const schema = z.toJSONSchema(server._registeredTools[name]!.inputSchema!, { io: "input" });
+      const observedAt = schema.properties?.observedAt;
+      expect(observedAt).toHaveProperty("anyOf", [{ type: "string" }, { type: "null" }]);
+      const description = typeof observedAt === "object" ? observedAt.description : undefined;
+      expect(description).toContain("RFC 3339");
+      expect(description).toContain("Omit");
+      expect(description).toContain("date-only");
+      expect(schema.required).not.toContain("observedAt");
+    }
+  });
+
   it("is registered only when writes are allowed", async () => {
     const homeRoot = await mkdtemp(join(tmpdir(), "goodmemory-note-tool-"));
     try {

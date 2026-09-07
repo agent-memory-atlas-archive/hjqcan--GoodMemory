@@ -1,0 +1,13 @@
+diff --git a/src/humanize/time.py b/src/humanize/time.py
+index 0ea316d77b460f33accf6951754baf4d82c575b8..83281e3e5b5e4d68bd69d333a5c3dd0e636b3f4b 100644
+--- a/src/humanize/time.py
++++ b/src/humanize/time.py
+@@ -628,7 +628,7 @@ def precisedelta(
+     if len(texts) == 1:
+         return texts[0]
+ 
+-    head = ", ".join(texts[:-1])
++    head = "; ".join(texts[:-1])
+     tail = texts[-1]
+ 
+     return _("%s and %s") % (head, tail)

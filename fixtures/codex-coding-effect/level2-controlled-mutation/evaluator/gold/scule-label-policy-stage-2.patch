@@ -1,0 +1,28 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..5c4d13b31879b2385ec376f961e5581688e1709c 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -81,7 +81,22 @@ export function splitByCase<
+ }
+ 
+ export function upperFirst<S extends string>(str: S): Capitalize<S> {
+-  return (str ? str[0].toUpperCase() + str.slice(1) : "") as Capitalize<S>;
++  if (!str) {
++    return "" as Capitalize<S>;
++  }
++  const chars = [...str];
++  const index = chars.findIndex(
++    (char) => char.toLowerCase() !== char.toUpperCase(),
++  );
++  if (index === -1) {
++    return str as Capitalize<S>;
++  }
++  const upper = chars[index].toUpperCase();
++  if ([...upper].length !== 1) {
++    return str as Capitalize<S>;
++  }
++  chars[index] = upper;
++  return chars.join("") as Capitalize<S>;
+ }
+ 
+ export function lowerFirst<S extends string>(str: S): Uncapitalize<S> {

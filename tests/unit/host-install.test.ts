@@ -1709,18 +1709,19 @@ describe("host install", () => {
       await rm(workspaceRoot, { force: true, recursive: true });
     }
   });
-  it("opts fresh installs into bm25 retrieval and preserves existing retrieval settings", async () => {
+  it.each(["codex", "claude"] as const)("enables measured long-record admission on fresh %s installs and preserves existing settings", async (host) => {
     const homeRoot = await createWorkspace("goodmemory-host-install-retrieval-");
-    const configPath = join(homeRoot, ".goodmemory/codex.json");
+    const configPath = join(homeRoot, `.goodmemory/${host}.json`);
 
     try {
-      await installHost({ homeRoot, host: "codex", userId: "retrieval-user" });
+      await installHost({ homeRoot, host, userId: "retrieval-user" });
       const fresh = JSON.parse(await readFile(configPath, "utf8")) as {
         retrieval?: Record<string, unknown>;
       };
-      // Fresh stores start on the measured BM25 hybrid tier (deterministic,
-      // zero egress, no embedding needed).
-      expect(fresh.retrieval).toEqual({ bm25Ranking: true });
+      // Fresh stores use the measured deterministic BM25 and long-record
+      // admission tier; neither feature needs a provider or embedding.
+      expect(fresh.retrieval).toEqual({ bm25Ranking: true, longRecordAdmission: true });
+      expect("fileMirror" in fresh).toBe(false);
       // Injection right-sizing defaults for new installs: a 1024-token
       // session-start brief, 512 per prompt behind the relevance gate.
       const freshFull = JSON.parse(await readFile(configPath, "utf8")) as {
@@ -1748,25 +1749,36 @@ describe("host install", () => {
         JSON.stringify(withoutRetrieval, null, 2) + "\n",
         "utf8",
       );
-      await installHost({ homeRoot, host: "codex", userId: "retrieval-user" });
+      await installHost({ homeRoot, host, userId: "retrieval-user" });
       const reinstalled = JSON.parse(await readFile(configPath, "utf8")) as {
         retrieval?: Record<string, unknown>;
       };
       expect("retrieval" in reinstalled).toBe(false);
+
+      // Hosts installed before this default already have BM25 enabled. Their
+      // absent longRecordAdmission knob also remains absent on reinstall.
+      await writeFile(configPath, JSON.stringify({
+        ...JSON.parse(await readFile(configPath, "utf8")),
+        retrieval: { bm25Ranking: true },
+      }, null, 2) + "\n", "utf8");
+      await installHost({ homeRoot, host, userId: "retrieval-user" });
+      const legacyHybrid = JSON.parse(await readFile(configPath, "utf8"));
+      expect(legacyHybrid.retrieval).toEqual({ bm25Ranking: true });
 
       // Custom retrieval settings survive reinstall verbatim.
       const custom = JSON.parse(await readFile(configPath, "utf8")) as Record<
         string,
         unknown
       >;
-      custom.retrieval = { bm25Ranking: false, semanticCandidates: { topK: 8 } };
+      custom.retrieval = { bm25Ranking: false, longRecordAdmission: false, semanticCandidates: { topK: 8 } };
       await writeFile(configPath, JSON.stringify(custom, null, 2) + "\n", "utf8");
-      await installHost({ homeRoot, host: "codex", userId: "retrieval-user" });
+      await installHost({ homeRoot, host, userId: "retrieval-user" });
       const preserved = JSON.parse(await readFile(configPath, "utf8")) as {
         retrieval?: Record<string, unknown>;
       };
       expect(preserved.retrieval).toEqual({
         bm25Ranking: false,
+        longRecordAdmission: false,
         semanticCandidates: { topK: 8 },
       });
     } finally {

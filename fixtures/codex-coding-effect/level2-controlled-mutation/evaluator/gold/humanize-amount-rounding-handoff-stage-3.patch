@@ -1,0 +1,25 @@
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..10dd4c0f22490803ca2403853be00badee3b03a3 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -433,7 +433,11 @@ def scientific(value: NumberOrString, precision: int = 2) -> str:
+         "9": "⁹",
+         "-": "⁻",
+     }
++    if isinstance(value, bool):
++        return str(value)
+     try:
++        if isinstance(value, str):
++            value = value.replace(",", "")
+         value = float(value)
+         if not math.isfinite(value):
+             return _format_not_finite(value)
+@@ -446,6 +450,8 @@ def scientific(value: NumberOrString, precision: int = 2) -> str:
+     import re
+ 
+     part2 = re.sub(r"^\+?(\-?)0*(.+)$", r"\1\2", part2)
++    if part2 == "0":
++        return part1
+ 
+     new_part2 = []
+     for char in part2:

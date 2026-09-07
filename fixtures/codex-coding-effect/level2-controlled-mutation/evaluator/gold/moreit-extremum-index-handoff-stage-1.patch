@@ -1,0 +1,49 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..41b3602c99bebf694c92e01aa6e76afdbc0dd0af
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -5200,14 +5200,31 @@ def nth_prime(n, *, approximate=False):
+     return first_true(count(odd, step=2), pred=is_prime)
+ 
+ 
++def _extremum_index(iterable, better):
++    best_index = None
++    best_value = None
++    for index, value in enumerate(iterable):
++        if value is None:
++            continue
++        candidate = value.casefold() if isinstance(value, str) else value
++        if best_index is None or not better(best_value, candidate):
++            best_index, best_value = index, candidate
++    if best_index is None:
++        raise ValueError('no comparable items in the input')
++    return best_index
++
++
+ def argmin(iterable, *, key=None):
+     """
+-    Index of the first occurrence of a minimum value in an iterable.
++    Index of the last occurrence of a minimum value in an iterable.
+ 
+         >>> argmin('efghabcdijkl')
+         4
+         >>> argmin([3, 2, 1, 0, 4, 2, 1, 0])
+-        3
++        7
++
++    ``None`` items are skipped, text is compared case-insensitively, and an
++    input without comparable items raises ``ValueError``.
+ 
+     For example, look up a label corresponding to the position
+     of a value that minimizes a cost function::
+@@ -5230,7 +5247,7 @@ def argmin(iterable, *, key=None):
+     """
+     if key is not None:
+         iterable = map(key, iterable)
+-    return min(enumerate(iterable), key=itemgetter(1))[0]
++    return _extremum_index(iterable, lt)
+ 
+ 
+ def argmax(iterable, *, key=None):

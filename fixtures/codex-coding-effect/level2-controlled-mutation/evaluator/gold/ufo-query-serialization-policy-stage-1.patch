@@ -1,0 +1,111 @@
+diff --git a/src/query.ts b/src/query.ts
+index 6fbcaaa10ba8cca86c95ce42df60aa16fcc6641b..c7b51e9605f53d8965653a5eae54f6eded558b9c 100644
+--- a/src/query.ts
++++ b/src/query.ts
+@@ -74,6 +74,67 @@ export function parseQuery<T extends ParsedQuery = ParsedQuery>(
+   return object as T;
+ }
+ 
++/**
++ * Encodes a pair of key and value into a url query string value.
++ *
++ * If the value is an array, it will be encoded as multiple key-value pairs with the same key.
++ *
++ * @example
++ *
++ * ```js
++ * encodeQueryItem('message', 'Hello World')
++ * // 'message=Hello+World'
++ *
++ * encodeQueryItem('tags', ['javascript', 'web', 'dev'])
++ * // 'tags=javascript&tags=web&tags=dev'
++ * ```
++ *
++ * @group Query_utils
++ */
++function normalizeQueryKey(key: string | number): string {
++  return ("" + key).trim();
++}
++
++function sortObjectKeys(value: unknown): unknown {
++  if (Array.isArray(value)) {
++    return value.map((entry) => sortObjectKeys(entry));
++  }
++  if (value && typeof value === "object") {
++    return Object.fromEntries(
++      Object.keys(value as Record<string, unknown>)
++        .sort()
++        .map((key) => [key, sortObjectKeys((value as Record<string, unknown>)[key])]),
++    );
++  }
++  return value;
++}
++
++function normalizeQueryScalar(value: QueryValue): string | null {
++  if (value === undefined || value === null) {
++    return null;
++  }
++  if (typeof value === "string") {
++    const text = value.trim().replace(/\s+/g, " ");
++    return text === "" ? null : text;
++  }
++  if (typeof value === "number" || typeof value === "boolean") {
++    return String(value);
++  }
++  return JSON.stringify(sortObjectKeys(value));
++}
++
++function normalizeQueryArray(value: QueryValue[]): string[] {
++  const entries: string[] = [];
++  for (const entry of value) {
++    const scalar = normalizeQueryScalar(entry);
++    if (scalar === null || entries.includes(scalar)) {
++      continue;
++    }
++    entries.push(scalar);
++  }
++  return entries;
++}
++
+ /**
+  * Encodes a pair of key and value into a url query string value.
+  *
+@@ -95,23 +156,25 @@ export function encodeQueryItem(
+   key: string,
+   value: QueryValue | QueryValue[],
+ ): string {
+-  if (typeof value === "number" || typeof value === "boolean") {
+-    value = String(value);
++  const normalizedKey = normalizeQueryKey(key);
++  if (!normalizedKey) {
++    return "";
+   }
+-  if (!value) {
+-    return encodeQueryKey(key);
+-  }
+-
++  const encodedKey = encodeQueryKey(normalizedKey);
+   if (Array.isArray(value)) {
+-    return value
+-      .map(
+-        (_value: QueryValue) =>
+-          `${encodeQueryKey(key)}=${encodeQueryValue(_value)}`,
+-      )
++    const entries = normalizeQueryArray(value);
++    if (entries.length === 0) {
++      return encodedKey;
++    }
++    return entries
++      .map((entry) => `${encodedKey}[]=${encodeQueryValue(entry)}`)
+       .join("&");
+   }
+-
+-  return `${encodeQueryKey(key)}=${encodeQueryValue(value)}`;
++  const scalar = normalizeQueryScalar(value);
++  if (scalar === null) {
++    return encodedKey;
++  }
++  return `${encodedKey}=${encodeQueryValue(scalar)}`;
+ }
+ 
+ /**

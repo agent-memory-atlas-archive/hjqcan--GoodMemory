@@ -18,6 +18,7 @@ import {
   buildC4ReviewRequest,
   serializeC4ReviewArtifact,
 } from "./codex-coding-effect/c4-review-artifacts";
+import { resolveControlledDatasetProfile } from "./codex-coding-effect/controlled-dataset-profile";
 import type {
   C4DatasetCoreReadiness,
 } from "./codex-coding-effect/c4-readiness";
@@ -54,6 +55,7 @@ export async function prepareC4IndependentReview(input: {
     throw new Error("C4 review preparation requires a current asset lock");
   }
   const core = JSON.parse(coreBytes) as C4DatasetCoreReadiness;
+  const profile = resolveControlledDatasetProfile(core.datasetId);
   const coreSha256 = sha256(coreBytes);
   const assetFiles = storedAssetLock.assetLock.files.map((file) => ({
     path: file.path,
@@ -75,15 +77,18 @@ export async function prepareC4IndependentReview(input: {
       createdAt: input.createdAt,
       leakageAuditSha256: core.leakage.auditSha256,
       manifestSha256: core.manifestSha256,
+      profile,
       readinessCoreSha256: coreSha256,
     }),
   );
   const requestBytes = buildC4ReviewRequest({
     inputBundleSha256: sha256(inputBundleBytes),
+    profile,
   });
   const dispatchBytes = serializeC4ReviewArtifact(
     buildC4IndependentReviewDispatch({
-      spawnMessage: buildC4IndependentReviewSpawnMessage(),
+      profile,
+      spawnMessage: buildC4IndependentReviewSpawnMessage(profile),
     }),
   );
   if (input.replace) {

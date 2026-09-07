@@ -1,0 +1,62 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..23e2871e74a84bdd6ce5c4a4c13f494dfa719ad8 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -144,6 +144,27 @@ def _irregular(singular: str, plural: str) -> None:
+         ))
+ 
+ 
++
++def _integer_value(value: typing.Any) -> int:
++    """
++    Coerce a count to an integer under the fork's number-rendering policy.
++    """
++    if isinstance(value, bool):
++        raise TypeError("booleans are not counts: %r" % (value,))
++    if isinstance(value, str):
++        text = value.strip()
++        if not re.fullmatch(r"[+-]?\d+", text):
++            raise ValueError("not an integer string: %r" % (value,))
++        return int(text)
++    if isinstance(value, float):
++        if not value.is_integer():
++            raise ValueError("count has a fractional part: %r" % (value,))
++        return int(value)
++    if isinstance(value, int):
++        return value
++    raise TypeError("unsupported count: %r" % (value,))
++
++
+ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+     """
+     Convert strings to CamelCase.
+@@ -171,6 +192,29 @@ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+         return string[0].lower() + camelize(string)[1:]
+ 
+ 
++
++def count_noun(count: typing.Any, noun: str) -> str:
++    """
++    Render a count followed by the matching form of a noun.
++
++    Examples::
++
++        >>> count_noun(1, "octopi")
++        '1 octopus'
++        >>> count_noun(3, "octopus")
++        '3 octopi'
++
++    """
++    value = _integer_value(count)
++    if not noun or noun.lower() in UNCOUNTABLES:
++        word = noun
++    else:
++        word = singularize(noun)
++        if value != 1:
++            word = pluralize(word)
++    return "{:,} {}".format(value, word)
++
++
+ def dasherize(word: str) -> str:
+     """Replace underscores with dashes in the string.
+ 

@@ -1,0 +1,45 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..c1b5791370c42b16292c1378bad9098818406109 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -144,6 +144,19 @@ def _irregular(singular: str, plural: str) -> None:
+         ))
+ 
+ 
++
++def _identifier_words(word: str) -> typing.List[str]:
++    """
++    Split an identifier into lowercase words following the fork's
++    identifier-boundary convention.
++    """
++    word = word.replace("'", "")
++    word = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", word)
++    word = re.sub(r"([a-z])([A-Z])", r"\1 \2", word)
++    word = re.sub(r"(\d+)", r" \1 ", word)
++    return [part.lower() for part in re.split(r"[^A-Za-z0-9]+", word) if part]
++
++
+ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+     """
+     Convert strings to CamelCase.
+@@ -204,6 +217,20 @@ def humanize(word: str) -> str:
+     return word
+ 
+ 
++
++def kebabize(word: str) -> str:
++    """
++    Make a hyphen-separated, lowercase form from the expression in the string.
++
++    Example::
++
++        >>> kebabize("DeviceType")
++        'device-type'
++
++    """
++    return "-".join(_identifier_words(word))
++
++
+ def ordinal(number: int) -> str:
+     """
+     Return the suffix that should be added to a number to denote the position

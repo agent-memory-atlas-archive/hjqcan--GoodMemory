@@ -1,0 +1,46 @@
+diff --git a/src/array/list.ts b/src/array/list.ts
+index 7cdadfed1dbbeda467f2672650e82dc001d2d882..9f28fd694ee4fcc74d5b7a3a291a11f40aeb951a 100644
+--- a/src/array/list.ts
++++ b/src/array/list.ts
+@@ -1,7 +1,11 @@
+-import { range } from 'radashi'
++import { isFunction } from 'radashi'
+ 
+ /**
+  * Creates a list of given start, end, value, and step parameters.
++ * Under the range policy the list counts down when the start is
++ * greater than the end, the step is a magnitude, a nullish value or
++ * mapper yields the positions themselves, and a zero step yields a
++ * single item.
+  *
+  * @see https://radashi.js.org/reference/array/list
+  * @example
+@@ -23,5 +27,27 @@ export function list<T = number>(
+   valueOrMapper?: T | ((i: number) => T),
+   step?: number,
+ ): T[] {
+-  return Array.from(range(startOrLength, end, valueOrMapper, step))
++  const start = end !== undefined ? startOrLength : 0
++  const final = end ?? startOrLength
++  const mapper: (i: number) => T =
++    valueOrMapper == null
++      ? i => i as T
++      : isFunction(valueOrMapper)
++        ? valueOrMapper
++        : () => valueOrMapper
++  const magnitude = Math.abs(step ?? 1)
++  const out: T[] = []
++  if (magnitude === 0 || !Number.isFinite(magnitude)) {
++    out.push(mapper(start))
++    return out
++  }
++  const direction = start > final ? -1 : 1
++  for (
++    let i = start;
++    direction > 0 ? i <= final : i >= final;
++    i += direction * magnitude
++  ) {
++    out.push(mapper(i))
++  }
++  return out
+ }

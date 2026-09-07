@@ -1,0 +1,52 @@
+diff --git a/src/object/invert.ts b/src/object/invert.ts
+index 671cae01842a25dc44c8eefab8916e101f0c0873..54b51209858ca2ae89277d54162cbf96a51c85a1 100644
+--- a/src/object/invert.ts
++++ b/src/object/invert.ts
+@@ -1,6 +1,8 @@
+ /**
+  * Returns a new object whose keys are the values of the given object
+- * and its values are the keys of the given object.
++ * and its values are the keys of the given object. The first key that
++ * produces a given value wins, nullish values are skipped, and array
++ * values are expanded element by element.
+  *
+  * @see https://radashi.js.org/reference/object/invert
+  * @example
+@@ -15,15 +17,28 @@ export function invert<
+   TKey extends string | number | symbol,
+   TValue extends string | number | symbol,
+ >(obj: Record<TKey, TValue>): Record<TValue, TKey> {
++  const result = {} as Record<TValue, TKey>
+   if (!obj) {
+-    return {} as Record<TValue, TKey>
++    return result
+   }
+-  const keys = Object.keys(obj) as TKey[]
+-  return keys.reduce(
+-    (acc, key) => {
+-      acc[obj[key]] = key
+-      return acc
+-    },
+-    {} as Record<TValue, TKey>,
+-  )
++  const assign = (value: unknown, key: TKey) => {
++    if (value == null) {
++      return
++    }
++    const newKey = value as TValue
++    if (!Object.prototype.hasOwnProperty.call(result, newKey)) {
++      result[newKey] = key
++    }
++  }
++  for (const key of Object.keys(obj) as TKey[]) {
++    const value: unknown = obj[key]
++    if (Array.isArray(value)) {
++      for (const element of value) {
++        assign(element, key)
++      }
++    } else {
++      assign(value, key)
++    }
++  }
++  return result
+ }

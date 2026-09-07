@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { mkdir, mkdtemp, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { basename, join } from "node:path";
+import { resolveWorkspaceId } from "../../src/host/managedFiles";
 import type {
   GoodMemory,
   GoodMemoryConfig,
@@ -2057,7 +2058,7 @@ describe("installed host shared-agent reads", () => {
         scope: {
           agentId: "codex",
           userId: "shared-user",
-          workspaceId: basename(workspaceRoot),
+          workspaceId: resolveWorkspaceId(workspaceRoot, undefined),
         },
         storage: {
           provider: "sqlite",
@@ -2085,7 +2086,7 @@ describe("installed host shared-agent reads", () => {
         scope: {
           agentId: "codex",
           userId: "shared-user",
-          workspaceId: basename(workspaceRoot),
+          workspaceId: resolveWorkspaceId(workspaceRoot, undefined),
         },
       });
       expect(seeded.accepted).toBe(1);

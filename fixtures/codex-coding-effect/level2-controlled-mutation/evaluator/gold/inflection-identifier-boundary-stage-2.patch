@@ -1,0 +1,59 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..b544cd4086de2c9460f01b01c5c144d2d869e507 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -91,6 +91,24 @@ UNCOUNTABLES: typing.Set[str] = {
+     'species'}
+ 
+ 
++
++_TRANSLITERATIONS: typing.List[typing.Tuple[str, str]] = [
++    ('\u00c6', 'Ae'),
++    ('\u00e6', 'ae'),
++    ('\u0152', 'Oe'),
++    ('\u0153', 'oe'),
++    ('\u00d8', 'O'),
++    ('\u00f8', 'o'),
++    ('\u0141', 'L'),
++    ('\u0142', 'l'),
++    ('\u0110', 'D'),
++    ('\u0111', 'd'),
++    ('\u00df', 'ss'),
++    ('\u00de', 'Th'),
++    ('\u00fe', 'th'),
++]
++
++
+ def _irregular(singular: str, plural: str) -> None:
+     """
+     A convenience function to add appropriate rules to plurals and singular
+@@ -379,20 +397,25 @@ def titleize(word: str) -> str:
+     )
+ 
+ 
++
+ def transliterate(string: str) -> str:
+     """
+-    Replace non-ASCII characters with an ASCII approximation. If no
++    Replace non-ASCII characters with an ASCII approximation. Ligatures,
++    stroked letters, the sharp s and thorn are spelled out first; remaining
++    characters are decomposed and stripped of their accents. If no
+     approximation exists, the non-ASCII character is ignored. The string must
+     be ``unicode``.
+ 
+     Examples::
+ 
+-        >>> transliterate('älämölö')
++        >>> transliterate('\u00e4l\u00e4m\u00f6l\u00f6')
+         'alamolo'
+-        >>> transliterate('Ærøskøbing')
+-        'rskbing'
++        >>> transliterate('\u00c6r\u00f8sk\u00f8bing')
++        'Aeroskobing'
+ 
+     """
++    for source, target in _TRANSLITERATIONS:
++        string = string.replace(source, target)
+     normalized = unicodedata.normalize('NFKD', string)
+     return normalized.encode('ascii', 'ignore').decode('ascii')
+ 

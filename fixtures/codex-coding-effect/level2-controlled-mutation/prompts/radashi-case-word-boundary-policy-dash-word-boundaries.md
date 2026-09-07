@@ -1,0 +1,5 @@
+# TypeScript utility task
+
+Establish and implement the word-boundary policy for the case converters in this fork (camel, dash, snake, pascal, and title all share it). Project policy: a word boundary is any run of whitespace, dots, hyphens, underscores, or slashes, and a run of several such characters counts as a single boundary that never yields an empty word; boundaries at the start or the end of the input are dropped; a boundary also falls between a letter and a digit and between a digit and a letter, so a digit run is always a word of its own; when an uppercase run is followed by a lowercase letter, the boundary falls before the last uppercase letter, so an acronym stays one word and the capitalized word after it starts a new one; the boundary between a lowercase letter and the uppercase letter that follows it is kept as today; an apostrophe inside a word is removed rather than treated as a boundary; every output word is lowercased; empty or nullish input returns the empty string. Apply this policy to dash in src/string/dash.ts and keep the exported signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

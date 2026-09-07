@@ -1,0 +1,2 @@
+{"payload":{"content":[{"text":"Four independent clean-ups on the case helpers of this fork, each fully described in its own task and not depending on the others.","type":"input_text"}],"role":"user","type":"message"},"type":"response_item"}
+{"payload":{"content":[{"text":"Recorded that each task stands alone and that no session declares a durable policy.","type":"output_text"}],"role":"assistant","type":"message"},"type":"response_item"}

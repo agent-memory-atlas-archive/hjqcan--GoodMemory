@@ -1,0 +1,39 @@
+diff --git a/src/array/cluster.ts b/src/array/cluster.ts
+index 40ce93038de9832edae96e66f2332be8ec1bf086..973e3accceb98f236eab5a92c9eb4e42329adeda 100644
+--- a/src/array/cluster.ts
++++ b/src/array/cluster.ts
+@@ -1,5 +1,8 @@
+ /**
+- * Splits a single list into many lists of the desired size.
++ * Splits a single list into many lists of the desired size. Under the
++ * alignment policy every cluster has the full width: an incomplete
++ * final cluster is padded with `null`, a width below one is treated
++ * as one, and a nullish list yields an empty result.
+  *
+  * @see https://radashi.js.org/reference/array/cluster
+  * @example
+@@ -13,12 +16,20 @@ export function cluster<T, Size extends number = 2>(
+   array: readonly T[],
+   size: Size = 2 as Size,
+ ): Cluster<T, Size>[] {
+-  const clusters: T[][] = []
++  const clusters: (T | null)[][] = []
+ 
+-  if (size > 0) {
+-    for (let i = 0; i < array.length; i += size) {
+-      clusters.push(array.slice(i, i + size))
++  if (!array) {
++    return clusters as Cluster<T, Size>[]
++  }
++
++  const width = Math.max(1, Math.floor(Number(size)) || 1)
++
++  for (let i = 0; i < array.length; i += width) {
++    const group: (T | null)[] = array.slice(i, i + width)
++    while (group.length < width) {
++      group.push(null)
+     }
++    clusters.push(group)
+   }
+ 
+   return clusters as Cluster<T, Size>[]

@@ -1,0 +1,18 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..b056e0a161ee5e3d63e640b5432c7bcafed9373b 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -143,7 +143,12 @@ export function snakeCase<T extends string | readonly string[]>(
+   str: T,
+ ): SnakeCase<T>;
+ export function snakeCase<T extends string | readonly string[]>(str?: T) {
+-  return kebabCase(str || "", "_") as SnakeCase<T>;
++  return str
++    ? (Array.isArray(str) ? str : splitByCase(str as string))
++        .filter(Boolean)
++        .map((p) => p.toLowerCase())
++        .join("_") as SnakeCase<T>
++    : "";
+ }
+ 
+ export function flatCase(): "";

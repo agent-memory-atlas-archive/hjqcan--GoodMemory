@@ -1,0 +1,79 @@
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..d95c89fa9c4ed8114388b7ed4e6f7ae28112783f 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -7,6 +7,8 @@ from .i18n import _ngettext, decimal_separator, thousands_separator
+ from .i18n import _ngettext_noop as NS_
+ from .i18n import _pgettext as P_
+ 
++from decimal import Decimal, InvalidOperation
++
+ TYPE_CHECKING = False
+ if TYPE_CHECKING:
+     import sys
+@@ -34,6 +36,28 @@ def _format_not_finite(value: float) -> str:
+     return ""
+ 
+ 
++def _trim_amount(text: str) -> str:
++    """Drop trailing fractional zeros and never show a signed zero."""
++    if "." in text:
++        text = text.rstrip("0").rstrip(".")
++    if text.lstrip("-").replace(".", "").strip("0") == "":
++        return "0"
++    return text
++
++
++def _decimal_amount(number: Decimal, ndigits: int | None) -> str:
++    """Render a decimal, rounding halves away from zero to `ndigits` places."""
++    from decimal import ROUND_HALF_UP, localcontext
++
++    with localcontext() as context:
++        context.prec = 100
++        if ndigits is not None:
++            number = number.quantize(
++                Decimal(1).scaleb(-int(ndigits)), rounding=ROUND_HALF_UP
++            )
++        return _trim_amount("{:f}".format(number))
++
++
+ def ordinal(value: NumberOrString, gender: str = "male") -> str:
+     """Converts an integer to its ordinal as a string.
+ 
+@@ -148,27 +172,22 @@ def intcomma(value: NumberOrString, ndigits: int | None = None) -> str:
+ 
+     thousands_sep = thousands_separator()
+     decimal_sep = decimal_separator()
++    if isinstance(value, bool):
++        return str(value)
+     try:
+         if isinstance(value, str):
+-            value = value.replace(thousands_sep, "").replace(decimal_sep, ".")
+-            if not math.isfinite(float(value)):
+-                return _format_not_finite(float(value))
+-            if "." in value:
+-                value = float(value)
+-            else:
+-                value = int(value)
++            cleaned = value.strip().replace(thousands_sep, "").replace(decimal_sep, ".")
++            if not math.isfinite(float(cleaned)):
++                return _format_not_finite(float(cleaned))
++            number = Decimal(cleaned)
+         else:
+             if not math.isfinite(float(value)):
+                 return _format_not_finite(float(value))
+-            float(value)
+-    except (TypeError, ValueError):
++            number = Decimal(repr(value)) if isinstance(value, float) else Decimal(value)
++    except (TypeError, ValueError, InvalidOperation):
+         return str(value)
+ 
+-    if ndigits is not None:
+-        orig = "{0:.{1}f}".format(value, ndigits)
+-    else:
+-        orig = str(value)
+-    orig = orig.replace(".", decimal_sep)
++    orig = _decimal_amount(number, ndigits).replace(".", decimal_sep)
+     import re
+ 
+     while True:

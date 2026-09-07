@@ -47,7 +47,7 @@ export interface C5StageExecution {
 export interface C5RecordedStageExecution extends C5StageExecution {
   clusterId: string;
   episodeId: string;
-  repetition: 1 | 2;
+  repetition: number;
   stageId: string;
 }
 
@@ -80,7 +80,7 @@ export interface C5LongitudinalPairResult {
   leakageAuditSha256: string;
   memoryExpectation: "irrelevant-control" | "none" | "required";
   outcome: C5PairOutcome;
-  repetition: 1 | 2;
+  repetition: number;
   stageId: string;
 }
 
@@ -486,13 +486,19 @@ function validateLeakageAudit(audit: C5LiveLeakageAuditResult): void {
 }
 
 function assertC5CoordinatorPlan(plan: C5PilotPlan): void {
+  const expectedClusters = plan.counts.episodes * plan.repetitions.length;
+  const expectedStageRuns = plan.episodeArmRuns.reduce(
+    (count, run) => count + run.stages.length,
+    0,
+  );
   if (
     plan.evidenceClass !== "native-longitudinal-pilot" ||
     plan.publicClaimEligible ||
-    plan.counts.episodeArmRuns !== 24 ||
-    plan.counts.stageRuns !== 72 ||
-    plan.clusters.length !== 12 ||
-    plan.episodeArmRuns.length !== 24
+    expectedClusters === 0 ||
+    plan.clusters.length !== expectedClusters ||
+    plan.episodeArmRuns.length !== expectedClusters * 2 ||
+    plan.counts.episodeArmRuns !== expectedClusters * 2 ||
+    plan.counts.stageRuns !== expectedStageRuns
   ) {
     throw new Error("C5 longitudinal coordinator requires the frozen pilot plan");
   }

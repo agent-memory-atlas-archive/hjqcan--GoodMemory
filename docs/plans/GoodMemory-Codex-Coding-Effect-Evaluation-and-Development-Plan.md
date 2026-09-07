@@ -5,7 +5,7 @@ Priority: Codex first
 Claude Code: explicitly deferred until the Codex claim gate closes  
 Scope: evaluation and evidence infrastructure; production changes only when a
 real host canary proves a product defect  
-Last reviewed: 2026-09-03 (comparator result in 0.2)
+Last reviewed: 2026-09-03 (comparator result in 0.2; Level-2 resumption in 0.3)
 
 ## 0. Executive Decision
 
@@ -109,6 +109,75 @@ policy over the cheapest alternative. Consequences:
   whose relevant context is older than the summary window, contradicts the
   summary, or spans repositories and sessions, which the C4 three-stage
   continuity episodes do not exercise.
+
+### 0.3 Level-2 resumption and pre-registration (2026-09-03)
+
+The Level-2 set is resumed on 2026-09-03 by maintainer decision, after the 0.2
+recommendation to defer it. The comparator negative stands unchanged. Level-2
+is redesigned so that it can separate selective memory from a fixed summary
+instead of re-measuring the C4 regime.
+
+Why the C4 regime cannot separate them: on C4 the installed arm recalls one or
+two records written one or two sessions earlier, and the flat summary sees the
+same one or two sessions, so both channels carry the declaration intact.
+Level-2 targets the regime the 0.2 addendum named: the relevant declaration is
+older than the most recent sessions, and the accumulated declarations exceed
+what a 512-token summary can carry.
+
+Reproduced host defect, fixed first. A deterministic canary (three sessions,
+each declaring one project policy of at most 1,500 characters, then a fourth
+prompt asking for the first policy) showed the installed profile injecting only
+120-character previews under the 512-token per-prompt budget: the fragment
+renderer dropped the whole Facts section when it did not fit and kept the
+evidence previews, while one or two prior sessions rendered intact. The fix in
+`src/recall/contextBuilder.ts` makes prompt-fragment trimming keep the leading
+whole entries that fit, in rank order, and makes the host's opt-in evidence
+de-duplication also drop clipped previews of kept facts. JSON and markdown
+rendering are unchanged. Tests: `tests/unit/host-hook-recall-budget.test.ts`
+(host-level reproduction) and `tests/unit/context-builder.outputs.test.ts`.
+
+Pre-registered design, frozen before any Level-2 outcome exists:
+
+- Estimand and rule: unchanged from 0.1. Positions two and later hidden-test
+  resolve@1, goodmemory-installed minus flat-summary, must be at least +3.0
+  points with a positive paired episode-cluster bootstrap lower bound.
+  Reported but not deciding: per-position and per-stratum deltas,
+  negative-control non-inferiority on irrelevant-control and none stages at a
+  2.0-point margin, and memory-channel and comparator-injection failure counts.
+- Episodes: 30 authored controlled-mutation episodes over 6 real MIT-licensed
+  repositories pinned by commit (three TypeScript/Bun, three Python), as
+  source-only projections with an authored visible base-health test. Hidden
+  fail-to-pass and pass-to-pass cases alone decide correctness.
+- Stages: 4 per episode. Position 1 is the declaring session (memory
+  expectation none). Positions 2 and 3 are intervening sessions in the same
+  repository with their own declarations (irrelevant-control), except in
+  user-correction and stale-update episodes, where one of them supersedes the
+  position-1 declaration (required). Position 4 requires the position-1
+  declaration or its correction. Declarations stay within 1,500 characters so
+  the writeback stores them whole, and recall prompts name the policy the way
+  the declaring prompt did.
+- Strata: four episodes for each of open-loop-handoff, validated-approach,
+  failure-avoidance, user-correction, project-convention, and stale-update;
+  three irrelevant-memory-negative-control episodes; three
+  no-history-negative-control episodes whose sessions write nothing durable.
+- Repetitions: three per episode with distinct execution-order randomization
+  (90 clusters, 180 arm runs, 720 Codex stage runs, 360 pairs, 270 scored).
+  The decision uses the complete plan; any interim look is diagnostic only.
+- Arms and caps: the C5 comparator protocol unchanged (flat-summary at the
+  same SessionStart/UserPromptSubmit placements, 1024/512 caps, pinned
+  summarizer and prompt, no prehistory seeding, fresh workspace per stage).
+- Harness work required before the run: a dataset profile replaces the C4
+  literals (episode count, stages, repetitions, repositories, ecosystems,
+  review schemas); a Python evaluator lane inside the pinned-Bun evaluator
+  sandbox; real-repository materialization from git bundles with recorded
+  upstream commit and license evidence.
+- Fail-closed boundary: internal evidence only; no README row and no public
+  claim; C6-C7 stay as defined.
+
+Interpretation rule: a positive result supports "selective recall beats a fixed
+summary once the history exceeds the summary window" and nothing broader. A
+negative result closes the lane with the product finding that the memory policy
+adds nothing over a summary even beyond the summary window.
 
 ## 1. Why This Lane Exists
 

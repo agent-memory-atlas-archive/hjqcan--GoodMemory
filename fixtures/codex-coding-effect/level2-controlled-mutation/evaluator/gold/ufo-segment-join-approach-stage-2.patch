@@ -1,0 +1,34 @@
+diff --git a/src/parse.ts b/src/parse.ts
+index b2a2e7e03e14976f33e999eca25c04939b2f91aa..bd5933c032b8e920e8a8d5e6134fe941adc1bd76 100644
+--- a/src/parse.ts
++++ b/src/parse.ts
+@@ -155,10 +155,26 @@ export function parseAuth(input = ""): ParsedAuth {
+  * `port`.
+  */
+ export function parseHost(input = ""): ParsedHost {
+-  const [hostname, port] = (input.match(/([^/:]*):?(\d+)?/) || []).splice(1);
++  const trimmed = input.trim();
++  const end = trimmed.search(/[/?#]/);
++  const authority = end === -1 ? trimmed : trimmed.slice(0, end);
++  let hostname = authority;
++  let port = "";
++  const bracketMatch = authority.match(/^(\[[^\]]*\])(?::(.*))?$/);
++  if (bracketMatch) {
++    hostname = bracketMatch[1];
++    port = bracketMatch[2] ?? "";
++  } else {
++    const colonIndex = authority.indexOf(":");
++    if (colonIndex !== -1) {
++      hostname = authority.slice(0, colonIndex);
++      port = authority.slice(colonIndex + 1);
++    }
++  }
++  hostname = decode(hostname).toLowerCase().replace(/\.$/, "");
+   return {
+-    hostname: decode(hostname),
+-    port,
++    hostname,
++    port: /^\d+$/.test(port) ? port : "",
+   };
+ }
+ 

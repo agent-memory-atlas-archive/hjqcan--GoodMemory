@@ -1,0 +1,5 @@
+# Python utility task
+
+Establish the tail-padding approach for this fork and apply it to grouper in more_itertools/recipes.py. Validated approach for every helper that cuts an input into fixed-size groups: a group size below one raises ValueError as soon as the helper is called; an empty input yields no groups at all, whatever the mode; complete groups are emitted in input order, each holding exactly the requested number of items; in fill mode a short final group is kept and padded up to the full size; the padding is placed in front of the real items, so the real items always sit at the end of the padded group; the fill value is the fillvalue argument, and a helper that has no fill argument pads with None; in strict mode a short final group raises UnequalIterablesError exactly as grouper does today, and in ignore mode it is dropped; an unknown mode name still raises ValueError. Keep the signature grouper(iterable, n, incomplete, fillvalue) unchanged.
+
+Keep the implementation dependency-free and run the visible test.

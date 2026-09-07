@@ -1,0 +1,40 @@
+diff --git a/src/array/sift.ts b/src/array/sift.ts
+index 9ad3099d87c98663145c15d7b65f5c61edbfb83a..f54b0b204bc9886a4f725879ce322d5c3da9ec2f 100644
+--- a/src/array/sift.ts
++++ b/src/array/sift.ts
+@@ -1,16 +1,32 @@
+ import type { Falsy } from 'radashi'
+ 
+ /**
+- * Given a list returns a new list with only truthy values.
++ * Given a list returns a new list without nullish values, empty or
++ * whitespace-only strings, and NaN. Zero and false are kept, and
++ * nested arrays are kept as items.
+  *
+  * @see https://radashi.js.org/reference/array/sift
+  * @example
+  * ```ts
+  * sift([0, 1, undefined, null, 2, false, 3, ''])
+- * // => [1, 2, 3]
++ * // => [0, 1, 2, false, 3]
+  * ```
+  * @version 12.1.0
+  */
+ export function sift<T>(array: readonly (T | Falsy)[]): T[] {
+-  return (array?.filter(x => !!x) as T[]) ?? []
++  if (!array) {
++    return []
++  }
++  return array.filter(item => {
++    if (item == null) {
++      return false
++    }
++    if (typeof item === 'string') {
++      return item.trim().length > 0
++    }
++    if (typeof item === 'number') {
++      return !Number.isNaN(item)
++    }
++    return true
++  }) as T[]
+ }

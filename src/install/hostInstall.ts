@@ -654,12 +654,11 @@ async function mergeInstallConfig(input: {
         assistedExtractor: input.assistedExtractor,
         embedding: input.embedding,
       }),
-      // Fresh stores start on the measured BM25 hybrid retrieval tier
-      // (deterministic, zero egress, activates via the coding_agent hybrid
-      // signal without any embedding). Written explicitly so reinstalls of
-      // pre-existing configs never change behavior: the merge branch below
-      // preserves whatever retrieval setting (or absence) is already there.
-      retrieval: { bm25Ranking: true },
+      // Fresh stores use measured BM25 ranking and long-record admission,
+      // both deterministic and provider-free. Persist these defaults only
+      // for new configs: the merge branch below preserves existing retrieval
+      // settings, including absent keys and explicit opt-outs.
+      retrieval: { bm25Ranking: true, longRecordAdmission: true },
       retrievalProfile: DEFAULT_RETRIEVAL_PROFILE,
       storage: resolveInstallStorageConfig({
         memoryPath: input.memoryPath,

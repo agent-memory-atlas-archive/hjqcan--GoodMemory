@@ -1,0 +1,25 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..56530fec582f936b6016d370eb9b89027d03d9ed 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -260,6 +260,7 @@ def ordinalize(number: int) -> str:
+     return "{}{}".format(number, ordinal(number))
+ 
+ 
++
+ def parameterize(string: str, separator: str = '-') -> str:
+     """
+     Replace special characters in a string so that it may be used as part of a
+@@ -272,8 +273,11 @@ def parameterize(string: str, separator: str = '-') -> str:
+ 
+     """
+     string = transliterate(string)
++    # Contractions stay one word; an ampersand is spelled out.
++    string = string.replace("'", "")
++    string = string.replace("&", " and ")
+     # Turn unwanted chars into the separator
+-    string = re.sub(r"(?i)[^a-z0-9\-_]+", separator, string)
++    string = re.sub(r"(?i)[^a-z0-9\-]+", separator, string)
+     if separator:
+         re_sep = re.escape(separator)
+         # No more than one of the separator in a row.

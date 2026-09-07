@@ -1,0 +1,2 @@
+{"payload":{"content":[{"text":"Base handling in this fork needs a precise strip policy. Establish it in the first task; the later tasks touch other helpers and stand on their own.","type":"input_text"}],"role":"user","type":"message"},"type":"response_item"}
+{"payload":{"content":[{"text":"Recorded that the base-strip policy is established first and that the later helper tasks are independent of it.","type":"output_text"}],"role":"assistant","type":"message"},"type":"response_item"}

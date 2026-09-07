@@ -1,0 +1,87 @@
+diff --git a/src/string/dash.ts b/src/string/dash.ts
+index 51fca1523545d6bb0371395d415e59d195ef0fe7..4644adeb5a8617ae29113052dc3ed006ab7bd8fd 100644
+--- a/src/string/dash.ts
++++ b/src/string/dash.ts
+@@ -1,7 +1,8 @@
+-import { capitalize } from 'radashi'
+-
+ /**
+- * Formats the given string in dash case fashion.
++ * Formats the given string in dash case fashion, following the
++ * word-boundary policy of this fork: separator runs collapse, digit
++ * runs are words of their own, acronyms stay together, and
++ * apostrophes are removed.
+  *
+  * @see https://radashi.js.org/reference/string/dash
+  * @example
+@@ -13,18 +14,58 @@ import { capitalize } from 'radashi'
+  * @version 12.1.0
+  */
+ export function dash(str: string): string {
+-  const parts =
+-    str
+-      ?.replace(/([A-Z])+/g, capitalize)
+-      ?.split(/(?=[A-Z])|[\.\-\s_]/)
+-      .map(x => x.toLowerCase()) ?? []
+-  if (parts.length === 0) {
+-    return ''
++  return splitWords(str).join('-')
++}
++
++const SEPARATOR = /[\s./_-]/
++const DIGIT = /[0-9]/
++
++function isUpper(char: string): boolean {
++  return char !== char.toLowerCase() && char === char.toUpperCase()
++}
++
++function isLower(char: string): boolean {
++  return char !== char.toUpperCase() && char === char.toLowerCase()
++}
++
++function splitWords(str: string): string[] {
++  if (!str) {
++    return []
++  }
++  const cleaned = str.replace(/['’]/g, '')
++  const words: string[] = []
++  let current = ''
++  const flush = () => {
++    if (current) {
++      words.push(current.toLowerCase())
++      current = ''
++    }
+   }
+-  if (parts.length === 1) {
+-    return parts[0]
++  for (let index = 0; index < cleaned.length; index++) {
++    const char = cleaned[index]
++    if (SEPARATOR.test(char)) {
++      flush()
++      continue
++    }
++    const prev = current[current.length - 1]
++    if (prev !== undefined) {
++      if (DIGIT.test(char) !== DIGIT.test(prev)) {
++        flush()
++      } else if (isUpper(char) && isLower(prev)) {
++        flush()
++      } else if (
++        isLower(char) &&
++        isUpper(prev) &&
++        current.length > 1 &&
++        isUpper(current[current.length - 2])
++      ) {
++        current = current.slice(0, -1)
++        flush()
++        current = prev
++      }
++    }
++    current += char
+   }
+-  return parts.reduce((acc, part) => {
+-    return `${acc}-${part.toLowerCase()}`
+-  })
++  flush()
++  return words
+ }

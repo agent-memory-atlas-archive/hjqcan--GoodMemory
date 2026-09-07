@@ -1,0 +1,27 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..ba24c7e855a9b8a0911fba16a5b4a4b12fcfcc59 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -337,10 +337,13 @@ def singularize(word: str) -> str:
+     return word
+ 
+ 
++
+ def tableize(word: str) -> str:
+     """
+     Create the name of a table like Rails does for models to table names. This
+     method uses the :func:`pluralize` method on the last word in the string.
++    A namespace prefix is dropped and inner spaces or hyphens become
++    underscores.
+ 
+     Examples::
+ 
+@@ -351,6 +354,8 @@ def tableize(word: str) -> str:
+         >>> tableize('fancyCategory')
+         'fancy_categories'
+     """
++    word = word.strip().split('::')[-1]
++    word = re.sub(r"[\s-]+", "_", word)
+     return pluralize(underscore(word))
+ 
+ 

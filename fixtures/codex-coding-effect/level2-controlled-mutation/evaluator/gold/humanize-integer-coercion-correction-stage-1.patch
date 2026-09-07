@@ -1,0 +1,46 @@
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..c05c1cbb08cffb5ee22a7ad223434084edd787cb 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -73,12 +73,21 @@ def ordinal(value: NumberOrString, gender: str = "male") -> str:
+     """
+     import math
+ 
+-    try:
+-        if not math.isfinite(float(value)):
+-            return _format_not_finite(float(value))
+-        value = int(value)
+-    except (TypeError, ValueError):
++    if isinstance(value, bool):
+         return str(value)
++    if isinstance(value, int):
++        number = value
++    else:
++        try:
++            number = float(value)
++        except (TypeError, ValueError):
++            return str(value)
++        if not math.isfinite(number):
++            return _format_not_finite(number)
++        if number != int(number):
++            return str(value)
++        number = int(number)
++    value = number
+     if gender == "male":
+         t = (
+             P_("0 (male)", "th"),
+@@ -105,9 +114,11 @@ def ordinal(value: NumberOrString, gender: str = "male") -> str:
+             P_("8 (female)", "th"),
+             P_("9 (female)", "th"),
+         )
+-    if value % 100 in (11, 12, 13):  # special case
+-        return f"{value}{t[0]}"
+-    return f"{value}{t[value % 10]}"
++    sign = "-" if value < 0 else ""
++    magnitude = abs(value)
++    if magnitude % 100 in (11, 12, 13):  # special case
++        return f"{sign}{magnitude}{t[0]}"
++    return f"{sign}{magnitude}{t[magnitude % 10]}"
+ 
+ 
+ def intcomma(value: NumberOrString, ndigits: int | None = None) -> str:

@@ -1,0 +1,33 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..870afeb5357a197c90a3b4042aa65b36e91c3956 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -19,6 +19,28 @@ export function isUppercase(char = ""): boolean | undefined {
+   return char !== char.toLowerCase();
+ }
+ 
++const STYLE_BODY_RE = /^[A-Za-z0-9]+$/;
++const STYLE_UPPER_RUN_RE = /[A-Z]{3}/;
++const STYLE_DIGIT_LOWER_RE = /[0-9][a-z]/;
++
++function matchesIdentifierStyle(str: unknown, first: RegExp): boolean {
++  if (typeof str !== "string") {
++    return false;
++  }
++  let text = str.trim();
++  if (text.startsWith("_")) {
++    text = text.slice(1);
++  }
++  if (!text || !STYLE_BODY_RE.test(text) || !first.test(text[0])) {
++    return false;
++  }
++  return !STYLE_UPPER_RUN_RE.test(text) && !STYLE_DIGIT_LOWER_RE.test(text);
++}
++
++export function isCamelCase(str = ""): boolean {
++  return matchesIdentifierStyle(str, /^[a-z]$/);
++}
++
+ export function splitByCase<T extends string>(str: T): SplitByCase<T>;
+ export function splitByCase<
+   T extends string,

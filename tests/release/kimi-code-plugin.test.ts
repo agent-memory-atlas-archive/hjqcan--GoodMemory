@@ -82,7 +82,7 @@ describe("Kimi Code plugin release contract", () => {
       command: "npx",
       enabledTools: [...KIMI_TOOLS],
       env: { GOODMEMORY_USER_ID: "kimi-code" },
-      startupTimeoutMs: 120_000,
+      startupTimeoutMs: 300_000,
       toolTimeoutMs: 60_000,
     });
     expect(server?.cwd).toBeUndefined();
@@ -117,15 +117,30 @@ describe("Kimi Code plugin release contract", () => {
     expect(skill).toContain('role: "user"');
     expect(skill).toContain('role: "assistant"');
     expect(skill).toContain("Never persist secrets");
+    expect(skill).toContain("0.7.5");
+    expect(skill).toContain("same basename");
+    expect(skill).toContain("Do not migrate");
 
     expect(status).toContain("goodmemory_stats");
     expect(recall).toContain("goodmemory_get_context");
     expect(recall).toContain("$ARGUMENTS");
     expect(trace).toContain("goodmemory_trace_recall");
     expect(trace).toContain("$ARGUMENTS");
+    for (const command of [recall, trace]) {
+      expect(command).toContain("Omit optional arguments");
+      expect(command).toContain("referenceTime");
+      expect(command).toContain("Do not invent");
+    }
     expect(remember).toContain("goodmemory_remember");
     expect(remember).toContain("$ARGUMENTS");
     expect(remember).toContain('role: "user"');
+    expect(remember).toContain("Omit optional arguments");
+    expect(remember).toContain("Do not invent");
+    expect(remember).toContain("missing field is not zero");
+    for (const command of [remember, recall, trace]) {
+      expect(command).toContain("null");
+      expect(command).toContain("empty strings");
+    }
 
     for (const command of [status, recall, trace, remember]) {
       expect(command).toMatch(/current project\s+absolute path/u);

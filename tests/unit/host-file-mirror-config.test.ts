@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { GoodMemoryConfig } from "../../src/api/contracts";
 import { createGoodMemory } from "../../src";
@@ -12,9 +13,6 @@ import { installHost } from "../../src/install/hostInstall";
 
 // The file mirror is the installed host's greppable view of durable memory
 // (ADR-010 §8). It is opt-in: absence keeps every write byte-identical.
-
-const SCRATCH =
-  "/private/tmp/claude-501/-Users-hjqcan-workspace-GoodMemory/cd707382-ae3b-4889-98c1-ba694a90813c/scratchpad";
 
 function baseConfig(fileMirror?: unknown): Record<string, unknown> {
   return {
@@ -118,7 +116,7 @@ describe("installed host file mirror config", () => {
   });
 
   it("writes fileMirror on install, preserves it on reinstall, and lets a later install override it", async () => {
-    const homeRoot = await mkdtemp(join(SCRATCH, "file-mirror-install-"));
+    const homeRoot = await mkdtemp(join(tmpdir(), "file-mirror-install-"));
     try {
       await installHost({ fileMirror: { enabled: true }, homeRoot, host: "codex", userId: "user-1" });
       const readConfig = async () =>
@@ -133,7 +131,7 @@ describe("installed host file mirror config", () => {
       await installHost({ fileMirror: { enabled: false }, homeRoot, host: "codex", userId: "user-1" });
       expect((await readConfig()).fileMirror).toEqual({ enabled: false });
 
-      const plainRoot = await mkdtemp(join(SCRATCH, "file-mirror-install-plain-"));
+      const plainRoot = await mkdtemp(join(tmpdir(), "file-mirror-install-plain-"));
       try {
         await installHost({ homeRoot: plainRoot, host: "codex", userId: "user-1" });
         const plain = JSON.parse(

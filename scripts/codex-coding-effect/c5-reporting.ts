@@ -1,6 +1,9 @@
 import { createHash } from "node:crypto";
 
-import { c5PlanBaselineArm } from "./c5-pilot-plan";
+import {
+  c5PlanBaselineArm,
+  c5PlanStagesPerEpisode,
+} from "./c5-pilot-plan";
 import type {
   C5BaselineArm,
   C5PilotArm,
@@ -17,7 +20,6 @@ const TARGET_POWER = 0.8;
 const Z_TWO_SIDED_95 = 1.959963984540054;
 const Z_POWER_80 = 0.8416212335729143;
 const FULL_SET_SEEDS = 3;
-const STAGES_PER_EPISODE = 3;
 const ARMS = 2;
 const MINIMUM_EPISODES = 30;
 const MINIMUM_REPOSITORIES = 6;
@@ -102,7 +104,7 @@ export interface C5PilotReport {
     power: 0.8;
     requiredEpisodes: number;
     seeds: 3;
-    stagesPerEpisode: 3;
+    stagesPerEpisode: number;
   };
   publicClaimEligible: false;
   publicCodingEffectProof: false;
@@ -146,10 +148,14 @@ export function buildC5PilotReport(input: {
   const observedWithinEpisodeCorrelation = estimateEpisodeCorrelation(
     comparablePairs,
   );
+  // Three stages per episode for the C4 controlled pilot, four for Level-2;
+  // the frozen plan decides, not a constant.
+  const stagesPerEpisode = c5PlanStagesPerEpisode(input.plan);
   const powerAnalysis = buildPowerAnalysis({
     materialEffectRate:
       input.plan.analysis.materialEffectPercentagePoints / 100,
     observedWithinEpisodeCorrelation,
+    stagesPerEpisode,
   });
   const requiredEpisodes = powerAnalysis.requiredEpisodes;
   const netRescueRateInterval95 = buildNetRescueBootstrapInterval({
@@ -204,10 +210,10 @@ export function buildC5PilotReport(input: {
     fullSetBudget: {
       arms: ARMS,
       codexCalls:
-        requiredEpisodes * STAGES_PER_EPISODE * ARMS * FULL_SET_SEEDS,
+        requiredEpisodes * stagesPerEpisode * ARMS * FULL_SET_SEEDS,
       episodes: requiredEpisodes,
       repositories: MINIMUM_REPOSITORIES,
-      scoredStages: requiredEpisodes * STAGES_PER_EPISODE,
+      scoredStages: requiredEpisodes * stagesPerEpisode,
       seeds: FULL_SET_SEEDS,
     },
     generatedAt: input.generatedAt,
@@ -216,7 +222,7 @@ export function buildC5PilotReport(input: {
       comparableCount: comparablePairs.length,
       incomparableCount: outcomes.incomparable,
       outcomes,
-      scheduledCount: input.plan.clusters.length * STAGES_PER_EPISODE,
+      scheduledCount: input.plan.clusters.length * stagesPerEpisode,
     },
     phase: "C5",
     planSha256: input.planSha256,
@@ -494,6 +500,7 @@ function seededRandom(seed: string): () => number {
 function buildPowerAnalysis(input: {
   materialEffectRate: number;
   observedWithinEpisodeCorrelation: number;
+  stagesPerEpisode: number;
 }): C5PilotReport["powerAnalysis"] {
   const planningDiscordanceRate = 0.5;
   const deltaSquared = input.materialEffectRate ** 2;
@@ -501,7 +508,7 @@ function buildPowerAnalysis(input: {
     Z_TWO_SIDED_95 * Math.sqrt(planningDiscordanceRate) +
     Z_POWER_80 * Math.sqrt(planningDiscordanceRate - deltaSquared)
   ) ** 2 / deltaSquared);
-  const observationsPerEpisode = STAGES_PER_EPISODE * FULL_SET_SEEDS;
+  const observationsPerEpisode = input.stagesPerEpisode * FULL_SET_SEEDS;
   const designEffect = 1 +
     (observationsPerEpisode - 1) * input.observedWithinEpisodeCorrelation;
   const requiredEpisodes = Math.max(
@@ -524,7 +531,7 @@ function buildPowerAnalysis(input: {
     power: TARGET_POWER,
     requiredEpisodes,
     seeds: FULL_SET_SEEDS,
-    stagesPerEpisode: STAGES_PER_EPISODE,
+    stagesPerEpisode: input.stagesPerEpisode,
   };
 }
 

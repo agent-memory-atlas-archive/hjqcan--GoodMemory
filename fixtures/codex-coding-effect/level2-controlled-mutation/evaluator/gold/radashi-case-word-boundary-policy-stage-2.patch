@@ -1,0 +1,68 @@
+diff --git a/src/number/inRange.ts b/src/number/inRange.ts
+index b1072bb56713c6cd9b361d0fd7f0812e5784ef02..d2d41ec728ef40ff97821f0da6885470646fffbb 100644
+--- a/src/number/inRange.ts
++++ b/src/number/inRange.ts
+@@ -1,16 +1,16 @@
+ /**
+  * Checks if the given number is between zero (0) and the ending
+- * number. 0 is inclusive.
++ * number. Both ends are inclusive.
+  *
+  * * Numbers can be negative or positive.
+- * * Ending number is exclusive.
++ * * The bound may lie on either side of zero.
+  *
+  * @see https://radashi.js.org/reference/number/inRange
+  * @example
+  * ```ts
+  * inRange(5, 10) // => true
+  * inRange(-1, 10) // => false
+- * inRange(10, 10) // => false
++ * inRange(10, 10) // => true
+  * ```
+  * @version 12.1.0
+  */
+@@ -20,8 +20,7 @@ export function inRange(number: number, end: number): boolean
+  * Checks if the given number is between two numbers.
+  *
+  * * Numbers can be negative or positive.
+- * * Starting number is inclusive.
+- * * Ending number is exclusive.
++ * * Both the start and the end are inclusive.
+  * * The start and the end of the range can be ascending OR descending
+  *   order.
+  *
+@@ -30,24 +29,23 @@ export function inRange(number: number, end: number): boolean
+  * ```ts
+  * inRange(5, 0, 10) // => true
+  * inRange(-1, 0, 10) // => false
+- * inRange(10, 0, 10) // => false
++ * inRange(10, 0, 10) // => true
+  * ```
+  */
+ export function inRange(number: number, start: number, end: number): boolean
+ export function inRange(number: number, start: number, end?: number): boolean {
+-  const isTypeSafe =
+-    typeof number === 'number' &&
+-    typeof start === 'number' &&
+-    (typeof end === 'undefined' || typeof end === 'number')
+-
+-  if (!isTypeSafe) {
++  if (!isNumeric(number) || !isNumeric(start)) {
+     return false
+   }
+-
+-  if (typeof end === 'undefined') {
++  if (end === undefined) {
+     end = start
+     start = 0
++  } else if (!isNumeric(end)) {
++    return false
+   }
++  return number >= Math.min(start, end) && number <= Math.max(start, end)
++}
+ 
+-  return number >= Math.min(start, end) && number < Math.max(start, end)
++function isNumeric(value: unknown): value is number {
++  return typeof value === 'number' && !Number.isNaN(value)
+ }

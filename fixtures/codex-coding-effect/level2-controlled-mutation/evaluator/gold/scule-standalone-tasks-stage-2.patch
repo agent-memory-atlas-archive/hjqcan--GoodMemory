@@ -1,0 +1,26 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..6f4c3c1da66c3446d0866d74be8c24dc40578dde 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -13,10 +13,18 @@ const NUMBER_CHAR_RE = /\d/;
+ const STR_SPLITTERS = ["-", "_", "/", "."] as const;
+ 
+ export function isUppercase(char = ""): boolean | undefined {
+-  if (NUMBER_CHAR_RE.test(char)) {
+-    return undefined;
++  let cased = false;
++  for (const current of char) {
++    const upper = current.toUpperCase();
++    if (upper === current.toLowerCase()) {
++      continue;
++    }
++    cased = true;
++    if (current !== upper) {
++      return false;
++    }
+   }
+-  return char !== char.toLowerCase();
++  return cased ? true : undefined;
+ }
+ 
+ export function splitByCase<T extends string>(str: T): SplitByCase<T>;

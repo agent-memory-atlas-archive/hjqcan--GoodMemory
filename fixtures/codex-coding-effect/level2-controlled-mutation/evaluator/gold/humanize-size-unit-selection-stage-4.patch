@@ -1,0 +1,125 @@
+diff --git a/src/humanize/__init__.py b/src/humanize/__init__.py
+index 6fb9959379d7469d7c5f5d06a6a5d1e51e680939..9a61894af07323391803de3177dcc1c15812f46e 100644
+--- a/src/humanize/__init__.py
++++ b/src/humanize/__init__.py
+@@ -2,7 +2,7 @@
+ 
+ from __future__ import annotations
+ 
+-from humanize.filesize import naturalsize
++from humanize.filesize import naturalbitrate, naturalsize
+ from humanize.i18n import activate, deactivate, decimal_separator, thousands_separator
+ from humanize.lists import natural_list
+ from humanize.number import (
+@@ -37,6 +37,7 @@ __all__ = [
+     "intword",
+     "metric",
+     "natural_list",
++    "naturalbitrate",
+     "naturaldate",
+     "naturalday",
+     "naturaldelta",
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index 13e5eddc9ab9ef3b651cf04f1c5b20086930b87d..7f7f5ae9e29e999208a0d1a1544925f237c47bb7 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -2,7 +2,9 @@
+ 
+ from __future__ import annotations
+ 
+-from math import log
++from math import isfinite, log
++
++from .number import _format_not_finite
+ 
+ suffixes = {
+     "decimal": (
+@@ -33,6 +35,36 @@ suffixes = {
+ }
+ 
+ 
++def _select_unit(
++    magnitude: float, base: int, suffix_count: int, format: str
++) -> tuple[str, int]:
++    """Pick a suffix index and formatted amount for a magnitude of at least one base.
++
++    The suffix is found by stepping through the table with plain comparisons.
++    After formatting, an amount that reads as a whole base or more is carried
++    into the next suffix (and formatted again) while a larger suffix exists.
++    """
++    amount = magnitude / base
++    index = 0
++    while amount >= base and index < suffix_count - 1:
++        amount /= base
++        index += 1
++    text = format % amount
++    while index < suffix_count - 1 and _reads_at_least(text, base):
++        amount /= base
++        index += 1
++        text = format % amount
++    return text, index
++
++
++def _reads_at_least(text: str, threshold: float) -> bool:
++    """Whether a formatted amount reads as at least the given threshold."""
++    try:
++        return float(text) >= threshold
++    except ValueError:
++        return False
++
++
+ def naturalsize(
+     value: float | str,
+     binary: bool = False,
+@@ -97,3 +129,51 @@ def naturalsize(
+     exp = int(min(log(abs_bytes, base), len(suffix)))
+     ret: str = format % (bytes_ / (base**exp)) + suffix[exp - 1]
+     return ret
++
++
++bitrate_suffixes = {
++    "decimal": tuple(f" {prefix}bit/s" for prefix in "kMGTPEZYRQ"),
++    "binary": tuple(f" {prefix}ibit/s" for prefix in "KMGTPEZYRQ"),
++}
++
++
++def naturalbitrate(
++    value: float | str,
++    binary: bool = False,
++    format: str = "%.1f",
++) -> str:
++    """Format a number of bits per second like a human-readable rate.
++
++    Examples:
++        ```pycon
++        >>> naturalbitrate(3000000)
++        '3.0 Mbit/s'
++        >>> naturalbitrate(3000, True)
++        '2.9 Kibit/s'
++        >>> naturalbitrate(300)
++        '300 bit/s'
++
++        ```
++
++    Args:
++        value (int, float, str): Bits per second to convert.
++        binary (bool): If `True`, uses binary prefixes (Kibit/s, Mibit/s) with base
++            2<sup>10</sup> instead of 10<sup>3</sup>.
++        format (str): Custom formatter for the amount.
++
++    Returns:
++        str: Human readable representation of a bit rate.
++    """
++    suffix = bitrate_suffixes["binary" if binary else "decimal"]
++    base = 1024 if binary else 1000
++    bits = float(value)
++    if not isfinite(bits):
++        return _format_not_finite(bits)
++    abs_bits = abs(bits)
++
++    if abs_bits < base:
++        return f"{int(bits)} bit/s"
++
++    amount, index = _select_unit(abs_bits, base, len(suffix), format)
++    sign = "-" if bits < 0 else ""
++    return f"{sign}{amount}{suffix[index]}"

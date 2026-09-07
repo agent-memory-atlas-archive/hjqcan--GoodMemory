@@ -18,19 +18,23 @@ import { loadFrozenPrehistory } from "./frozen-prehistory";
 type C5Episode = CodexCodingEffectDatasetV2["episodes"][number];
 type C5Stage = C5Episode["stages"][number];
 
+const evaluatorCaseSchema = z.object({
+  args: z.array(z.unknown()),
+  expected: z.unknown(),
+  functionName: z.string().min(1).optional(),
+}).strict();
+// C4 cases carry one function per stage; Level-2 cases add the ecosystem,
+// module, Python package root, and per-case function overrides.
 const evaluatorCasesSchema = z.object({
   cases: z.array(z.object({
+    ecosystem: z.enum(["bun", "python"]).optional(),
     episodeId: z.string().min(1),
-    failToPass: z.array(z.object({
-      args: z.array(z.unknown()),
-      expected: z.unknown(),
-    }).strict()).min(1),
+    failToPass: z.array(evaluatorCaseSchema).min(1),
     functionName: z.string().min(1),
     hiddenSentinel: z.string().min(1),
-    passToPass: z.array(z.object({
-      args: z.array(z.unknown()),
-      expected: z.unknown(),
-    }).strict()).min(1),
+    modulePath: z.string().min(1).optional(),
+    packageRoot: z.string().optional(),
+    passToPass: z.array(evaluatorCaseSchema).min(1),
     stageId: z.string().min(1),
   }).strict()).min(1),
   schemaVersion: z.literal(1),
@@ -88,7 +92,14 @@ export async function buildC5StageLeakageInput(input: {
   const visibleFiles = repositoryFiles.filter((file) =>
     file.path.split("/").at(-1) !== "AGENTS.md"
   );
-  const publicSurfaces = repositoryFiles.map((file) => file.content);
+  // Public by construction: every visible repository path and every visible
+  // file's content (the same natural surfaces the C4 readiness matrix uses).
+  // A stage's expected changed file is a path that already exists in the
+  // repository, so naming it in a prompt or a handoff summary reveals nothing.
+  const publicSurfaces = repositoryFiles.flatMap((file) => [
+    file.path,
+    file.content,
+  ]);
   const stageCases = [...testCase.failToPass, ...testCase.passToPass];
   const allowedValues = uniqueHiddenValues(
     input.episode.allowedPublicLeakageValues ?? [],

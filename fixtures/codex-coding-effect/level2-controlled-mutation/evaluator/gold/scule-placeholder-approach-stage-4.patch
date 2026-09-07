@@ -1,0 +1,69 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..bbd2a439da023e9cf9fb29acd4acf5d522088ba5 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -12,6 +12,49 @@ import type {
+ const NUMBER_CHAR_RE = /\d/;
+ const STR_SPLITTERS = ["-", "_", "/", "."] as const;
+ 
++const PLACEHOLDER_PLAIN_SPLIT_RE = /[}\s]+/u;
++
++function isPlaceholder(word: string): boolean {
++  return word.length > 2 && word.startsWith("{") && word.endsWith("}");
++}
++
++function splitPlainText(text: string): string[] {
++  return text
++    .split(PLACEHOLDER_PLAIN_SPLIT_RE)
++    .flatMap((chunk) => splitByCase(chunk))
++    .filter(Boolean);
++}
++
++function splitWithPlaceholders(str: string | readonly string[]): string[] {
++  if (Array.isArray(str)) {
++    return str.filter(Boolean);
++  }
++  if (!str || typeof str !== "string") {
++    return [];
++  }
++  const words: string[] = [];
++  let rest = str;
++  while (rest.length > 0) {
++    const open = rest.indexOf("{");
++    if (open === -1) {
++      words.push(...splitPlainText(rest));
++      break;
++    }
++    words.push(...splitPlainText(rest.slice(0, open)));
++    const close = rest.indexOf("}", open + 1);
++    if (close === -1) {
++      rest = rest.slice(open + 1);
++      continue;
++    }
++    const inner = rest.slice(open + 1, close);
++    if (inner.length > 0) {
++      words.push(`{${inner}}`);
++    }
++    rest = rest.slice(close + 1);
++  }
++  return words;
++}
++
+ export function isUppercase(char = ""): boolean | undefined {
+   if (NUMBER_CHAR_RE.test(char)) {
+     return undefined;
+@@ -98,8 +141,12 @@ export function pascalCase<
+   UserCaseOptions extends CaseOptions = CaseOptions,
+ >(str?: T, opts?: UserCaseOptions) {
+   return str
+-    ? ((Array.isArray(str) ? str : splitByCase(str as string))
+-        .map((p) => upperFirst(opts?.normalize ? p.toLowerCase() : p))
++    ? (splitWithPlaceholders(str)
++        .map((p) =>
++          isPlaceholder(p)
++            ? p
++            : upperFirst(opts?.normalize ? p.toLowerCase() : p),
++        )
+         .join("") as PascalCase<T, UserCaseOptions["normalize"]>)
+     : "";
+ }

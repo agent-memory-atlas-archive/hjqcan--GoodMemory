@@ -47,6 +47,8 @@ bulk-load. Start here, then open only the file that matches the question.
   HTTP interchange operations (RFC 2119).
 - `GoodMemory-0.6-to-0.7-Migration-Guide.md` - breaking API/configuration,
   projection cutover, validation, and rollback procedure for the 0.7 upgrade.
+- `GoodMemory-0.7-to-0.8-Migration-Guide.md` - unpublished 0.8 upgrade guide:
+  removed telemetry fields, note interchange, projection rebuild, and recovery.
 - `GoodMemory-Reference-Integration-Guide.md` - reference consumer pattern.
 - `GoodMemory-Inspector-and-Admin-API.md` - local React Inspector, `/admin/v1`
   contract, security boundary, and operator workflows.
@@ -109,6 +111,14 @@ bulk-load. Start here, then open only the file that matches the question.
   comparator ran on 2026-09-03 and found no difference between GoodMemory and
   a flat summary of prior stages (0 rescues, 0 regressions on 34 comparable
   pairs), so the internal track closed with a documented negative (0.2).
+  Level-2 was resumed on 2026-09-03 by maintainer decision under a
+  pre-registered summary-window design (0.3) after a reproduced recall-budget
+  defect was fixed; its dataset is authored under
+  `scripts/codex-coding-effect/level2-authoring/` (local-only inputs, git-ignored
+  except the README contract; the frozen fixture at
+  `fixtures/codex-coding-effect/level2-controlled-mutation/` is the tracked
+  dataset) and the C4/C5 harness runs it through the dataset profiles in
+  `scripts/codex-coding-effect/controlled-dataset-profile.ts`.
 - `../scripts/research/protocols.json` - static active-protocol registry with
   source identity, entrypoints, canonical artifacts, exact historical gates,
   and external prerequisites. Historical execution occurs in an isolated

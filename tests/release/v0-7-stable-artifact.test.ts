@@ -221,15 +221,6 @@ describe("v0.7 stable release artifact", () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-stable-artifact-test-"));
     const outputDir = join(root, "output");
     try {
-      const repositoryPackage = JSON.parse(
-        await readFile(new URL("../../package.json", import.meta.url), "utf8"),
-      ) as { files: string[] };
-      expect(repositoryPackage.files.filter((path) => path.startsWith("docs/"))).toEqual(
-        [...PUBLIC_RELEASE_DOCS],
-      );
-      expect(
-        repositoryPackage.files.some((path) => path.startsWith("benchmark-claims/")),
-      ).toBe(false);
       const { sourceCommit, sourceTree } = await initializeStableSource({ root });
 
       const sourceBefore = await Promise.all(
@@ -255,7 +246,14 @@ describe("v0.7 stable release artifact", () => {
       ) as { releaseStatus?: Record<string, unknown> };
       const packageJson = JSON.parse(
         await readFile(join(packageRoot, "package.json"), "utf8"),
-      ) as { goodmemoryRelease?: Record<string, unknown> };
+      ) as { files: string[]; goodmemoryRelease?: Record<string, unknown> };
+
+      // Bind historical expectations to the packed historical fixture, not
+      // the current development package's independently tested allowlist.
+      expect(packageJson.files.filter((path) => path.startsWith("docs/"))).toEqual(
+        [...PUBLIC_RELEASE_DOCS],
+      );
+      expect(packageJson.files.some((path) => path.startsWith("benchmark-claims/"))).toBe(false);
 
       expect(readme).toContain("immutable `0.7.4` stable release source");
       expect(readmeZh).toContain("不可变的 `0.7.4` 稳定发布源码");

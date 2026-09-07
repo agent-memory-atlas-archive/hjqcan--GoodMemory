@@ -3,10 +3,14 @@ ADR-010: Note Memory Kind, File Mirror, and Open Interchange
 
 Status
 ------
-Accepted (2026-09-02). Phases A, B, and C of Phase 75 shipped on the v0.8
-lane with the full canonical sweep, typecheck, and build green. The only open
-item is operational, not architectural: flipping the fresh-install default of
-`retrieval.longRecordAdmission` waits for the full-root Phase 75 gate.
+Accepted (2026-09-02), amended 2026-09-05. Phases A, B, and C landed on the
+unpublished v0.8 lane. The full-root Phase 75 protection gate now passes:
+500 LongMemEval cases and 1,986 LoCoMo questions per arm, 22 passing slices.
+Fresh Codex and Claude configs enable `retrieval.longRecordAdmission`;
+existing configs, library defaults, and file-mirror defaults are unchanged.
+Verification details and retained failures are recorded in
+reports/quality-gates/phase-75/default-enablement-20260905.md. This ADR does
+not authorize a release or reopen paused benchmark declarations.
 
 Context
 -------
@@ -59,13 +63,15 @@ Decision
    fragment outputs (other sections stay flattened). Every new render key is
    localized in all seven built-in packs; the neutral pack returns the key.
 
-6. Default recall gains an opt-in, length-conditional query-coverage admission
+6. Fact recall gains a length-conditional query-coverage admission
    signal (`retrieval.longRecordAdmission`): computed only for records with
    more than 32 overlap tokens, requiring at least two matched query tokens
-   and 60% coverage, applied legacy-first so every existing selection is
-   byte-identical. It becomes a fresh-install default only after the
-   phase-75 protection gate passes; the library default flip is a separate
-   decision.
+   and 60% coverage, applied legacy-first to unused fact capacity without
+   reranking existing members. Notes use a separate admission lane, and
+   rendered context still obeys its token budget. The full-root Phase 75
+   protection gate passed on 2026-09-05, enabling it for fresh Codex and
+   Claude configs only. Reinstallation preserves absent keys and explicit
+   opt-outs. A library default flip remains a separate decision.
 
 7. Markdown artifacts follow the layering design: MEMORY.md is index-only
    (≤200 lines, ≤25 KB, one line per entry with kind, id, time, head, and
@@ -79,8 +85,10 @@ Decision
    by directory swap, never read back, off by default, and never a truth
    source. Failure is logged and never fails the mutation. One root is bound
    to one durable scope in configuration (`scope`, sessionId ignored):
-   mutations outside it are not mirrored, fields the binding leaves unset
-   admit any value (installed hosts bind `{ userId, workspaceId }` so every
+   non-overlapping mutations are not mirrored; an omitted scope field on
+   either side is a wildcard, so a user-wide forget/delete-all also refreshes
+   the bound workspace tree. Export always uses the bound scope, never the
+   broader mutation scope (installed hosts bind `{ userId, workspaceId }` so every
    agent in a workspace regenerates the same tree), and a failed swap puts
    the previous tree back and removes the staging directory. Amended
    2026-09-02 after review: the first cut keyed debounce per scope but wrote

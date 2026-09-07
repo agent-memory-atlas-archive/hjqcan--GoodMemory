@@ -1,0 +1,40 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index dacf61407d454907d661edde2d774bee11cec92a..3880093f06b6cd35f89c0db165dc8a6e04364e9a 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -55,6 +55,7 @@ __all__ = [
+     'multinomial',
+     'ncycles',
+     'nth',
++    'nth_index',
+     'nth_combination',
+     'padnone',
+     'pad_none',
+@@ -957,6 +958,27 @@ def iter_index(iterable, value, start=0, stop=None):
+                 yield (i := seq_index(value, i + 1, stop))
+ 
+ 
++def nth_index(iterable, value, n):
++    """Return the index of the *n*-th occurrence of *value* in *iterable*,
++    counting occurrences from one.
++
++    >>> nth_index('AABCADEAF', 'A', 3)
++    4
++
++    ``ValueError`` is raised when *n* is below one or when *value* occurs
++    fewer than *n* times.
++    """
++    if n < 1:
++        raise ValueError('n must be at least one')
++    seen = 0
++    for index, element in enumerate(iterable):
++        if element is value or element == value:
++            seen += 1
++            if seen == n:
++                return index
++    raise ValueError('value does not occur enough times')
++
++
+ def sieve(n):
+     """Yield the primes less than n.
+ 

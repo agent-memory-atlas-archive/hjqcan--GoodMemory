@@ -1,0 +1,67 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..6f51d6815f1991f6eb7a7a2a4d3608fa150baadf 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -12,6 +12,49 @@ import type {
+ const NUMBER_CHAR_RE = /\d/;
+ const STR_SPLITTERS = ["-", "_", "/", "."] as const;
+ 
++const CONVENTION_SEPARATOR_RE = /[-_/.\s]+/u;
++const CONVENTION_NOISE_RE = /[^\p{L}\p{N}]/gu;
++const CONVENTION_DIGIT_LETTER_RE = /(\p{N})(?=\p{L})/gu;
++const CONVENTION_MARK = "\u0000";
++
++function splitByConvention(str: string | readonly string[]): string[] {
++  const chunks = Array.isArray(str)
++    ? [...str]
++    : typeof str === "string"
++      ? str.split(CONVENTION_SEPARATOR_RE)
++      : [];
++  const words: string[] = [];
++  for (const chunk of chunks) {
++    const cleaned = chunk.replace(CONVENTION_NOISE_RE, "");
++    if (!cleaned) {
++      continue;
++    }
++    const merged: string[] = [];
++    const parts = splitByCase(cleaned, [])
++      .flatMap((part) =>
++        part
++          .replace(CONVENTION_DIGIT_LETTER_RE, `$1${CONVENTION_MARK}`)
++          .split(CONVENTION_MARK),
++      )
++      .filter(Boolean);
++    for (const part of parts) {
++      const previous = merged.at(-1);
++      if (
++        previous !== undefined &&
++        previous.length === 1 &&
++        isUppercase(previous) === true &&
++        isUppercase(part[0]) === true
++      ) {
++        merged[merged.length - 1] = previous + part;
++      } else {
++        merged.push(part);
++      }
++    }
++    words.push(...merged);
++  }
++  return words;
++}
++
+ export function isUppercase(char = ""): boolean | undefined {
+   if (NUMBER_CHAR_RE.test(char)) {
+     return undefined;
+@@ -138,6 +181,12 @@ export function kebabCase<
+     : "";
+ }
+ 
++export function dotCase(str: string | readonly string[] = ""): string {
++  return splitByConvention(str)
++    .map((word) => word.toLowerCase())
++    .join(".");
++}
++
+ export function snakeCase(): "";
+ export function snakeCase<T extends string | readonly string[]>(
+   str: T,

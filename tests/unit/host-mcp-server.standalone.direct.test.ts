@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { basename, join, resolve } from "node:path";
+import { join } from "node:path";
+import { resolveWorkspaceId } from "../../src/host/managedFiles";
 import { createGoodMemory } from "../../src/api/createGoodMemory";
 import type {
   BuildContextInput,
@@ -235,7 +236,7 @@ describe("goodmemory mcp server standalone direct handlers", () => {
       sessionId: undefined,
       tenantId: undefined,
       userId: "standalone-user",
-      workspaceId: basename(resolve("/tmp/standalone-project")),
+      workspaceId: resolveWorkspaceId("/tmp/standalone-project", undefined),
     });
   });
 
@@ -427,8 +428,8 @@ describe("goodmemory mcp server standalone direct handlers", () => {
       cwd: "/tmp/project-beta",
     });
 
-    expect(calls.exportMemory[0]?.scope?.workspaceId).toBe("project-alpha");
-    expect(calls.exportMemory[1]?.scope?.workspaceId).toBe("project-beta");
+    expect(calls.exportMemory[0]?.scope?.workspaceId).toBe(resolveWorkspaceId("/tmp/project-alpha", undefined));
+    expect(calls.exportMemory[1]?.scope?.workspaceId).toBe(resolveWorkspaceId("/tmp/project-beta", undefined));
   });
 
   it("registers goodmemory_remember only when allowWrite is set", async () => {

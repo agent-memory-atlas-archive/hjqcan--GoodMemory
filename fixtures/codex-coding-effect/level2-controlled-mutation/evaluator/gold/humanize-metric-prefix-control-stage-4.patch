@@ -1,0 +1,77 @@
+diff --git a/src/humanize/__init__.py b/src/humanize/__init__.py
+index 6fb9959379d7469d7c5f5d06a6a5d1e51e680939..d3291a0df39a1cba5a8dc57262985eec112c4669 100644
+--- a/src/humanize/__init__.py
++++ b/src/humanize/__init__.py
+@@ -16,6 +16,7 @@ from humanize.number import (
+     scientific,
+ )
+ from humanize.time import (
++    clocktime,
+     naturaldate,
+     naturalday,
+     naturaldelta,
+@@ -30,6 +31,7 @@ __all__ = [
+     "activate",
+     "apnumber",
+     "clamp",
++    "clocktime",
+     "deactivate",
+     "decimal_separator",
+     "fractional",
+diff --git a/src/humanize/time.py b/src/humanize/time.py
+index 0ea316d77b460f33accf6951754baf4d82c575b8..332ea328b6b16e13d0dd8c43ad4a50d24eb96424 100644
+--- a/src/humanize/time.py
++++ b/src/humanize/time.py
+@@ -19,6 +19,7 @@ if TYPE_CHECKING:
+     from typing import Any
+ 
+ __all__ = [
++    "clocktime",
+     "naturaldate",
+     "naturalday",
+     "naturaldelta",
+@@ -634,6 +635,44 @@ def precisedelta(
+     return _("%s and %s") % (head, tail)
+ 
+ 
++def clocktime(value: dt.timedelta | float | str) -> str:
++    """Render a number of seconds as a clock-style H:MM:SS string.
++
++    ```pycon
++    >>> clocktime(3725)
++    '1:02:05'
++    >>> clocktime(45)
++    '0:00:45'
++
++    ```
++
++    Args:
++        value (datetime.timedelta, int, float or str): A timedelta or a number of
++            seconds.
++
++    Returns:
++        str: Hours, minutes and seconds separated by colons, or `str(value)` when
++            it is not a finite number.
++    """
++    import datetime as dt
++    import math
++
++    if isinstance(value, dt.timedelta):
++        seconds = value.total_seconds()
++    else:
++        try:
++            seconds = float(value)
++        except (TypeError, ValueError):
++            return str(value)
++        if not math.isfinite(seconds):
++            return str(value)
++    sign = "-" if seconds < 0 else ""
++    whole = int(abs(seconds))
++    hours, remainder = divmod(whole, 3600)
++    minutes, secs = divmod(remainder, 60)
++    return f"{sign}{hours}:{minutes:02d}:{secs:02d}"
++
++
+ def _rounding_by_fmt(format: str, value: float) -> float | int:
+     """Round a number according to the string format provided.
+ 

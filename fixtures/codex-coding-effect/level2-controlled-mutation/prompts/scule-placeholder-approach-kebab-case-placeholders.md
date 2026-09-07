@@ -1,0 +1,5 @@
+# TypeScript utility task
+
+Establish and implement the placeholder approach for this fork. Project policy: a placeholder is a segment wrapped in curly braces, and it is emitted verbatim, braces included, as a single word that is never split or re-cased; the text around placeholders is split and cased normally, and a placeholder joins its neighbours with the function's usual joiner even when it touches them directly; whitespace and separator characters inside a placeholder are preserved as they are; whitespace outside placeholders counts as a separator; an empty placeholder, meaning braces with nothing inside, is dropped and leaves no joiner behind; an opening brace with no closing brace, or a stray closing brace, is treated as an ordinary separator; placeholders never nest, so the first closing brace ends the placeholder; empty words from repeated separators or dropped placeholders are removed so joiners never double. Apply this approach to kebabCase in src/index.ts, keeping its optional joiner argument and its exported signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

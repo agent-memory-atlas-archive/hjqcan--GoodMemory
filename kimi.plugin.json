@@ -38,7 +38,7 @@
       "env": {
         "GOODMEMORY_USER_ID": "kimi-code"
       },
-      "startupTimeoutMs": 120000,
+      "startupTimeoutMs": 300000,
       "toolTimeoutMs": 60000,
       "enabledTools": [
         "goodmemory_get_context",

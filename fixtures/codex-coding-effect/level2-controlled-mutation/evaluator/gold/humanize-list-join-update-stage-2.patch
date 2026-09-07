@@ -1,0 +1,82 @@
+diff --git a/src/humanize/__init__.py b/src/humanize/__init__.py
+index 6fb9959379d7469d7c5f5d06a6a5d1e51e680939..1665d910b5b6c760db13bdd0de83f1d12e7bf37c 100644
+--- a/src/humanize/__init__.py
++++ b/src/humanize/__init__.py
+@@ -9,6 +9,7 @@ from humanize.number import (
+     apnumber,
+     clamp,
+     fractional,
++    intabbr,
+     intcomma,
+     intword,
+     metric,
+@@ -33,6 +34,7 @@ __all__ = [
+     "deactivate",
+     "decimal_separator",
+     "fractional",
++    "intabbr",
+     "intcomma",
+     "intword",
+     "metric",
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..fb5678dcc36110defcc93fbcddea1abc99354dde 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -271,6 +271,57 @@ def intword(value: NumberOrString, format: str = "%.1f") -> str:
+     return negative_prefix + str(value)
+ 
+ 
++def intabbr(value: NumberOrString) -> str:
++    """Converts a large integer to a compact abbreviation such as 1.5K or 2M.
++
++    Examples:
++        ```pycon
++        >>> intabbr(1500)
++        '1.5K'
++        >>> intabbr(2000000)
++        '2M'
++        >>> intabbr("foo")
++        'foo'
++
++        ```
++
++    Args:
++        value (int, float, str): Integer to convert.
++
++    Returns:
++        str: Compact representation, unless the value could not be coaxed into an
++            `int`, in which case `str(value)` is returned.
++    """
++    import math
++
++    try:
++        if not math.isfinite(float(value)):
++            return _format_not_finite(float(value))
++        value = int(value)
++    except (TypeError, ValueError):
++        return str(value)
++
++    sign = "-" if value < 0 else ""
++    magnitude = abs(value)
++    if magnitude < 1000:
++        return f"{sign}{magnitude}"
++
++    letters = "KMBT"
++    index = 0
++    amount = magnitude / 1000
++    while amount >= 1000 and index < len(letters) - 1:
++        amount /= 1000
++        index += 1
++    text = f"{amount:.1f}"
++    if float(text) >= 1000 and index < len(letters) - 1:
++        amount /= 1000
++        index += 1
++        text = f"{amount:.1f}"
++    if text.endswith(".0"):
++        text = text[:-2]
++    return f"{sign}{text}{letters[index]}"
++
++
+ def apnumber(value: NumberOrString) -> str:
+     """Converts an integer to Associated Press style.
+ 

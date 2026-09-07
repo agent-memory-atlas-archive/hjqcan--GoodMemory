@@ -1176,3 +1176,97 @@ describe("context builder output modes", () => {
     expect(packet.episodeSummary).toContain("...");
   });
 });
+
+describe("prompt fragment partial section budgeting", () => {
+  const hostPolicy =
+    '- Project policy: hosts render through one shared display form: an IPv6 literal is wrapped in square brackets, a trailing dot on any host is removed before rendering, hostnames are lower-cased, an explicit default port is dropped, an empty host renders as the literal string "(no host)", and a host longer than 253 characters is truncated to 250 characters followed by "...".';
+  const queryPolicy =
+    "- Project policy: query keys sort by code point, repeated keys keep their first value only, keys with an empty value serialize without an equals sign, spaces encode as %20 never as plus, and a leading question mark in the input is ignored.";
+  const joinPolicy =
+    "- Project policy: segments join with exactly one slash, empty segments are skipped, a leading slash is kept only when the first segment has one, a trailing slash is never kept, and duplicate slashes inside a segment collapse to one.";
+  const packet = {
+    evidenceSummary:
+      "- host display policy preview\n- query policy preview\n- join policy preview",
+    factSummary: [hostPolicy, queryPolicy, joinPolicy].join("\n"),
+  };
+
+  // Host injection budgets are small (512 tokens per prompt). Three prior
+  // sessions' facts exceed that together, but the top-ranked fact alone fits;
+  // dropping the whole section left the agent with nothing but previews.
+  it("keeps the leading fact entries that fit instead of dropping the whole section", () => {
+    const rendered = renderMemoryPacket(
+      packet,
+      "developer_prompt_fragment",
+      160,
+      "coding_agent",
+    );
+
+    expect(rendered.content).toContain(hostPolicy.slice(2));
+    expect(rendered.content).not.toContain("collapse to one");
+    expect(rendered.omittedSections).not.toContain("Facts");
+    expect(rendered.estimatedTokens).toBeLessThanOrEqual(160);
+  });
+
+  it("never splits a multi-line entry when keeping a prefix", () => {
+    const multiLine = [
+      "- First policy line one",
+      "  continues on a second line that belongs to the same entry",
+      "- Second policy that will not fit within the remaining budget at all because it is long enough to overflow",
+    ].join("\n");
+    const rendered = renderMemoryPacket(
+      { evidenceSummary: "- preview", factSummary: multiLine },
+      "developer_prompt_fragment",
+      80,
+      "coding_agent",
+    );
+
+    expect(rendered.content).toContain("belongs to the same entry");
+    expect(rendered.content).not.toContain("Second policy");
+  });
+
+  // Evidence previews are 120-character clips of the same records shown under
+  // Facts; in host injection they only spend budget the kept fact needs.
+  it("drops evidence previews that are truncated copies of facts when the opt-in flag is set", () => {
+    const fact =
+      "- # TypeScript utility task\n\nEstablish and implement the host-display policy for this fork. Project policy: hosts render through one shared display form: an IPv6 literal is wrapped in square brackets.";
+    const preview =
+      "- # TypeScript utility task Establish and implement the host-display policy for this fork. Project policy: hosts render...";
+    const previewPacket = {
+      evidenceSummary: `${preview}\n- unrelated evidence line`,
+      factSummary: fact,
+    };
+
+    const withFlag = renderMemoryPacket(
+      previewPacket,
+      "developer_prompt_fragment",
+      undefined,
+      "coding_agent",
+      { suppressDuplicateEvidence: true },
+    );
+    expect(
+      withFlag.content.match(/Establish and implement the host-display policy/g)
+        ?.length,
+    ).toBe(1);
+    expect(withFlag.content).toContain("unrelated evidence line");
+
+    const withoutFlag = renderMemoryPacket(
+      previewPacket,
+      "developer_prompt_fragment",
+      undefined,
+      "coding_agent",
+    );
+    expect(
+      withoutFlag.content.match(/Establish and implement the host-display policy/g)
+        ?.length,
+    ).toBe(2);
+  });
+
+  it("leaves json and markdown whole-section trimming unchanged", () => {
+    const json = renderMemoryPacket(packet, "json", 160, "coding_agent");
+    expect(json.omittedSections).toContain("Facts");
+
+    const markdown = renderMemoryPacket(packet, "markdown", 160, "coding_agent");
+    expect(markdown.omittedSections).toContain("Facts");
+    expect(markdown.content).not.toContain("## Facts");
+  });
+});

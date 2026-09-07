@@ -1,0 +1,56 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..f208cc77a46e812578775cf4a11b5101dc2586ea
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -1797,22 +1797,22 @@ def distribute(n, iterable):
+         >>> list(group_2)
+         [2, 4, 6]
+ 
+-    If the length of *iterable* is not evenly divisible by *n*, then the
+-    length of the returned iterables will not be identical:
++    Items are dealt in rounds. If the length of *iterable* is not evenly
++    divisible by *n*, the items of the incomplete last round go to the last
++    iterables, one each:
+ 
+         >>> children = distribute(3, [1, 2, 3, 4, 5, 6, 7])
+         >>> [list(c) for c in children]
+-        [[1, 4, 7], [2, 5], [3, 6]]
++        [[1, 4], [2, 5], [3, 6, 7]]
+ 
+-    If the length of *iterable* is smaller than *n*, then the last returned
+-    iterables will be empty:
++    If the length of *iterable* is smaller than *n*, only the non-empty
++    iterables are returned:
+ 
+         >>> children = distribute(5, [1, 2, 3])
+         >>> [list(c) for c in children]
+-        [[1], [2], [3], [], []]
++        [[1], [2], [3]]
+ 
+-    This function uses :func:`itertools.tee` and may require significant
+-    storage.
++    This function consumes *iterable* before returning.
+ 
+     If you need the order items in the smaller iterables to match the
+     original iterable, see :func:`divide`.
+@@ -1821,8 +1821,16 @@ def distribute(n, iterable):
+     if n < 1:
+         raise ValueError('n must be at least 1')
+ 
+-    children = tee(iterable, n)
+-    return [islice(it, index, None, n) for index, it in enumerate(children)]
++    children = [[] for _ in range(n)]
++    items = list(iterable)
++    full = (len(items) // n) * n
++    for index, item in enumerate(items[:full]):
++        children[index % n].append(item)
++    surplus = items[full:]
++    for offset, item in enumerate(surplus, n - len(surplus)):
++        children[offset].append(item)
++
++    return [iter(child) for child in children if child]
+ 
+ 
+ def stagger(iterable, offsets=(-1, 0, 1), longest=False, fillvalue=None):

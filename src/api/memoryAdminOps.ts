@@ -56,6 +56,7 @@ import type {
   GovernanceVectorPort,
 } from "../storage/ports";
 import { deleteVectorForCollection } from "./governance";
+import { publicExperience, publicFact, publicFeedback } from "./publicRecords";
 import type {
   DeleteAllMemoryInput,
   DeleteAllMemoryResult,
@@ -290,15 +291,15 @@ export async function exportMemoryOperation(
       preferences: preferences.filter((record) => recordMatchesScope(record, input.scope)),
       references: references.filter((record) => recordMatchesScope(record, input.scope)),
       notes: notes.filter((record) => recordMatchesScope(record, input.scope)),
-      facts: facts.filter((record) => recordMatchesScope(record, input.scope)),
-      feedback: feedback.filter((record) => recordMatchesScope(record, input.scope)),
+      facts: facts.filter((record) => recordMatchesScope(record, input.scope)).map(publicFact),
+      feedback: feedback.filter((record) => recordMatchesScope(record, input.scope)).map(publicFeedback),
       episodes: episodes.filter((record) => recordMatchesScope(record, input.scope)),
       archives: archives.filter((record) => recordMatchesScope(record, input.scope)),
       evidence: evidence.filter((record) => recordMatchesScope(record, input.scope)),
       sourceMessages: sourceMessages.filter((record) =>
         recordMatchesScope(record, input.scope)
       ),
-      experiences: experiences.filter((record) => recordMatchesScope(record, input.scope)),
+      experiences: experiences.filter((record) => recordMatchesScope(record, input.scope)).map(publicExperience),
       proposals: proposals.filter((record) => recordMatchesScope(record, input.scope)),
       promotions: promotions.filter((record) => recordMatchesScope(record, input.scope)),
     };

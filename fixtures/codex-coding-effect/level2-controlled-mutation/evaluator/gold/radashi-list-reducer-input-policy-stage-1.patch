@@ -1,0 +1,64 @@
+diff --git a/src/number/sum.ts b/src/number/sum.ts
+index 095d3bda2ed64c1943b84c2315d812ab9a799d7a..b0671df4020621c387210a4e6981f93a3175b6e0 100644
+--- a/src/number/sum.ts
++++ b/src/number/sum.ts
+@@ -1,9 +1,32 @@
++const BARE_DECIMAL = /^[+-]?\d+(?:\.\d+)?$/
++
++/**
++ * List-reducer input policy: numbers count as they are, a trimmed
++ * string spelling a bare decimal number counts as that number, and
++ * everything else (nullish, booleans, other strings, objects) is
++ * skipped.
++ */
++function toAddend(item: unknown): number | undefined {
++  if (typeof item === 'number') {
++    return Number.isNaN(item) ? undefined : item
++  }
++  if (typeof item === 'string') {
++    const text = item.trim()
++    return BARE_DECIMAL.test(text) ? Number(text) : undefined
++  }
++  return undefined
++}
++
+ /**
+  * Add up numbers related to an array in 1 of 2 ways:
+  * 1. Sum all numbers in an array of numbers
+  * 2. Sum all numbers returned by a callback function that maps
+  *    each item in an array to a number.
+  *
++ * Nested arrays contribute their own items one level deep; items
++ * that are not numbers under the list-reducer input policy are
++ * skipped.
++ *
+  * @see https://radashi.js.org/reference/array/sum
+  * @example
+  * ```ts
+@@ -28,5 +51,25 @@ export function sum<T>(
+   array: readonly any[],
+   fn?: (item: T) => number,
+ ): number {
+-  return (array || []).reduce((acc, item) => acc + (fn ? fn(item) : item), 0)
++  if (!array) {
++    return 0
++  }
++  let total = 0
++  const add = (item: unknown) => {
++    const addend = toAddend(item)
++    if (addend !== undefined) {
++      total += addend
++    }
++  }
++  for (const raw of array) {
++    const item: unknown = fn ? fn(raw) : raw
++    if (Array.isArray(item)) {
++      for (const nested of item) {
++        add(nested)
++      }
++    } else {
++      add(item)
++    }
++  }
++  return total
+ }

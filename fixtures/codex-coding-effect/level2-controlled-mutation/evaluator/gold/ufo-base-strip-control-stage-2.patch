@@ -1,0 +1,24 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..3e855851b142691129073135816b773713321fb9 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -248,7 +248,18 @@ export function withoutLeadingSlash(input = ""): string {
+  * @group utils
+  */
+ export function withLeadingSlash(input = ""): string {
+-  return hasLeadingSlash(input) ? input : "/" + input;
++  const trimmed = input.trim();
++  if (!trimmed) {
++    return "/";
++  }
++  if (hasProtocol(trimmed, { acceptRelative: true })) {
++    return trimmed;
++  }
++  if (trimmed.startsWith("#") || trimmed.startsWith("?")) {
++    return trimmed;
++  }
++  const normalized = trimmed.startsWith("\\") ? "/" + trimmed.slice(1) : trimmed;
++  return normalized.startsWith("/") ? normalized : "/" + normalized;
+ }
+ 
+ /**

@@ -1,0 +1,60 @@
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..3fa5b2273188ff445368b7b0d43235b806370cb8 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -34,6 +34,14 @@ def _format_not_finite(value: float) -> str:
+     return ""
+ 
+ 
++def _nearest_integer(number: float) -> int:
++    """Round to the nearest integer, resolving halves away from zero."""
++    import math
++
++    rounded = math.floor(abs(number) + 0.5)
++    return -rounded if number < 0 else rounded
++
++
+ def ordinal(value: NumberOrString, gender: str = "male") -> str:
+     """Converts an integer to its ordinal as a string.
+ 
+@@ -301,15 +309,23 @@ def apnumber(value: NumberOrString) -> str:
+     """
+     import math
+ 
+-    try:
+-        if not math.isfinite(float(value)):
+-            return _format_not_finite(float(value))
+-        value = int(value)
+-    except (TypeError, ValueError):
++    if isinstance(value, bool):
+         return str(value)
+-    if not 0 <= value < 10:
+-        return str(value)
+-    return (
++    if isinstance(value, int):
++        value = int(value)
++    else:
++        try:
++            number = float(value)
++        except (TypeError, ValueError):
++            return str(value)
++        if not math.isfinite(number):
++            return _format_not_finite(number)
++        value = _nearest_integer(number)
++    sign = "-" if value < 0 else ""
++    magnitude = abs(value)
++    if magnitude >= 10:
++        return f"{sign}{magnitude}"
++    return sign + (
+         _("zero"),
+         _("one"),
+         _("two"),
+@@ -320,7 +336,7 @@ def apnumber(value: NumberOrString) -> str:
+         _("seven"),
+         _("eight"),
+         _("nine"),
+-    )[value]
++    )[magnitude]
+ 
+ 
+ def fractional(value: NumberOrString) -> str:

@@ -1,0 +1,48 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..a9dc620529d743d43407fef0b70ada26b886e151
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -928,20 +928,29 @@ def intersperse(e, iterable, n=1):
+         >>> list(intersperse(None, [1, 2, 3, 4, 5], n=2))
+         [1, 2, None, 3, 4, None, 5]
+ 
++    A filler given as a list is spliced, so its items are inserted one by
++    one at every gap:
++
++        >>> list(intersperse([0, 0], [1, 2, 3]))
++        [1, 0, 0, 2, 0, 0, 3]
++
+     """
+-    if n == 0:
++    if n < 1:
+         raise ValueError('n must be > 0')
+-    elif n == 1:
+-        # interleave(repeat(e), iterable) -> e, x_0, e, x_1, e, x_2...
+-        # islice(..., 1, None) -> x_0, e, x_1, e, x_2...
+-        return islice(interleave(repeat(e), iterable), 1, None)
+-    else:
+-        # interleave(filler, chunks) -> [e], [x_0, x_1], [e], [x_2, x_3]...
+-        # islice(..., 1, None) -> [x_0, x_1], [e], [x_2, x_3]...
+-        # flatten(...) -> x_0, x_1, e, x_2, x_3...
+-        filler = repeat([e])
+-        chunks = chunked(iterable, n)
+-        return flatten(islice(interleave(filler, chunks), 1, None))
++    filler = list(e) if isinstance(e, list) else [e]
++    return _intersperse_filler(filler, iter(iterable), n)
++
++
++def _intersperse_filler(filler, iterator, n):
++    first = True
++    while True:
++        chunk = list(islice(iterator, n))
++        if not chunk:
++            return
++        if not first:
++            yield from filler
++        first = False
++        yield from chunk
+ 
+ 
+ def unique_to_each(*iterables):

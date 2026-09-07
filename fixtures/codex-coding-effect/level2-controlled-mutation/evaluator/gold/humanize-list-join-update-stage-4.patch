@@ -1,0 +1,82 @@
+diff --git a/src/humanize/__init__.py b/src/humanize/__init__.py
+index 6fb9959379d7469d7c5f5d06a6a5d1e51e680939..9b3cd49b67059e4e1ca53a5ce2d00e187f9d6d79 100644
+--- a/src/humanize/__init__.py
++++ b/src/humanize/__init__.py
+@@ -4,7 +4,7 @@ from __future__ import annotations
+ 
+ from humanize.filesize import naturalsize
+ from humanize.i18n import activate, deactivate, decimal_separator, thousands_separator
+-from humanize.lists import natural_list
++from humanize.lists import natural_list, natural_or_list
+ from humanize.number import (
+     apnumber,
+     clamp,
+@@ -37,6 +37,7 @@ __all__ = [
+     "intword",
+     "metric",
+     "natural_list",
++    "natural_or_list",
+     "naturaldate",
+     "naturalday",
+     "naturaldelta",
+diff --git a/src/humanize/lists.py b/src/humanize/lists.py
+index 3a52f1ecdf992210927ed94172835f8b2dae50b1..19786e4570878fde25514707b7ade96d86a7e1fd 100644
+--- a/src/humanize/lists.py
++++ b/src/humanize/lists.py
+@@ -6,7 +6,7 @@ TYPE_CHECKING = False
+ if TYPE_CHECKING:
+     from typing import Any
+ 
+-__all__ = ["natural_list"]
++__all__ = ["natural_list", "natural_or_list"]
+ 
+ 
+ def natural_list(items: list[Any]) -> str:
+@@ -34,3 +34,47 @@ def natural_list(items: list[Any]) -> str:
+         return f"{str(items[0])} and {str(items[1])}"
+     else:
+         return ", ".join(str(item) for item in items[:-1]) + f" and {str(items[-1])}"
++
++
++def _prepare_items(items: Any) -> list[str]:
++    """Render items as stripped text, dropping empties and repeated items."""
++    prepared: list[str] = []
++    for item in items:
++        text = str(item).strip()
++        if not text or text in prepared:
++            continue
++        prepared.append(text)
++    return prepared
++
++
++def _join_items(texts: list[str], conjunction: str) -> str:
++    """Join prepared items with semicolons and the conjunction before the last one."""
++    if not texts:
++        return ""
++    if len(texts) == 1:
++        return texts[0]
++    if len(texts) == 2:
++        return f"{texts[0]} {conjunction} {texts[1]}"
++    return "; ".join(texts[:-1]) + f" {conjunction} {texts[-1]}"
++
++
++def natural_or_list(items: list[Any]) -> str:
++    """Natural list of alternatives.
++
++    Convert a list of items into a human-readable string joined with 'or'.
++
++    Examples:
++        >>> natural_or_list(["one", "two", "three"])
++        'one; two or three'
++        >>> natural_or_list(["one", "two"])
++        'one or two'
++        >>> natural_or_list(["one"])
++        'one'
++
++    Args:
++        items (list): An iterable of items.
++
++    Returns:
++        str: A string with separators and 'or' in the right places.
++    """
++    return _join_items(_prepare_items(items), "or")

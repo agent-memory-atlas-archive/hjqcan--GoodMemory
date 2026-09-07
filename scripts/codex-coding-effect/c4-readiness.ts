@@ -18,6 +18,10 @@ import {
   serializeC4BaselineCeilingReport,
   verifyC4BaselineDatasetTargets,
   verifyC4BaselineStageEvidenceFiles,
+  buildC4BaselineCeilingPlan,
+  c4BaselineStageIsTarget,
+  c4BaselineStagePosition,
+  c4BaselineTargetLabel,
 } from "./c4-baseline-ceiling";
 import type {
   C4BaselineCeilingReport,
@@ -39,6 +43,12 @@ import {
   parseC4ReviewInputBundle,
   validateC4ControlledPilotDataset,
 } from "./c4-contracts";
+import {
+  CONTROLLED_DATASET_PROFILES,
+  controlledRepositoryIdForUrl,
+  resolveControlledDatasetProfile,
+} from "./controlled-dataset-profile";
+import type { ControlledDatasetProfile } from "./controlled-dataset-profile";
 import {
   auditC4SurfaceHiddenArtifactMatrix,
   c4HiddenValueAppearsInSurfaces,
@@ -75,7 +85,6 @@ import {
 import type { EvaluatorTestResult } from "./test-scoring";
 import { prepareC3IsolatedClone } from "./c3-workspace";
 
-const C4_DATASET_ID = "codex-c4-controlled-pilot-v2";
 const sha256Schema = z.string().regex(/^[a-f0-9]{64}$/u);
 const licenseReceiptSchema = z.object({
   datasetLicense: z.literal("MIT"),
@@ -87,10 +96,10 @@ const licenseReceiptSchema = z.object({
     dependencyLock: z.literal("not-required-no-dependencies"),
     licensePath: z.string().min(1),
     licenseSha256: sha256Schema,
-    repositoryId: z.enum(["continuity-utils", "policy-utils"]),
+    repositoryId: z.string().min(1),
     sourceLicense: z.literal("MIT"),
     sourceUrl: z.url(),
-  }).strict()).length(2),
+  }).strict()).min(1),
   sanitizedReadinessReportRedistribution: z.literal("permitted"),
   schemaVersion: z.literal(1),
   taskMaterialLicense: z.literal("MIT"),
@@ -101,7 +110,13 @@ const authorAttestationSchema = z.object({
   authoredBeforePairedExecution: z.literal(true),
   c4PairedOutcomesInspectedBeforeFreeze: z.literal(false),
   c5PairedOutcomesInspectedBeforeFreeze: z.literal(false),
-  datasetId: z.literal(C4_DATASET_ID),
+  datasetId: z.string().min(1).refine(
+    (datasetId) =>
+      CONTROLLED_DATASET_PROFILES.some((profile) =>
+        profile.datasetId === datasetId
+      ),
+    "C4 author attestation names an unknown dataset",
+  ),
   frozenAt: z.string().min(1),
   priorV1BaselineCeiling: z.object({
     attemptedStages: z.literal(6),
@@ -116,25 +131,29 @@ const authorAttestationSchema = z.object({
     ),
     resolvedStages: z.literal(6),
     transcriptsInspected: z.literal(false),
-  }).strict(),
+  }).strict().optional(),
   schemaVersion: z.literal(3),
-  scope: z.literal(
-    "v2-redesign-from-aggregate-v1-ceiling-no-paired-outcomes",
-  ),
+  scope: z.string().min(1),
+}).strict();
+// C4 cases carry one function per stage on `src/tasks.ts`; Level-2 cases add
+// the ecosystem, the module the runner imports, the Python package root, and
+// an optional per-case function override for pass-to-pass protection of a
+// sibling export.
+const evaluatorCaseSchema = z.object({
+  args: z.array(z.unknown()),
+  expected: z.unknown(),
+  functionName: z.string().min(1).optional(),
 }).strict();
 const evaluatorCasesSchema = z.object({
   cases: z.array(z.object({
+    ecosystem: z.enum(["bun", "python"]).optional(),
     episodeId: z.string().min(1),
-    failToPass: z.array(z.object({
-      args: z.array(z.unknown()),
-      expected: z.unknown(),
-    }).strict()).min(1),
+    failToPass: z.array(evaluatorCaseSchema).min(1),
     functionName: z.string().min(1),
     hiddenSentinel: z.string().min(1),
-    passToPass: z.array(z.object({
-      args: z.array(z.unknown()),
-      expected: z.unknown(),
-    }).strict()).min(1),
+    modulePath: z.string().min(1).optional(),
+    packageRoot: z.string().optional(),
+    passToPass: z.array(evaluatorCaseSchema).min(1),
     stageId: z.string().min(1),
   }).strict()).min(1),
   schemaVersion: z.literal(1),
@@ -149,7 +168,7 @@ const baselineStageResultSchema = z.object({
   passToPassStatus: z.string().min(1),
   patchSha256: sha256Schema.nullable(),
   resolved: z.boolean(),
-  stageId: z.enum(["stage-2", "stage-3"]),
+  stageId: z.string().regex(/^stage-[2-9]$/u),
   stageInputSha256: sha256Schema,
   taskFailureReasons: z.array(z.string()),
   threadId: z.string().nullable(),
@@ -159,9 +178,9 @@ const baselineRoundSchema = z.object({
   attemptedCount: z.number().int().nonnegative(),
   ceilingThreshold: z.number().int().positive(),
   infrastructureFailureCount: z.number().int().nonnegative(),
-  position: z.union([z.literal(2), z.literal(3)]),
+  position: z.number().int().min(2),
   resolvedCount: z.number().int().nonnegative(),
-  stageId: z.enum(["stage-2", "stage-3"]),
+  stageId: z.string().regex(/^stage-[2-9]$/u),
 }).strict();
 const baselineCeilingReportSchema = z.object({
   assetLockSha256: sha256Schema,
@@ -172,7 +191,13 @@ const baselineCeilingReportSchema = z.object({
   codexExecutableSha256: sha256Schema,
   codexVersion: z.string().min(1),
   datasetSnapshotMode: z.literal("asset-locked-copy"),
-  datasetId: z.literal(C4_DATASET_ID),
+  datasetId: z.string().min(1).refine(
+    (datasetId) =>
+      CONTROLLED_DATASET_PROFILES.some((profile) =>
+        profile.datasetId === datasetId
+      ),
+    "C4 baseline report names an unknown dataset",
+  ),
   decision: z.enum([
     "inconclusive",
     "proceed-to-c5-pilot",
@@ -187,17 +212,20 @@ const baselineCeilingReportSchema = z.object({
   reasoningEffort: z.string().min(1),
   resolvedCount: z.number().int().nonnegative(),
   results: z.array(baselineStageResultSchema),
-  rounds: z.array(baselineRoundSchema).min(1).max(2),
+  rounds: z.array(baselineRoundSchema).min(1).max(8),
   runIdentitySha256: sha256Schema,
   runId: z.string().min(1),
   schemaVersion: z.literal(2),
   stageEvidenceAggregateSha256: sha256Schema,
   stageTimeoutMs: z.number().int().positive(),
+  // The exact thresholds and round labels are re-derived from the dataset's
+  // ceiling plan by assertC4BaselineCeilingReportBindings.
   strategy: z.object({
-    earlyCeilingThreshold: z.literal(5),
-    finalCeilingThreshold: z.literal(10),
-    firstRound: z.literal("stage-3-all-episodes"),
-    secondRound: z.literal("stage-2-all-episodes-if-needed"),
+    earlyCeilingThreshold: z.number().int().positive(),
+    finalCeilingThreshold: z.number().int().positive(),
+    firstRound: z.string().min(1),
+    laterRounds: z.string().min(1).optional(),
+    secondRound: z.string().min(1),
     stage1Excluded: z.literal(true),
   }).strict(),
   testTimeoutMs: z.number().int().positive(),
@@ -288,11 +316,11 @@ export interface C4DatasetCoreReadiness {
     repositories: number;
     stages: number;
   };
-  datasetId: typeof C4_DATASET_ID;
+  datasetId: string;
   episodes: Array<{
     author: string;
     id: string;
-    memoryExpectationMode: "irrelevant-control" | "required";
+    memoryExpectationMode: "irrelevant-control" | "none" | "required";
   }>;
   excludedHosts: ["claude-code"];
   host: "codex";
@@ -342,7 +370,7 @@ export interface C4DatasetReadinessReport {
   claimBoundary: "dataset-readiness-only-no-coding-uplift";
   coreSha256: string;
   counts: C4DatasetCoreReadiness["counts"];
-  datasetId: typeof C4_DATASET_ID;
+  datasetId: string;
   excludedHosts: ["claude-code"];
   host: "codex";
   leakageAuditSha256: string;
@@ -357,7 +385,7 @@ export interface C4DatasetReadinessReport {
   reviewerAgentName: string;
   reviewerIdentityEvidence:
     "orchestrator-attestation-not-cryptographic-receipt";
-  reviewerRequestedTaskName: "c4_final_independent_review_v5";
+  reviewerRequestedTaskName: string;
   reviewerType: "independent-ai-agent";
   reviewContextPolicy: "fork-turns-none";
   reviewDispatchSha256: string;
@@ -415,7 +443,7 @@ export async function runC4DatasetCoreReadiness(input: {
   try {
     await logEvent(logPath, "readiness_started", {
       assetRootSha256: assetLock.assetRootSha256,
-      datasetId: C4_DATASET_ID,
+      datasetId: dataset.datasetId,
       manifestSha256: loaded.manifestSha256,
     });
     const sources = await materializeSources(datasetRoot, workspaceRoot, dataset);
@@ -474,11 +502,14 @@ export async function runC4DatasetCoreReadiness(input: {
         repositories: repositories.length,
         stages: stages.length,
       },
-      datasetId: C4_DATASET_ID,
+      datasetId: dataset.datasetId,
       episodes: dataset.episodes.map((episode) => ({
         author: episode.author,
         id: episode.id,
-        memoryExpectationMode: c4EpisodeMemoryExpectationMode(episode),
+        memoryExpectationMode: c4EpisodeMemoryExpectationMode(
+          episode,
+          resolveControlledDatasetProfile(dataset.datasetId),
+        ),
       })),
       excludedHosts: ["claude-code"],
       host: "codex",
@@ -547,7 +578,12 @@ export function validateC4BaselineCeilingEvidence(
   if (serializeC4BaselineCeilingReport(report) !== baselineBytes) {
     throw new Error("C4 baseline ceiling report is not canonically serialized");
   }
-  assertC4BaselineCeilingReportBindings(report);
+  assertC4BaselineCeilingReportBindings(
+    report,
+    buildC4BaselineCeilingPlan(expectedTargets, {
+      targetLabel: c4BaselineTargetLabel(report.datasetId),
+    }),
+  );
   verifyC4BaselineDatasetTargets(report, expectedTargets);
   verifyC4BaselineStageEvidenceFiles(
     report,
@@ -585,27 +621,29 @@ export function finalizeC4DatasetReadiness(input: {
   result: C4DatasetCoreReadinessResult;
   reviewBytes: string;
 }): C4DatasetReadinessResult {
+  const baselineStages = input.result.core.stages.filter((stage) =>
+    c4BaselineStageIsTarget(input.result.core.datasetId, {
+      memoryExpectation: stage.memoryExpectation,
+      position: c4BaselineStagePosition(stage.stageId),
+    })
+  );
   const baseline = validateC4BaselineCeilingEvidence(
     input.baselineBytes,
     input.baselineStageEvidenceFiles,
-    input.result.core.stages
-      .filter((stage) => stage.stageId === "stage-2" || stage.stageId === "stage-3")
-      .map((stage) => ({
-        episodeId: stage.episodeId,
-        position: stage.stageId === "stage-2" ? 2 : 3,
-        stageId: stage.stageId === "stage-2" ? "stage-2" : "stage-3",
-        stageInputSha256: stage.stageInputSha256,
-      })),
-    input.result.core.stages
-      .filter((stage) => stage.stageId === "stage-2" || stage.stageId === "stage-3")
-      .map((stage) => ({
-        episodeId: stage.episodeId,
-        evaluatorCommitments: stage.evaluatorCommitments,
-        promptSha256: stage.effectivePromptSha256,
-        repositoryCommit: stage.repositoryCommit,
-        repositoryTree: stage.repositoryTree,
-        stageId: stage.stageId as "stage-2" | "stage-3",
-      })),
+    baselineStages.map((stage) => ({
+      episodeId: stage.episodeId,
+      position: c4BaselineStagePosition(stage.stageId),
+      stageId: stage.stageId,
+      stageInputSha256: stage.stageInputSha256,
+    })),
+    baselineStages.map((stage) => ({
+      episodeId: stage.episodeId,
+      evaluatorCommitments: stage.evaluatorCommitments,
+      promptSha256: stage.effectivePromptSha256,
+      repositoryCommit: stage.repositoryCommit,
+      repositoryTree: stage.repositoryTree,
+      stageId: stage.stageId,
+    })),
   );
   assertC4CanonicalIndependentReviewInstructions({
     dispatchBytes: input.dispatchBytes,
@@ -1473,6 +1511,14 @@ async function verifyLicenses(
     if (!expectedUrls.delete(repository.sourceUrl)) {
       throw new Error(`C4 license receipt has unexpected repository ${repository.sourceUrl}`);
     }
+    if (
+      repository.repositoryId !==
+        controlledRepositoryIdForUrl(repository.sourceUrl)
+    ) {
+      throw new Error(
+        `C4 license receipt repository id mismatch for ${repository.sourceUrl}`,
+      );
+    }
     if (sha256(await readFile(join(datasetRoot, repository.licensePath))) !==
       repository.licenseSha256) {
       throw new Error(`C4 source license hash mismatch for ${repository.repositoryId}`);
@@ -1537,6 +1583,15 @@ async function verifyAuthorAttestation(
   );
   const parsed = authorAttestationSchema.safeParse(JSON.parse(bytes) as unknown);
   if (!parsed.success) {
+    throw new Error("invalid C4 dataset-author attestation");
+  }
+  const profile = resolveControlledDatasetProfile(dataset.datasetId);
+  if (
+    parsed.data.datasetId !== dataset.datasetId ||
+    parsed.data.scope !== profile.attestationScope ||
+    (parsed.data.priorV1BaselineCeiling !== undefined) !==
+      profile.attestationCarriesPriorV1BaselineCeiling
+  ) {
     throw new Error("invalid C4 dataset-author attestation");
   }
   const authors = new Set(dataset.episodes.map((episode) => episode.author));
@@ -1697,9 +1752,20 @@ function containsNormalizedInSurfaces(
   return surfaces.some((surface) => containsNormalized(surface, fragment));
 }
 
+// The review's per-episode memory mode. Uniform profiles (C4) carry one
+// later-stage mode; declared-per-stage profiles (Level-2) are reviewed by
+// their final stage, the stage whose memory expectation defines the episode.
 function c4EpisodeMemoryExpectationMode(
   episode: CodexCodingEffectDatasetV2["episodes"][number],
-): "irrelevant-control" | "required" {
+  profile: ControlledDatasetProfile,
+): "irrelevant-control" | "none" | "required" {
+  if (profile.laterStagePolicy === "declared-per-stage") {
+    const finalStage = episode.stages.at(-1);
+    if (finalStage === undefined || finalStage.position === 1) {
+      throw new Error(`C4 episode ${episode.id} has no later-stage memory mode`);
+    }
+    return finalStage.memoryExpectation.mode;
+  }
   const modes = new Set(episode.stages
     .filter((stage) => stage.position > 1)
     .map((stage) => stage.memoryExpectation.mode));

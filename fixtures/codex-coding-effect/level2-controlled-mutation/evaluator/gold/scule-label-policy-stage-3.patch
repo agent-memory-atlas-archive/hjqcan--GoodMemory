@@ -1,0 +1,54 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..d7fb1025addffb3358be90a42a32714d8b7faec2 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -194,4 +194,49 @@ export function titleCase<
+     .join(" ") as TrainCase<T, UserCaseOptions["normalize"]>;
+ }
+ 
++
++const LABEL_SEPARATOR_RE = /[-_/.\s]+/u;
++const LABEL_NOISE_RE = /[^\p{L}\p{N}']/gu;
++const LABEL_UPPER_RE = /^\p{Lu}+$/u;
++const LABEL_PLURAL_TAIL_RE = /^\p{Lu}s$/u;
++
++function splitLabelWords(str: string | readonly string[]): string[] {
++  const chunks = Array.isArray(str)
++    ? [...str]
++    : typeof str === "string"
++      ? str.split(LABEL_SEPARATOR_RE)
++      : [];
++  const words: string[] = [];
++  for (const chunk of chunks) {
++    const cleaned = chunk.replace(LABEL_NOISE_RE, "");
++    if (!cleaned) {
++      continue;
++    }
++    const merged: string[] = [];
++    for (const part of splitByCase(cleaned, [])) {
++      if (!part) {
++        continue;
++      }
++      const previous = merged.at(-1);
++      if (
++        previous !== undefined &&
++        LABEL_UPPER_RE.test(previous) &&
++        LABEL_PLURAL_TAIL_RE.test(part)
++      ) {
++        merged[merged.length - 1] = previous + part;
++      } else {
++        merged.push(part);
++      }
++    }
++    words.push(...merged);
++  }
++  return words;
++}
++
++export function capitalCase(str: string | readonly string[] = ""): string {
++  return splitLabelWords(str)
++    .map((word) => upperFirst(word.toLowerCase()))
++    .join(" ");
++}
++
+ export * from "./types";

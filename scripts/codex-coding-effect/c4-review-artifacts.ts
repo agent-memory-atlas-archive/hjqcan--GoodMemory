@@ -10,15 +10,28 @@ import type {
   C4IndependentReviewProvenance,
   C4ReviewInputBundle,
 } from "./c4-contracts";
+import {
+  C4_CONTROLLED_PILOT_PROFILE,
+  resolveControlledDatasetProfile,
+} from "./controlled-dataset-profile";
+import type { ControlledDatasetProfile } from "./controlled-dataset-profile";
 
 export const C4_FINAL_REVIEWER_TASK_NAME =
-  "c4_final_independent_review_v5";
+  C4_CONTROLLED_PILOT_PROFILE.reviewerTaskName;
 export const C4_FINAL_REVIEWER_AGENT_NAME =
-  "/root/c4_final_independent_review_v5";
-export const C4_DATASET_ROOT_PATH =
-  "fixtures/codex-coding-effect/c4-controlled-pilot";
+  C4_CONTROLLED_PILOT_PROFILE.reviewerAgentName;
+export const C4_DATASET_ROOT_PATH = C4_CONTROLLED_PILOT_PROFILE.datasetRootPath;
 export const C4_READINESS_CORE_PATH =
-  "reports/quality-gates/phase-73/c4-controlled-pilot-core.json";
+  C4_CONTROLLED_PILOT_PROFILE.readinessCorePath;
+
+const NUMBER_WORDS: Record<number, string> = {
+  6: "six",
+  30: "thirty",
+};
+
+function numberWord(value: number): string {
+  return NUMBER_WORDS[value] ?? String(value);
+}
 
 export function buildC4ReviewInputBundle(input: {
   assetFiles: ReadonlyArray<{ path: string; sha256: string }>;
@@ -27,8 +40,10 @@ export function buildC4ReviewInputBundle(input: {
   createdAt: string;
   leakageAuditSha256: string;
   manifestSha256: string;
+  profile?: ControlledDatasetProfile;
   readinessCoreSha256: string;
 }): C4ReviewInputBundle {
+  const profile = input.profile ?? C4_CONTROLLED_PILOT_PROFILE;
   return parseC4ReviewInputBundle({
     assetFiles: [...input.assetFiles].sort((first, second) =>
       first.path.localeCompare(second.path)
@@ -36,8 +51,8 @@ export function buildC4ReviewInputBundle(input: {
     assetLockSha256: input.assetLockSha256,
     assetRootSha256: input.assetRootSha256,
     createdAt: input.createdAt,
-    datasetRootPath: C4_DATASET_ROOT_PATH,
-    datasetId: "codex-c4-controlled-pilot-v2",
+    datasetRootPath: profile.datasetRootPath,
+    datasetId: profile.datasetId,
     excludedOutcomeArtifacts: [
       "c4-baseline-results",
       "c4-paired-results",
@@ -45,7 +60,7 @@ export function buildC4ReviewInputBundle(input: {
     ],
     leakageAuditSha256: input.leakageAuditSha256,
     manifestSha256: input.manifestSha256,
-    readinessCorePath: C4_READINESS_CORE_PATH,
+    readinessCorePath: profile.readinessCorePath,
     readinessCoreSha256: input.readinessCoreSha256,
     schemaVersion: 1,
     scope: "dataset-only-no-coding-outcomes",
@@ -54,36 +69,63 @@ export function buildC4ReviewInputBundle(input: {
 
 export function buildC4ReviewRequest(input: {
   inputBundleSha256: string;
+  profile?: ControlledDatasetProfile;
 }): string {
+  const profile = input.profile ?? C4_CONTROLLED_PILOT_PROFILE;
+  const datasetRootPath = profile.datasetRootPath;
+  const readinessCorePath = profile.readinessCorePath;
+  const episodeWord = numberWord(profile.episodeCount);
+  const declaredPerStage = profile.laterStagePolicy === "declared-per-stage";
   return [
     "# Independent C4 dataset review",
     "",
     "Review only the frozen C4 dataset assets and deterministic readiness core",
-    `listed by \`${C4_DATASET_ROOT_PATH}/review/input-bundle.json\`. The`,
-    `dataset root is \`${C4_DATASET_ROOT_PATH}\` and the readiness core is`,
-    `\`${C4_READINESS_CORE_PATH}\`. Do not inspect baseline results, C4`,
+    `listed by \`${datasetRootPath}/review/input-bundle.json\`. The`,
+    `dataset root is \`${datasetRootPath}\` and the readiness core is`,
+    `\`${readinessCorePath}\`. Do not inspect baseline results, C4`,
     "paired A/B results, C5 results, or any other coding outcome artifact.",
     "",
     `Required input-bundle SHA-256: \`${input.inputBundleSha256}\`.`,
     "",
-    "For every one of the six episodes, independently decide whether:",
+    `For every one of the ${episodeWord} episodes, independently decide whether:`,
     "",
     "- the task is real coding work rather than trivia;",
     "- hidden tests are fair and prompt/repository discoverable;",
     "- negative controls are credible;",
     "- the shared evaluator has no repository-specific exception.",
     "",
-    "Set `memoryExpectationMode` from the episode's later-stage",
-    "`memoryExpectation.mode`, then apply exactly one mode-specific check:",
+    ...(declaredPerStage
+      ? [
+          "Set `memoryExpectationMode` from the episode's final-stage",
+          "`memoryExpectation.mode`, then apply exactly one mode-specific check:",
+        ]
+      : [
+          "Set `memoryExpectationMode` from the episode's later-stage",
+          "`memoryExpectation.mode`, then apply exactly one mode-specific check:",
+        ]),
     "",
     "- for `required`, include only `memoryUsefulNotAnswer` and decide whether",
     "  memory is useful context but does not contain the answer or patch;",
     "- for `irrelevant-control`, include only",
     "  `memoryIrrelevantAndNonMisleading` and decide whether the unrelated",
     "  memory is genuinely irrelevant and does not mislead the implementation.",
+    ...(declaredPerStage
+      ? [
+          "- for `none` (no-history control episodes), include only",
+          "  `memoryAbsentAndTaskSelfContained` and decide whether every stage is",
+          "  solvable from its own prompt and repository with no prior session.",
+        ]
+      : []),
     "",
-    "These two memory checks are mutually exclusive. Do not include the check",
-    "for the other mode in the episode's `checks` object.",
+    ...(declaredPerStage
+      ? [
+          "These memory checks are mutually exclusive. Do not include the check",
+          "for another mode in the episode's `checks` object.",
+        ]
+      : [
+          "These two memory checks are mutually exclusive. Do not include the check",
+          "for the other mode in the episode's `checks` object.",
+        ]),
     "",
     "Write only `review/independent-review.json` as one strict JSON object.",
     "It must contain exactly these top-level fields:",
@@ -94,20 +136,22 @@ export function buildC4ReviewRequest(input: {
     "  from the input bundle;",
     `- \`inputBundleSha256\`: \`${input.inputBundleSha256}\`;`,
     "- `scope`: `dataset-only-no-coding-outcomes`;",
-    `- \`reviewerTaskName\`: \`${C4_FINAL_REVIEWER_AGENT_NAME}\`;`,
+    `- \`reviewerTaskName\`: \`${profile.reviewerAgentName}\`;`,
     "- `reviewer`: a non-empty reviewer label;",
     "- `reviewedAt`: the review completion timestamp;",
     "- `c4AbResultsInspected`: false;",
     "- `codingOutcomeArtifactsInspected`: false;",
     "- `publicCodingEffectProof`: false;",
     "- `status`: `accepted` or `changes-requested`; and",
-    "- `episodeReviews`: exactly six objects, one for each manifest episode.",
+    `- \`episodeReviews\`: exactly ${episodeWord} objects, one for each manifest episode.`,
     "",
     "Each `episodeReviews` object must contain exactly:",
     "",
     "- `episodeId`: copy the manifest episode `id`;",
     "- `author`: copy the manifest episode `author`;",
-    "- `memoryExpectationMode`: `required` or `irrelevant-control`;",
+    ...(declaredPerStage
+      ? ["- `memoryExpectationMode`: `required`, `irrelevant-control`, or `none`;"]
+      : ["- `memoryExpectationMode`: `required` or `irrelevant-control`;"]),
     "- `rationale`: a non-empty explanation; and",
     "- `checks`, with `codingNotTrivia`, `hiddenTestsFair`,",
     "  `negativeControlCredible`, and",
@@ -123,30 +167,34 @@ export function buildC4ReviewRequest(input: {
 }
 
 export function buildC4IndependentReviewDispatch(input: {
+  profile?: ControlledDatasetProfile;
   spawnMessage: string;
 }): C4IndependentReviewDispatch {
+  const profile = input.profile ?? C4_CONTROLLED_PILOT_PROFILE;
   return parseC4IndependentReviewDispatch({
     authorTaskName: "/root",
     contextPolicy: "fork-turns-none",
-    datasetRootPath: C4_DATASET_ROOT_PATH,
-    inputBundlePath: `${C4_DATASET_ROOT_PATH}/review/input-bundle.json`,
-    readinessCorePath: C4_READINESS_CORE_PATH,
-    requestPath: `${C4_DATASET_ROOT_PATH}/review/request.md`,
-    requestedTaskName: C4_FINAL_REVIEWER_TASK_NAME,
-    responsePath: `${C4_DATASET_ROOT_PATH}/review/independent-review.json`,
-    reviewerAgentName: C4_FINAL_REVIEWER_AGENT_NAME,
+    datasetRootPath: profile.datasetRootPath,
+    inputBundlePath: `${profile.datasetRootPath}/review/input-bundle.json`,
+    readinessCorePath: profile.readinessCorePath,
+    requestPath: `${profile.datasetRootPath}/review/request.md`,
+    requestedTaskName: profile.reviewerTaskName,
+    responsePath: `${profile.datasetRootPath}/review/independent-review.json`,
+    reviewerAgentName: profile.reviewerAgentName,
     schemaVersion: 1,
     spawnMessage: input.spawnMessage,
   });
 }
 
-export function buildC4IndependentReviewSpawnMessage(): string {
+export function buildC4IndependentReviewSpawnMessage(
+  profile: ControlledDatasetProfile = C4_CONTROLLED_PILOT_PROFILE,
+): string {
   return [
-    `Read and follow ${C4_DATASET_ROOT_PATH}/review/request.md exactly.`,
-    `Use only ${C4_DATASET_ROOT_PATH}/review/input-bundle.json,`,
-    `${C4_READINESS_CORE_PATH}, and the frozen asset paths listed by the`,
+    `Read and follow ${profile.datasetRootPath}/review/request.md exactly.`,
+    `Use only ${profile.datasetRootPath}/review/input-bundle.json,`,
+    `${profile.readinessCorePath}, and the frozen asset paths listed by the`,
     "input bundle. Do not inspect baseline, C4 paired, or C5 outcome files.",
-    `Write only ${C4_DATASET_ROOT_PATH}/review/independent-review.json.`,
+    `Write only ${profile.datasetRootPath}/review/independent-review.json.`,
   ].join(" ");
 }
 
@@ -155,18 +203,21 @@ export function assertC4CanonicalIndependentReviewInstructions(input: {
   inputBundleBytes: string;
   requestBytes: string;
 }): void {
-  parseC4ReviewInputBundle(
+  const bundle = parseC4ReviewInputBundle(
     JSON.parse(input.inputBundleBytes) as unknown,
   );
+  const profile = resolveControlledDatasetProfile(bundle.datasetId);
   const expectedRequestBytes = buildC4ReviewRequest({
     inputBundleSha256: sha256(input.inputBundleBytes),
+    profile,
   });
   if (input.requestBytes !== expectedRequestBytes) {
     throw new Error("C4 independent review request is not canonical");
   }
   const expectedDispatchBytes = serializeC4ReviewArtifact(
     buildC4IndependentReviewDispatch({
-      spawnMessage: buildC4IndependentReviewSpawnMessage(),
+      profile,
+      spawnMessage: buildC4IndependentReviewSpawnMessage(profile),
     }),
   );
   if (input.dispatchBytes !== expectedDispatchBytes) {
@@ -190,9 +241,12 @@ export function buildC4IndependentReviewProvenance(input: {
   if (input.reviewerAgentName !== dispatch.reviewerAgentName) {
     throw new Error("C4 reviewer agent does not match the frozen dispatch");
   }
+  const bundle = parseC4ReviewInputBundle(
+    JSON.parse(input.inputBundleBytes) as unknown,
+  );
   return parseC4IndependentReviewProvenance({
     authorTaskName: input.authorTaskName,
-    datasetId: "codex-c4-controlled-pilot-v2",
+    datasetId: bundle.datasetId,
     dispatch: {
       path: "review/dispatch.json",
       sha256: sha256(input.dispatchBytes),

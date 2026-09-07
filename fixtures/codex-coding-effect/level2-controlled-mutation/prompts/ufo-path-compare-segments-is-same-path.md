@@ -1,0 +1,5 @@
+# TypeScript utility task
+
+Record and implement the path-comparison rule for this fork. The first attempt at isSamePath in src/utils.ts decoded each whole input and then compared the two strings; that made an encoded slash inside a segment indistinguishable from a real separator, so two distinct paths compared as the same, and the attempt was rejected. Accepted path-comparison rule: never decode a whole input; split each input into segments on literal slashes first and decode every segment on its own, so an encoded slash stays inside its segment; the query string and the fragment are dropped before comparing; a trailing slash is ignored; runs of slashes count as a single separator and a single-dot segment is ignored; a leading slash is ignored; decoded segments compare exactly, so letter case matters but percent-encoding hex case does not; a segment that cannot be decoded is compared as written. Apply this rule to isSamePath and keep the exported signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

@@ -1,0 +1,60 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..a043d6adf6d1a232c332d1a9b809dc87deb2ea01 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -38,6 +38,7 @@ export function splitByCase<
+   let buff = "";
+ 
+   let previousUpper: boolean | undefined;
++  let previousDigit: boolean | undefined;
+   let previousSplitter: boolean | undefined;
+ 
+   for (const char of str) {
+@@ -47,16 +48,31 @@ export function splitByCase<
+       parts.push(buff);
+       buff = "";
+       previousUpper = undefined;
++      previousDigit = undefined;
+       continue;
+     }
+ 
+     const isUpper = isUppercase(char);
++    const isDigit = NUMBER_CHAR_RE.test(char);
+     if (previousSplitter === false) {
++      // Digit boundary
++      if (
++        buff.length > 0 &&
++        previousDigit !== undefined &&
++        isDigit !== previousDigit
++      ) {
++        parts.push(buff);
++        buff = char;
++        previousUpper = isUpper;
++        previousDigit = isDigit;
++        continue;
++      }
+       // Case rising edge
+       if (previousUpper === false && isUpper === true) {
+         parts.push(buff);
+         buff = char;
+         previousUpper = isUpper;
++        previousDigit = isDigit;
+         continue;
+       }
+       // Case falling edge
+@@ -65,6 +81,7 @@ export function splitByCase<
+         parts.push(buff.slice(0, Math.max(0, buff.length - 1)));
+         buff = lastChar + char;
+         previousUpper = isUpper;
++        previousDigit = isDigit;
+         continue;
+       }
+     }
+@@ -72,6 +89,7 @@ export function splitByCase<
+     // Normal char
+     buff += char;
+     previousUpper = isUpper;
++    previousDigit = isDigit;
+     previousSplitter = isSplitter;
+   }
+ 

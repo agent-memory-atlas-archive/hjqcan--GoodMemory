@@ -1,0 +1,71 @@
+diff --git a/src/humanize/filesize.py b/src/humanize/filesize.py
+index 13e5eddc9ab9ef3b651cf04f1c5b20086930b87d..fc0660c47b5a6db4bd4c69ba3a691fad7c89bbce 100644
+--- a/src/humanize/filesize.py
++++ b/src/humanize/filesize.py
+@@ -2,7 +2,9 @@
+ 
+ from __future__ import annotations
+ 
+-from math import log
++from math import isfinite
++
++from .number import _format_not_finite
+ 
+ suffixes = {
+     "decimal": (
+@@ -33,6 +35,36 @@ suffixes = {
+ }
+ 
+ 
++def _select_unit(
++    magnitude: float, base: int, suffix_count: int, format: str
++) -> tuple[str, int]:
++    """Pick a suffix index and formatted amount for a magnitude of at least one base.
++
++    The suffix is found by stepping through the table with plain comparisons.
++    After formatting, an amount that reads as a whole base or more is carried
++    into the next suffix (and formatted again) while a larger suffix exists.
++    """
++    amount = magnitude / base
++    index = 0
++    while amount >= base and index < suffix_count - 1:
++        amount /= base
++        index += 1
++    text = format % amount
++    while index < suffix_count - 1 and _reads_at_least(text, base):
++        amount /= base
++        index += 1
++        text = format % amount
++    return text, index
++
++
++def _reads_at_least(text: str, threshold: float) -> bool:
++    """Whether a formatted amount reads as at least the given threshold."""
++    try:
++        return float(text) >= threshold
++    except ValueError:
++        return False
++
++
+ def naturalsize(
+     value: float | str,
+     binary: bool = False,
+@@ -86,6 +118,8 @@ def naturalsize(
+ 
+     base = 1024 if (gnu or binary) else 1000
+     bytes_ = float(value)
++    if not isfinite(bytes_):
++        return _format_not_finite(bytes_)
+     abs_bytes = abs(bytes_)
+ 
+     if abs_bytes == 1 and not gnu:
+@@ -94,6 +128,6 @@ def naturalsize(
+     if abs_bytes < base:
+         return f"{int(bytes_)}B" if gnu else f"{int(bytes_)} Bytes"
+ 
+-    exp = int(min(log(abs_bytes, base), len(suffix)))
+-    ret: str = format % (bytes_ / (base**exp)) + suffix[exp - 1]
+-    return ret
++    amount, index = _select_unit(abs_bytes, base, len(suffix), format)
++    sign = "-" if bytes_ < 0 else ""
++    return f"{sign}{amount}{suffix[index]}"

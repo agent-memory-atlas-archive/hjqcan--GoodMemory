@@ -1,0 +1,31 @@
+{
+  "checks": {
+    "actualFileHashesVerified": true,
+    "exactPlanTopologyVerified": true,
+    "hostPreflightVerified": true,
+    "noInfrastructureFailure": false,
+    "noLeakageRejection": true,
+    "noMemoryChannelFailure": true,
+    "noSilentFallback": true,
+    "reportRecomputed": true
+  },
+  "claimBoundary": "internal-native-longitudinal-pilot-only",
+  "counts": {
+    "hostPreflights": 12,
+    "opaqueProcessOnlyTrajectoryOrigins": 70,
+    "pairs": 36,
+    "projectedFiles": 428,
+    "stageExecutions": 72,
+    "taskAliasAudits": 24
+  },
+  "decision": "accepted",
+  "evidenceClass": "native-longitudinal-pilot",
+  "externalAuthenticityVerified": false,
+  "planSha256": "1fcf14544d502bdc10d142ac8adc2f67d0afda2147f8442111ed07ee9fe58131",
+  "projectionManifestSha256": "c5bf50e8f77b82ff40173af31d0787db458f6d7516834c96b29965a3ebbedd7e",
+  "publicClaimEligible": false,
+  "reasons": [],
+  "runId": "run-c5-canary-flat-20260903T065126Z",
+  "schemaVersion": 1,
+  "verificationScope": "frozen-capture-claims-and-projection-internal-consistency"
+}

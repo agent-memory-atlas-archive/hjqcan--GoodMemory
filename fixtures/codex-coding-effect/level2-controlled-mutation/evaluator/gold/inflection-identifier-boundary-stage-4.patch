@@ -1,0 +1,44 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..979927d119dc3dc7914bbffcab91933eb71168cb 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -144,6 +144,19 @@ def _irregular(singular: str, plural: str) -> None:
+         ))
+ 
+ 
++
++def _identifier_words(word: str) -> typing.List[str]:
++    """
++    Split an identifier into lowercase words following the fork's
++    identifier-boundary convention.
++    """
++    word = word.replace("'", "")
++    word = re.sub(r"([A-Z]+)([A-Z][a-z])", r"\1 \2", word)
++    word = re.sub(r"([a-z])([A-Z])", r"\1 \2", word)
++    word = re.sub(r"(\d+)", r" \1 ", word)
++    return [part.lower() for part in re.split(r"[^A-Za-z0-9]+", word) if part]
++
++
+ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+     """
+     Convert strings to CamelCase.
+@@ -397,6 +410,7 @@ def transliterate(string: str) -> str:
+     return normalized.encode('ascii', 'ignore').decode('ascii')
+ 
+ 
++
+ def underscore(word: str) -> str:
+     """
+     Make an underscored, lowercase form from the expression in the string.
+@@ -413,10 +427,7 @@ def underscore(word: str) -> str:
+         'IoError'
+ 
+     """
+-    word = re.sub(r"([A-Z]+)([A-Z][a-z])", r'\1_\2', word)
+-    word = re.sub(r"([a-z\d])([A-Z])", r'\1_\2', word)
+-    word = word.replace("-", "_")
+-    return word.lower()
++    return "_".join(_identifier_words(word))
+ 
+ 
+ _irregular('person', 'people')

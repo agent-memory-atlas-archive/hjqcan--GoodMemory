@@ -1,0 +1,25 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..8f8dcebd86336bbe7e84dacff8caf8d6eb75aa3b 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -88,6 +88,20 @@ export function lowerFirst<S extends string>(str: S): Uncapitalize<S> {
+   return (str ? str[0].toLowerCase() + str.slice(1) : "") as Uncapitalize<S>;
+ }
+ 
++export function swapCase(str = ""): string {
++  let result = "";
++  for (const char of str) {
++    const upper = char.toUpperCase();
++    const lower = char.toLowerCase();
++    if (upper === lower || [...upper].length !== 1 || [...lower].length !== 1) {
++      result += char;
++      continue;
++    }
++    result += char === upper ? lower : upper;
++  }
++  return result;
++}
++
+ export function pascalCase(): "";
+ export function pascalCase<
+   T extends string | readonly string[],

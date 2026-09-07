@@ -1,0 +1,91 @@
+diff --git a/src/string/snake.ts b/src/string/snake.ts
+index 5c081909ace3ce37c1d53b73aecb5846b2e07fed..2d7b13f898b6d5381b5ffb1839f0e4df715e7103 100644
+--- a/src/string/snake.ts
++++ b/src/string/snake.ts
+@@ -1,7 +1,9 @@
+-import { capitalize } from 'radashi'
+-
+ /**
+- * Formats the given string in snake case fashion.
++ * Formats the given string in snake case fashion, following the
++ * word-boundary policy of this fork: separator runs collapse, digit
++ * runs are words of their own, acronyms stay together, and
++ * apostrophes are removed. Passing `splitOnNumber: false` keeps
++ * digits attached to the letters around them.
+  *
+  * @see https://radashi.js.org/reference/string/snake
+  * @example
+@@ -18,21 +20,58 @@ export function snake(
+     splitOnNumber?: boolean
+   },
+ ): string {
+-  const parts =
+-    str
+-      ?.replace(/([A-Z])+/g, capitalize)
+-      .split(/(?=[A-Z])|[\.\-\s_]/)
+-      .map(x => x.toLowerCase()) ?? []
+-  if (parts.length === 0) {
+-    return ''
++  return splitWords(str, options?.splitOnNumber !== false).join('_')
++}
++
++const SEPARATOR = /[\s./_-]/
++const DIGIT = /[0-9]/
++
++function isUpper(char: string): boolean {
++  return char !== char.toLowerCase() && char === char.toUpperCase()
++}
++
++function isLower(char: string): boolean {
++  return char !== char.toUpperCase() && char === char.toLowerCase()
++}
++
++function splitWords(str: string, splitOnNumber: boolean): string[] {
++  if (!str) {
++    return []
++  }
++  const cleaned = str.replace(/['’]/g, '')
++  const words: string[] = []
++  let current = ''
++  const flush = () => {
++    if (current) {
++      words.push(current.toLowerCase())
++      current = ''
++    }
+   }
+-  if (parts.length === 1) {
+-    return parts[0]
++  for (let index = 0; index < cleaned.length; index++) {
++    const char = cleaned[index]
++    if (SEPARATOR.test(char)) {
++      flush()
++      continue
++    }
++    const prev = current[current.length - 1]
++    if (prev !== undefined) {
++      if (splitOnNumber && DIGIT.test(char) !== DIGIT.test(prev)) {
++        flush()
++      } else if (isUpper(char) && isLower(prev)) {
++        flush()
++      } else if (
++        isLower(char) &&
++        isUpper(prev) &&
++        current.length > 1 &&
++        isUpper(current[current.length - 2])
++      ) {
++        current = current.slice(0, -1)
++        flush()
++        current = prev
++      }
++    }
++    current += char
+   }
+-  const result = parts.reduce((acc, part) => {
+-    return `${acc}_${part.toLowerCase()}`
+-  })
+-  return options?.splitOnNumber === false
+-    ? result
+-    : result.replace(/([A-Za-z]{1}[0-9]{1})/g, val => `${val[0]!}_${val[1]!}`)
++  flush()
++  return words
+ }

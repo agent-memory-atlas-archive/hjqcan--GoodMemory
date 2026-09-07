@@ -1,0 +1,15 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..a669e6de60cb56e37b085c93056e151f3d84016a 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -771,5 +771,9 @@ export function withoutFragment(input: string): string {
+  */
+ export function withoutHost(input: string) {
+   const parsed = parseURL(input);
+-  return (parsed.pathname || "/") + parsed.search + parsed.hash;
++  let path = "/" + parsed.pathname.replace(/^\/+/, "");
++  if (path.length > 1 && path.endsWith("/")) {
++    path = path.slice(0, -1);
++  }
++  return path + parsed.search + parsed.hash;
+ }

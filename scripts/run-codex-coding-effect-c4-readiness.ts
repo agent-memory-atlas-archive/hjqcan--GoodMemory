@@ -20,7 +20,6 @@ import {
 } from "node:path";
 
 import {
-  assertC4BaselineCeilingReportBindings,
   loadC4BaselineStageEvidenceFiles,
 } from "./codex-coding-effect/c4-baseline-ceiling";
 import type {
@@ -67,7 +66,8 @@ export async function runC4ReadinessGate(
     const baselineReport = JSON.parse(
       baselineBytes,
     ) as C4BaselineCeilingReport;
-    assertC4BaselineCeilingReportBindings(baselineReport);
+    // The baseline's adaptive rounds are re-derived against the dataset's
+    // ceiling plan inside finalizeC4DatasetReadiness once targets are known.
     const baselineStageEvidenceFiles =
       await loadC4BaselineStageEvidenceFiles(
         baselineStageEvidenceRoot(options),
@@ -116,10 +116,17 @@ export async function runC4ReadinessGate(
   }
 }
 
+// The readiness report records where the baseline lives; a baseline inside
+// the repository is recorded by its repository-relative path so the tracked
+// evidence stays portable (Level-2 publishes under its own report directory).
 function baselineReportLocator(path: string): string {
   const absolute = resolve(path);
-  return absolute === resolve(C4_BASELINE_CEILING_REPORT_PATH)
-    ? C4_BASELINE_CEILING_REPORT_PATH
+  if (absolute === resolve(C4_BASELINE_CEILING_REPORT_PATH)) {
+    return C4_BASELINE_CEILING_REPORT_PATH;
+  }
+  const repositoryRoot = resolve(".");
+  return absolute.startsWith(`${repositoryRoot}${sep}`)
+    ? absolute.slice(repositoryRoot.length + 1).split(sep).join("/")
     : absolute.split(sep).join("/");
 }
 

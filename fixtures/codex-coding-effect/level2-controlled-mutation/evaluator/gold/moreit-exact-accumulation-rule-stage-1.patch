@@ -1,0 +1,40 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index dacf61407d454907d661edde2d774bee11cec92a..4311f1078453cef8f5ca88e572a95714a69f3aee 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -31,7 +31,7 @@ from itertools import (
+     tee,
+     zip_longest,
+ )
+-from math import prod, comb, isqrt, gcd
++from math import prod, comb, isqrt, gcd, fsum
+ from operator import mul, not_, itemgetter, getitem, index
+ from random import randrange, sample, choice
+ from sys import hexversion
+@@ -291,9 +291,24 @@ def dotproduct(vec1, vec2):
+     >>> 10 * 0.65 + 15 * 0.80 + 12 * 1.25
+     33.5
+ 
+-    In Python 3.12 and later, use ``math.sumprod()`` instead.
++    The products are formed pairwise and the vectors must have the same
++    length, otherwise ``ValueError`` is raised. Integer inputs give an
++    integer result; float products are added with :func:`math.fsum`.
+     """
+-    return sum(map(mul, vec1, vec2))
++    products = []
++    for left, right in zip_longest(vec1, vec2, fillvalue=_marker):
++        if left is _marker or right is _marker:
++            raise ValueError('vectors must have the same length')
++        products.append(left * right)
++    return _exact_sum(products)
++
++
++def _exact_sum(values):
++    if all(isinstance(value, int) for value in values):
++        return sum(values)
++    if all(isinstance(value, (int, float)) for value in values):
++        return fsum(values)
++    return sum(values)
+ 
+ 
+ def flatten(listOfLists):

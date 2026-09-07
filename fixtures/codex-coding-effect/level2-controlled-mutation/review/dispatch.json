@@ -1,0 +1,13 @@
+{
+  "authorTaskName": "/root",
+  "contextPolicy": "fork-turns-none",
+  "datasetRootPath": "fixtures/codex-coding-effect/level2-controlled-mutation",
+  "inputBundlePath": "fixtures/codex-coding-effect/level2-controlled-mutation/review/input-bundle.json",
+  "readinessCorePath": "reports/quality-gates/phase-73/level2-controlled-mutation-core.json",
+  "requestPath": "fixtures/codex-coding-effect/level2-controlled-mutation/review/request.md",
+  "requestedTaskName": "level2_final_independent_review_v1",
+  "responsePath": "fixtures/codex-coding-effect/level2-controlled-mutation/review/independent-review.json",
+  "reviewerAgentName": "/root/level2_final_independent_review_v1",
+  "schemaVersion": 1,
+  "spawnMessage": "Read and follow fixtures/codex-coding-effect/level2-controlled-mutation/review/request.md exactly. Use only fixtures/codex-coding-effect/level2-controlled-mutation/review/input-bundle.json, reports/quality-gates/phase-73/level2-controlled-mutation-core.json, and the frozen asset paths listed by the input bundle. Do not inspect baseline, C4 paired, or C5 outcome files. Write only fixtures/codex-coding-effect/level2-controlled-mutation/review/independent-review.json."
+}

@@ -1,3 +1,4 @@
+import { resolveWorkspaceId } from "../../src/host/managedFiles";
 import {
   EVIDENCE_COLLECTION,
   HOST_BOOTSTRAP_SCRIPT_TEST_TIMEOUT_MS,
@@ -1554,7 +1555,7 @@ describe("goodmemory cli installed host config", () => {
       const scopeDigest = buildWritebackScopeDigest({
         agentId: "claude",
         userId: "activity-user",
-        workspaceId: basename(workspace.root),
+        workspaceId: resolveWorkspaceId(workspace.root, undefined),
       });
       const buildEvent = (input: {
         eventId: string;
@@ -4362,7 +4363,7 @@ describe("goodmemory cli installed host config", () => {
     }
   }, 15_000);
 
-  it("inspects and forgets installed-host writeback audit events for Codex and Claude", async () => {
+  it.each(["cwd", "explicit-workspace-root"] as const)("inspects and forgets installed-host writeback audit events for Codex and Claude (%s)", async (scopeSource) => {
     const cliScript = join(import.meta.dir, "../../scripts/goodmemory-cli.ts");
 
     for (const host of ["codex", "claude"] as const) {
@@ -4372,6 +4373,15 @@ describe("goodmemory cli installed host config", () => {
       );
 
       try {
+        // process.cwd() resolves macOS /var aliases. Keep the default-cwd
+        // payload spelling aligned; separately exercise an explicit lexical
+        // path through the CLI flag without merging symlink identities.
+        const workspaceRoot = scopeSource === "cwd"
+          ? await realpath(workspace.root)
+          : workspace.root;
+        const scopeArgs = scopeSource === "cwd"
+          ? []
+          : ["--workspace-root", workspaceRoot];
         await withEnv(
           {
             GOODMEMORY_HOME: home.root,
@@ -4400,7 +4410,7 @@ describe("goodmemory cli installed host config", () => {
           },
           scriptPath: cliScript,
           stdin: JSON.stringify({
-            cwd: workspace.root,
+            cwd: workspaceRoot,
             messages: [
               {
                 content: `Next step is to add Phase 37.1 ${host} CLI audit undo.`,
@@ -4413,7 +4423,7 @@ describe("goodmemory cli installed host config", () => {
         expect(writeback.exitCode).toBe(0);
 
         const inspect = await runBunScript({
-          args: [host, "writeback", "inspect", "--json"],
+          args: [host, "writeback", "inspect", ...scopeArgs, "--json"],
           cwd: workspace.root,
           env: {
             GOODMEMORY_HOME: home.root,
@@ -4456,6 +4466,7 @@ describe("goodmemory cli installed host config", () => {
             "false_write",
             "--review-reason",
             "api_key=sk-cli-review-secret-value",
+            ...scopeArgs,
             "--json",
           ],
           cwd: workspace.root,

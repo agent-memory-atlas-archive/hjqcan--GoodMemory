@@ -1,0 +1,96 @@
+diff --git a/src/humanize/__init__.py b/src/humanize/__init__.py
+index 6fb9959379d7469d7c5f5d06a6a5d1e51e680939..6cbfbbe1dad33ed020505b99d46b97871d729606 100644
+--- a/src/humanize/__init__.py
++++ b/src/humanize/__init__.py
+@@ -8,6 +8,7 @@ from humanize.lists import natural_list
+ from humanize.number import (
+     apnumber,
+     clamp,
++    engineering,
+     fractional,
+     intcomma,
+     intword,
+@@ -32,6 +33,7 @@ __all__ = [
+     "clamp",
+     "deactivate",
+     "decimal_separator",
++    "engineering",
+     "fractional",
+     "intcomma",
+     "intword",
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..363e772b447de95d40e9c30887635a605a8e23f8 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -456,6 +456,71 @@ def scientific(value: NumberOrString, precision: int = 2) -> str:
+     return final_str
+ 
+ 
++_SUPERSCRIPTS = {
++    "0": "⁰",
++    "1": "¹",
++    "2": "²",
++    "3": "³",
++    "4": "⁴",
++    "5": "⁵",
++    "6": "⁶",
++    "7": "⁷",
++    "8": "⁸",
++    "9": "⁹",
++    "-": "⁻",
++}
++
++
++def engineering(value: NumberOrString, precision: int = 2) -> str:
++    """Return number in engineering notation, with an exponent that is a multiple of three.
++
++    Examples:
++        ```pycon
++        >>> engineering(15000)
++        '15.00 x 10³'
++        >>> engineering(1500, 1)
++        '1.5 x 10³'
++        >>> engineering("foo")
++        'foo'
++
++        ```
++
++    Args:
++        value (int, float, str): Input number.
++        precision (int): Number of decimals for the mantissa.
++
++    Returns:
++        str: Number as a mantissa below one thousand times a power of ten whose
++            exponent is a multiple of three.
++    """
++    import math
++
++    try:
++        value = float(value)
++        if not math.isfinite(value):
++            return _format_not_finite(value)
++    except (ValueError, TypeError):
++        return str(value)
++    exponent = 0
++    if value != 0:
++        exponent = int(math.floor(math.log10(abs(value)))) // 3 * 3
++    mantissa = _scale_by_power_of_ten(value, -exponent)
++    text = f"{mantissa:.{int(precision)}f}"
++    if abs(float(text)) >= 1000:
++        exponent += 3
++        mantissa /= 1000
++        text = f"{mantissa:.{int(precision)}f}"
++    superscript = "".join(_SUPERSCRIPTS[char] for char in str(exponent))
++    return f"{text} x 10{superscript}"
++
++
++def _scale_by_power_of_ten(value: float, power: int) -> float:
++    """Multiply `value` by ten to the given power without dividing by tiny floats."""
++    if power >= 0:
++        return value * 10.0**power
++    return value / 10.0 ** (-power)
++
++
+ def clamp(
+     value: float,
+     format: str = "{:}",

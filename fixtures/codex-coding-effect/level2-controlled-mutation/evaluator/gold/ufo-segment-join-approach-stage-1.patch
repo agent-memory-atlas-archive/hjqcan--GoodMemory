@@ -1,0 +1,79 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..5f4b8cf465b1414a9937b96a7e8e23e3435c6643 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -426,19 +426,63 @@ export function isNonEmptyURL(url: string) {
+  *
+  * @group utils
+  */
+-export function joinURL(base: string, ...input: string[]): string {
+-  let url = base || "";
+-
+-  for (const segment of input.filter((url) => isNonEmptyURL(url))) {
+-    if (url) {
+-      // TODO: Handle .. when joining
+-      const _segment = segment.replace(JOIN_LEADING_SLASH_RE, "");
+-      url = withTrailingSlash(url) + _segment;
+-    } else {
+-      url = segment;
+-    }
++const JOIN_TAIL_RE = /[?#]/;
++const JOIN_PROTOCOL_RE = /^[a-z][a-z0-9+.-]*:\/\//i;
++
++interface PreparedSegment {
++  absolute: boolean;
++  path: string;
++  tail: string;
++}
++
++function prepareJoinSegment(segment: string): PreparedSegment {
++  const trimmed = (segment || "").trim().replace(/\\/g, "/");
++  const tailIndex = trimmed.search(JOIN_TAIL_RE);
++  const rawPath = tailIndex === -1 ? trimmed : trimmed.slice(0, tailIndex);
++  const tail = tailIndex === -1 ? "" : trimmed.slice(tailIndex);
++  const protocolMatch = rawPath.match(JOIN_PROTOCOL_RE);
++  const prefix = protocolMatch ? protocolMatch[0] : "";
++  const path = prefix + rawPath.slice(prefix.length).replace(/\/{2,}/g, "/");
++  return { absolute: prefix.length > 0, path, tail };
++}
++
++function appendJoinSegment(url: string, segment: string): string {
++  const prepared = prepareJoinSegment(segment);
++  if (!url) {
++    return prepared.path + prepared.tail;
++  }
++  if ((prepared.path === "" || prepared.path === "/") && !prepared.tail) {
++    return url;
++  }
++  if (prepared.absolute) {
++    return prepared.path + prepared.tail;
++  }
++  const tailIndex = url.search(JOIN_TAIL_RE);
++  const base = tailIndex === -1 ? url : url.slice(0, tailIndex);
++  const tail = prepared.tail || (tailIndex === -1 ? "" : url.slice(tailIndex));
++  const path = prepared.path.replace(/^(?:\.\/)?\/*/, "");
++  if (!path) {
++    return (prepared.path.endsWith("/") ? withTrailingSlash(base) : base) + tail;
+   }
++  return withTrailingSlash(base) + path + tail;
++}
+ 
++/**
++ * Joins multiple URL segments into a single URL.
++ *
++ * @example
++ *
++ * ```js
++ * joinURL("a", "/b", "/c"); // "a/b/c"
++ * ```
++ *
++ * @group utils
++ */
++export function joinURL(base: string, ...input: string[]): string {
++  let url = "";
++  for (const segment of [base || "", ...input]) {
++    url = appendJoinSegment(url, segment);
++  }
+   return url;
+ }
+ 

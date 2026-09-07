@@ -1,0 +1,36 @@
+diff --git a/src/number/round.ts b/src/number/round.ts
+index d7183aee06497f846f18cd08414347b5e80c41d2..aa1217b679e2e3fe04d9b4f8b86b4b4820f4e4d3 100644
+--- a/src/number/round.ts
++++ b/src/number/round.ts
+@@ -1,7 +1,8 @@
+ /**
+  * Rounds a number to the given precision. The default `precision` is
+  * zero. An optional rounding function (e.g. `Math.floor` or
+- * `Math.ceil`) can be provided.
++ * `Math.ceil`) can be provided; the default rounds ties away from
++ * zero.
+  *
+  * The `precision` argument is limited to be within the range of -323
+  * to +292. Without this limit, precision values outside this range
+@@ -27,8 +28,11 @@
+ export function round(
+   value: number,
+   precision?: number,
+-  toInteger: (value: number) => number = Math.round,
++  toInteger: (value: number) => number = roundHalfAwayFromZero,
+ ): number {
++  if (!Number.isFinite(value)) {
++    return value
++  }
+   if (precision) {
+     // Limit the precision to avoid NaN results.
+     const p =
+@@ -43,3 +47,8 @@ export function round(
+ 
+   return toInteger(value)
+ }
++
++function roundHalfAwayFromZero(value: number): number {
++  const rounded = Math.round(Math.abs(value))
++  return value < 0 ? -rounded : rounded
++}

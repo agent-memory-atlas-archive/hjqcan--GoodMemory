@@ -1084,14 +1084,14 @@ function frozenBindings(
       promptSha256: stage.effectivePromptSha256,
       repositoryCommit: stage.repositoryCommit,
       repositoryTree: stage.repositoryTree,
-      stageId: stage.stageId as "stage-2" | "stage-3",
+      stageId: stage.stageId,
     }));
 }
 
 function requiredFrozenBinding(
   bindings: readonly C4BaselineFrozenStageBinding[],
   episodeId: string,
-  stageId: "stage-2" | "stage-3",
+  stageId: string,
 ): C4BaselineFrozenStageBinding {
   const binding = bindings.find((candidate) =>
     candidate.episodeId === episodeId && candidate.stageId === stageId

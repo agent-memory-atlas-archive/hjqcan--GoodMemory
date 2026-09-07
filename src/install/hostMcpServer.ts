@@ -74,15 +74,25 @@ export interface GoodMemoryMcpServerDependencies
   homeRoot?: string;
 }
 
+// JSON tool callers can express absence with null. Normalize it here so
+// core APIs retain their undefined-only optionals and reject invalid values.
+function optionalToolInput<T extends z.ZodType>(schema: T) {
+  return schema.nullish().transform((value) => value ?? undefined);
+}
+
 const TOOL_SCOPE_SCHEMA = {
-  cwd: z.string().optional().describe("Workspace root. Defaults to the current working directory."),
-  sessionId: z.string().optional().describe("Optional host session id for session-scoped recall."),
+  cwd: optionalToolInput(z.string()).describe("Workspace root. Omit or pass null to use the current working directory."),
+  sessionId: optionalToolInput(z.string()).describe("Optional host session id for session-scoped recall. Omit or pass null when unknown."),
 };
 
 const TOOL_TEMPORAL_RECALL_SCHEMA = {
-  referenceTime: z.string().optional(),
-  timezone: z.string().optional(),
+  referenceTime: optionalToolInput(z.string()).describe("Optional known reference instant for time-sensitive recall, in RFC 3339 format with a timezone. Omit or pass null unless the user supplied it; the server uses its current time. Do not invent a timestamp."),
+  timezone: optionalToolInput(z.string()).describe("Optional user-specified IANA timezone for time-sensitive recall. Omit or pass null unless supplied; do not infer it from the model's current date."),
 };
+
+const TOOL_OBSERVED_AT_SCHEMA = optionalToolInput(z.string()).describe(
+  "Optional known observation instant in RFC 3339 format with a timezone, such as 2026-09-07T01:00:00Z. A date-only value is invalid. Omit or pass null when not supplied; the server supplies its observation time. Do not invent a timestamp.",
+);
 
 // Installed mode reads the managed host config (`goodmemory setup`);
 // standalone mode synthesizes the same runtime context from explicit config,
@@ -154,12 +164,10 @@ export function createGoodMemoryMcpServer(
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         ...TOOL_TEMPORAL_RECALL_SCHEMA,
-        maxTokens: z.number().int().positive().optional(),
-        output: z
-          .enum(["json", "markdown", "system_prompt_fragment", "developer_prompt_fragment"])
-          .optional(),
+        maxTokens: optionalToolInput(z.number().int().positive()),
+        output: optionalToolInput(z.enum(["json", "markdown", "system_prompt_fragment", "developer_prompt_fragment"])),
         query: z.string().min(1),
-        retrievalProfile: z.enum(["coding_agent", "general_chat"]).optional(),
+        retrievalProfile: optionalToolInput(z.enum(["coding_agent", "general_chat"])),
       }),
     },
     async (args) => {
@@ -208,7 +216,7 @@ export function createGoodMemoryMcpServer(
         "Diagnostic (beyond the primary goodmemory_get_context / goodmemory_remember tools). Use this when you need a read-only snapshot of durable and runtime GoodMemory state for the current workspace.",
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
-        includeRuntime: z.boolean().optional(),
+        includeRuntime: optionalToolInput(z.boolean()),
       }),
     },
     async (args) => {
@@ -242,8 +250,8 @@ export function createGoodMemoryMcpServer(
         ...TOOL_SCOPE_SCHEMA,
         ...TOOL_TEMPORAL_RECALL_SCHEMA,
         query: z.string().min(1),
-        retrievalProfile: z.enum(["coding_agent", "general_chat"]).optional(),
-        strategy: z.enum(["auto", "rules-only", "hybrid", "llm-assisted"]).optional(),
+        retrievalProfile: optionalToolInput(z.enum(["coding_agent", "general_chat"])),
+        strategy: optionalToolInput(z.enum(["auto", "rules-only", "hybrid", "llm-assisted"])),
       }),
     },
     async (args) => {
@@ -282,10 +290,10 @@ export function createGoodMemoryMcpServer(
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         ...TOOL_TEMPORAL_RECALL_SCHEMA,
-        includeRuntime: z.boolean().optional(),
-        limit: z.number().int().positive().max(50).optional(),
+        includeRuntime: optionalToolInput(z.boolean()),
+        limit: optionalToolInput(z.number().int().positive().max(50)),
         query: z.string().min(1),
-        retrievalProfile: z.enum(["coding_agent", "general_chat"]).optional(),
+        retrievalProfile: optionalToolInput(z.enum(["coding_agent", "general_chat"])),
       }),
     },
     async (args) => {
@@ -332,11 +340,11 @@ export function createGoodMemoryMcpServer(
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
         ...TOOL_TEMPORAL_RECALL_SCHEMA,
-        includeRuntime: z.boolean().optional(),
-        limit: z.number().int().positive().max(50).optional(),
+        includeRuntime: optionalToolInput(z.boolean()),
+        limit: optionalToolInput(z.number().int().positive().max(50)),
         query: z.string().min(1),
-        recordsPerBucket: z.number().int().positive().max(20).optional(),
-        retrievalProfile: z.enum(["coding_agent", "general_chat"]).optional(),
+        recordsPerBucket: optionalToolInput(z.number().int().positive().max(20)),
+        retrievalProfile: optionalToolInput(z.enum(["coding_agent", "general_chat"])),
       }),
     },
     async (args) => {
@@ -451,7 +459,7 @@ export function createGoodMemoryMcpServer(
         "Diagnostic. Use this when you need the accepted host-adapter artifact projection for the current workspace.",
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
-        includeRuntime: z.boolean().optional(),
+        includeRuntime: optionalToolInput(z.boolean()),
       }),
     },
     async (args) => {
@@ -488,7 +496,7 @@ export function createGoodMemoryMcpServer(
         "Diagnostic. Record counts and runtime metadata (embedding/retrieval status via the `retrieval` field) for the current GoodMemory scope. Call it to check whether memory exists here before assuming an empty store.",
       inputSchema: z.object({
         ...TOOL_SCOPE_SCHEMA,
-        includeRuntime: z.boolean().optional(),
+        includeRuntime: optionalToolInput(z.boolean()),
       }),
     },
     async (args) => {
@@ -549,18 +557,14 @@ export function createGoodMemoryMcpServer(
         inputSchema: z.object({
           ...TOOL_SCOPE_SCHEMA,
           content: z.string().min(1).describe("The memory-worthy statement to persist."),
-          extractionStrategy: z.enum(["auto", "rules-only", "llm-assisted"]).optional(),
-          kindHint: z
-            .enum(["preference", "fact", "feedback", "reference", "note"])
-            .optional()
+          extractionStrategy: optionalToolInput(z.enum(["auto", "rules-only", "llm-assisted"])),
+          kindHint: optionalToolInput(z.enum(["preference", "fact", "feedback", "reference", "note"]))
             .describe("Optional memory kind for the statement; classification infers one otherwise. Use note to store the whole statement verbatim as an authored page."),
-          locale: z.string().optional(),
-          observedAt: z.string().optional(),
-          role: z
-            .enum(["user", "assistant"])
-            .optional()
+          locale: optionalToolInput(z.string()),
+          observedAt: TOOL_OBSERVED_AT_SCHEMA,
+          role: optionalToolInput(z.enum(["user", "assistant"]))
             .describe("Message role for governance provenance. Defaults to assistant (the caller); pass user only for user-originated content."),
-          timezone: z.string().optional(),
+          timezone: TOOL_TEMPORAL_RECALL_SCHEMA.timezone,
         }),
       },
       async (args) => {
@@ -684,10 +688,10 @@ export function createGoodMemoryMcpServer(
               message: `Note body exceeds ${NOTE_MAX_BYTES} UTF-8 bytes; split the page.`,
             })
             .describe("Verbatim page body, usually Markdown."),
-          locale: z.string().optional(),
-          observedAt: z.string().optional(),
-          tags: z.array(z.string().min(1)).max(16).optional(),
-          timezone: z.string().optional(),
+          locale: optionalToolInput(z.string()),
+          observedAt: TOOL_OBSERVED_AT_SCHEMA,
+          tags: optionalToolInput(z.array(z.string().min(1)).max(16)),
+          timezone: TOOL_TEMPORAL_RECALL_SCHEMA.timezone,
           title: z
             .string()
             .min(1)

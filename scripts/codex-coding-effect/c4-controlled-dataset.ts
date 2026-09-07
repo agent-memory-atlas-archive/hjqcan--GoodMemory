@@ -11,6 +11,7 @@ import {
 import { dirname, join, relative, resolve, sep } from "node:path";
 
 import { z } from "zod";
+import { controlledRepositoryIdForUrl } from "./controlled-dataset-profile";
 
 import {
   parseCodexCodingEffectDataset,
@@ -68,6 +69,7 @@ const assetFileSchema = z.object({
     "manifest",
     "prehistory",
     "prompt",
+    "repository-provenance",
     "repository-source",
   ]),
   path: z.string().min(1),
@@ -124,7 +126,9 @@ interface RepositorySpec {
   url: string;
 }
 
-export type C4ControlledRepositoryId = RepositorySpec["id"];
+// Fixture directory names are registered per dataset profile; the C4 table
+// below keeps the synthetic repository contents.
+export type C4ControlledRepositoryId = string;
 
 type MemoryStratum = CodexCodingEffectDatasetV2["episodes"][number]["strata"][number];
 
@@ -1027,11 +1031,7 @@ export function c4DatasetSpecs(): readonly EpisodeSpec[] {
 }
 
 export function c4RepositoryIdForUrl(url: string): C4ControlledRepositoryId {
-  const repository = REPOSITORIES.find((candidate) => candidate.url === url);
-  if (repository === undefined) {
-    throw new Error(`unknown C4 repository URL ${url}`);
-  }
-  return repository.id;
+  return controlledRepositoryIdForUrl(url);
 }
 
 export async function materializeC4SourceRepository(input: {
@@ -1481,6 +1481,8 @@ async function collectAssetFiles(root: string): Promise<C4AssetFile[]> {
     const path = relative(root, absolutePath).split("\\").join("/");
     if (
       path === OWNERSHIP_MARKER ||
+      // Level-2 builders own their fixture roots with the same marker shape.
+      /^\.goodmemory-[a-z0-9-]+-controlled-dataset-owned$/u.test(path) ||
       path === "asset-lock.json" ||
       path.startsWith("review/") ||
       path.startsWith(".materialize/")
@@ -1522,6 +1524,10 @@ function assetKind(path: string): C4AssetFile["kind"] {
   if (path === "manifest.json") return "manifest";
   if (path === "provenance/author-attestation.json") {
     return "author-attestation";
+  }
+  // Level-2 records each real repository's upstream pin and projection here.
+  if (/^provenance\/repositories\/[a-z0-9][a-z0-9._-]*\.json$/u.test(path)) {
+    return "repository-provenance";
   }
   if (path === "LICENSE") return "dataset-license";
   if (path === "licenses/receipt.json") return "license-receipt";
@@ -1804,6 +1810,16 @@ function memoryDependencyDescription(category: MemoryStratum): string {
     "validated-approach": "Apply the accepted delimiter-boundary policy.",
   };
   return descriptions[category];
+}
+
+// Shared by every controlled dataset builder: readiness and the C5 harness
+// reconstruct repositories with exactly this identity and date, so a fixture
+// commit must be produced the same way to match its manifest baseCommit.
+export async function initC4ControlledRepository(
+  root: string,
+  id: string,
+): Promise<void> {
+  await initRepository(root, id);
 }
 
 async function initRepository(root: string, id: string): Promise<void> {

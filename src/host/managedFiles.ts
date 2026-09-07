@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import { chmod, mkdir, rm, writeFile } from "node:fs/promises";
-import { basename, dirname, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 interface ManagedMarker {
   end: string;
@@ -27,8 +28,12 @@ export function resolveWorkspaceId(
     return normalized;
   }
 
-  const derived = basename(workspaceRoot).trim();
-  return derived.length > 0 ? derived : "goodmemory-workspace";
+  // Lexical normalization works before a directory exists and keeps symlink
+  // and case aliases isolated. Explicit IDs remain the opt-in sharing path.
+  const pathFingerprint = createHash("sha256")
+    .update(resolve(workspaceRoot), "utf8")
+    .digest("hex");
+  return `workspace-${pathFingerprint}`;
 }
 
 export async function writeManagedFile(

@@ -25,6 +25,8 @@ import {
 import { loadCodexCodingEffectDataset } from "../../scripts/codex-coding-effect/dataset";
 
 const DATASET_ROOT = "fixtures/codex-coding-effect/c4-controlled-pilot";
+const LEVEL2_DATASET_ROOT =
+  "fixtures/codex-coding-effect/level2-controlled-mutation";
 
 describe("Codex coding-effect C5 leakage input", () => {
   it("keeps empty prehistory fail-closed unless a C6 caller opts in", async () => {
@@ -170,6 +172,56 @@ describe("Codex coding-effect C5 leakage input", () => {
       status: "rejected",
       surfaceId: "goodmemory-hook-context-after-seeding",
     }));
+  });
+
+  it("treats a visible repository path as public even when no file content spells it", async () => {
+    // Level-2 prompts name the file to modify and the flat-summary handoff
+    // note names changed files; a path that exists in the repository must
+    // therefore be an allowed public fragment of `expected-changed-files`
+    // (the readiness matrix already defines public surfaces as paths plus
+    // contents). The ufo episode's `src/query.ts` appears in no file body.
+    const loaded = await loadCodexCodingEffectDataset(LEVEL2_DATASET_ROOT);
+    const dataset = validateC4ControlledPilotDataset(loaded.dataset);
+    const episode = dataset.episodes.find((candidate) =>
+      candidate.id === "ufo-query-serialization-policy"
+    )!;
+    const stage = episode.stages[0]!;
+    expect(stage.expectedChangedFiles).toEqual(["src/query.ts"]);
+    const input = await buildC5StageLeakageInput({
+      datasetRoot: LEVEL2_DATASET_ROOT,
+      episode,
+      repositoryRoot: join(
+        LEVEL2_DATASET_ROOT,
+        "repositories",
+        c4RepositoryIdForUrl(episode.repository.url),
+      ),
+      stage,
+    });
+    const changedFiles = input.artifacts.find((artifact) =>
+      artifact.id === "expected-changed-files"
+    )!;
+    expect(changedFiles.allowedPublicFragments).toEqual(["src/query.ts"]);
+    expect(changedFiles.fragments).toEqual([]);
+
+    const prompt = input.staticSurfaces.find((surface) =>
+      surface.id === "stage-prompts"
+    )!.content;
+    const audit = auditC5LiveLeakageSurfaces({
+      ...input,
+      liveSurfaces: [
+        { content: prompt, id: "effective-codex-input-after-seeding" },
+        {
+          content: "Stage 1 established the query-serialization policy and changed src/query.ts.",
+          id: "flat-summary-after-seeding",
+        },
+        { content: "", id: "goodmemory-export-after-seeding" },
+        { content: "", id: "goodmemory-hook-context-after-seeding" },
+      ],
+      trajectoryOrigins: [],
+    });
+    expect(audit.staticOverlapCount).toBe(0);
+    expect(audit.unexplainedLiveOverlapCount).toBe(0);
+    expect(audit.status).toBe("accepted");
   });
 });
 

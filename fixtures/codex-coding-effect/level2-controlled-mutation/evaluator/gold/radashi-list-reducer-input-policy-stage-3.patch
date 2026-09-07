@@ -1,0 +1,34 @@
+diff --git a/src/string/template.ts b/src/string/template.ts
+index 222c3b2f8df858b4208f6307840cd92b0879ec35..021c185b3bc5b3a11f09c34874b7b7a77296da19 100644
+--- a/src/string/template.ts
++++ b/src/string/template.ts
+@@ -1,6 +1,9 @@
+ /**
+  * Replace data by name in template strings. The default expression
+- * looks for `{{name}}` to identify names.
++ * looks for `{{name}}` to identify names. Names are trimmed, dotted
++ * names are resolved through nested objects and arrays, a name that
++ * resolves to `undefined` leaves the placeholder untouched, and
++ * `null` renders as an empty string.
+  *
+  * @see https://radashi.js.org/reference/string/template
+  * @example
+@@ -22,7 +25,17 @@ export function template(
+   let from = 0
+   let match: RegExpExecArray | null
+   while ((match = regex.exec(str))) {
+-    result += str.slice(from, match.index) + data[match[1]]
++    const name = match[1].trim()
++    const value = name
++      .split('.')
++      .reduce<unknown>(
++        (current, key) =>
++          current == null ? undefined : (current as any)[key],
++        data,
++      )
++    result +=
++      str.slice(from, match.index) +
++      (value === undefined ? match[0] : value === null ? '' : String(value))
+     from = regex.lastIndex
+   }
+   return result + str.slice(from)

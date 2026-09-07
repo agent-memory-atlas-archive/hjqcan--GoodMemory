@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 
 import { c4BaselineStageInputSha256 } from "./c4-baseline-ceiling";
 import { validateC4ControlledPilotDataset } from "./c4-contracts";
+import { resolveControlledDatasetProfile } from "./controlled-dataset-profile";
+import type { ControlledDatasetProfile } from "./controlled-dataset-profile";
 import type {
   CodexCodingEffectDataset,
   CodexCodingEffectDatasetV2,
@@ -55,7 +57,7 @@ export interface C5PilotCluster {
   executionPosition: number;
   id: string;
   randomizationRankSha256: string;
-  repetition: 1 | 2;
+  repetition: number;
 }
 
 export interface C5PilotStageRun {
@@ -81,7 +83,7 @@ export interface C5PilotEpisodeArmRun {
   episodeId: string;
   executionPosition: number;
   id: string;
-  repetition: 1 | 2;
+  repetition: number;
   stages: C5PilotStageRun[];
   stateMode: "canonical-snapshot";
 }
@@ -110,11 +112,11 @@ export interface C5PilotPlan {
     codexProcesses: number;
     episodeArmRuns: number;
     episodes: number;
-    repetitions: 2;
+    repetitions: number;
     stageRuns: number;
     stages: number;
   };
-  datasetId: "codex-c4-controlled-pilot-v2";
+  datasetId: string;
   datasetSnapshotMode: "asset-locked-copy";
   episodeArmRuns: C5PilotEpisodeArmRun[];
   evidenceClass: "native-longitudinal-pilot";
@@ -136,7 +138,7 @@ export interface C5PilotPlan {
     orderSeed: number;
   };
   readmeRowAllowed: false;
-  repetitions: [1, 2];
+  repetitions: number[];
   schemaVersion: 1;
   sessionPolicy: "fresh-codex-process-no-resume-per-stage";
 }
@@ -146,7 +148,7 @@ interface ClusterCandidate {
   clusterRankSha256: string;
   episode: CodexCodingEffectDatasetV2["episodes"][number];
   id: string;
-  repetition: 1 | 2;
+  repetition: number;
 }
 
 export function buildC5PilotPlan(input: C5PilotPlanInput): C5PilotPlan {
@@ -154,7 +156,11 @@ export function buildC5PilotPlan(input: C5PilotPlanInput): C5PilotPlan {
   const baselineArm = input.baselineArm ?? "no-memory";
   const comparator = resolveComparatorProtocol(baselineArm, input.comparator);
   const dataset = validateC5Dataset(input.dataset);
-  const candidates = buildClusterCandidates(dataset, input.orderSeed);
+  const profile = resolveControlledDatasetProfile(dataset.datasetId);
+  const candidates = buildClusterCandidates(dataset, profile, input.orderSeed);
+  if (candidates.length % 2 !== 0) {
+    throw new Error("C5 balanced arm order requires an even cluster count");
+  }
   const goodMemoryFirst = new Set(
     [...candidates]
       .sort(compareArmRank)
@@ -224,14 +230,14 @@ export function buildC5PilotPlan(input: C5PilotPlanInput): C5PilotPlan {
       ),
       episodeArmRuns: episodeArmRuns.length,
       episodes: dataset.episodes.length,
-      repetitions: 2,
+      repetitions: profile.repetitions.length,
       stageRuns: episodeArmRuns.reduce(
         (count, run) => count + run.stages.length,
         0,
       ),
       stages: stageCount,
     },
-    datasetId: "codex-c4-controlled-pilot-v2",
+    datasetId: dataset.datasetId,
     datasetSnapshotMode: "asset-locked-copy",
     episodeArmRuns,
     evidenceClass: "native-longitudinal-pilot",
@@ -267,7 +273,7 @@ export function buildC5PilotPlan(input: C5PilotPlanInput): C5PilotPlan {
       orderSeed: input.orderSeed,
     },
     readmeRowAllowed: false,
-    repetitions: [1, 2],
+    repetitions: [...profile.repetitions],
     schemaVersion: 1,
     sessionPolicy: "fresh-codex-process-no-resume-per-stage",
   };
@@ -289,10 +295,11 @@ export function verifyC5PilotPlan(
 
 function buildClusterCandidates(
   dataset: CodexCodingEffectDatasetV2,
+  profile: ControlledDatasetProfile,
   orderSeed: number,
 ): ClusterCandidate[] {
   return dataset.episodes.flatMap((episode) =>
-    ([1, 2] as const).map((repetition) => {
+    profile.repetitions.map((repetition) => {
       const id = `${episode.id}/repetition-${repetition}`;
       return {
         armRankSha256: randomizationHash(orderSeed, "arm-order", id),
@@ -391,12 +398,15 @@ function validateC5Dataset(
   dataset: CodexCodingEffectDataset,
 ): CodexCodingEffectDatasetV2 {
   const validated = validateC4ControlledPilotDataset(dataset);
+  const profile = resolveControlledDatasetProfile(validated.datasetId);
   for (const episode of validated.episodes) {
     if (episode.stateMode !== "canonical-snapshot") {
       throw new Error(`C5 pilot episode ${episode.id} must use canonical-snapshot`);
     }
-    if (episode.stages.length !== 3) {
-      throw new Error(`C5 pilot episode ${episode.id} must have exactly 3 stages`);
+    if (episode.stages.length !== profile.stagesPerEpisode) {
+      throw new Error(
+        `C5 pilot episode ${episode.id} must have exactly ${profile.stagesPerEpisode} stages`,
+      );
     }
   }
   return validated;
@@ -472,4 +482,17 @@ function validateInput(input: C5PilotPlanInput): void {
 
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+// Stages per episode, derived from the frozen plan: three for the C4
+// controlled pilot, four for the Level-2 controlled-mutation dataset. Every
+// episode-arm run carries the same number of stages, so the ratio is exact.
+export function c5PlanStagesPerEpisode(
+  plan: Pick<C5PilotPlan, "counts">,
+): number {
+  const stagesPerEpisode = plan.counts.stageRuns / plan.counts.episodeArmRuns;
+  if (!Number.isInteger(stagesPerEpisode) || stagesPerEpisode <= 0) {
+    throw new Error("C5 plan stage runs do not divide evenly across episode-arm runs");
+  }
+  return stagesPerEpisode;
 }

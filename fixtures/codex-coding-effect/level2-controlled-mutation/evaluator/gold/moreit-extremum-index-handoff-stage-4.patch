@@ -1,0 +1,49 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..61fbcd14613e7db502a4940d46175adc9bd06fd1
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -5233,14 +5233,31 @@ def argmin(iterable, *, key=None):
+     return min(enumerate(iterable), key=itemgetter(1))[0]
+ 
+ 
++def _extremum_index(iterable, better):
++    best_index = None
++    best_value = None
++    for index, value in enumerate(iterable):
++        if value is None:
++            continue
++        candidate = value.casefold() if isinstance(value, str) else value
++        if best_index is None or not better(best_value, candidate):
++            best_index, best_value = index, candidate
++    if best_index is None:
++        raise ValueError('no comparable items in the input')
++    return best_index
++
++
+ def argmax(iterable, *, key=None):
+     """
+-    Index of the first occurrence of a maximum value in an iterable.
++    Index of the last occurrence of a maximum value in an iterable.
+ 
+         >>> argmax('abcdefghabcd')
+         7
+         >>> argmax([0, 1, 2, 3, 3, 2, 1, 0])
+-        3
++        4
++
++    ``None`` items are skipped, text is compared case-insensitively, and an
++    input without comparable items raises ``ValueError``.
+ 
+     For example, identify the best machine learning model::
+ 
+@@ -5258,7 +5275,7 @@ def argmax(iterable, *, key=None):
+     """
+     if key is not None:
+         iterable = map(key, iterable)
+-    return max(enumerate(iterable), key=itemgetter(1))[0]
++    return _extremum_index(iterable, gt)
+ 
+ 
+ def extract(iterable, indices):

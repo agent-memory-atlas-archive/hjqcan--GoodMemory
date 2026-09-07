@@ -15,7 +15,7 @@ import {
   createLearningProposal,
   createPromotionRecord,
 } from "../../src/domain/evolutionRecords";
-import type { DocumentStore } from "../../src/storage/contracts";
+import type { DocumentStore, VectorStore } from "../../src/storage/contracts";
 
 const NOW = "2026-09-02T00:00:00.000Z";
 const scope = { userId: "u-import", workspaceId: "workspace-a" };
@@ -36,7 +36,7 @@ const WOK_PAGE = [
 
 const WIKI_PAGE = "# Reading MediaWiki\n\nMost MediaWiki sites expose api.php.\n";
 
-function harness(options: { documentStore?: DocumentStore } = {}) {
+function harness(options: { documentStore?: DocumentStore; vectorStore?: VectorStore } = {}) {
   const documentStore = createInMemoryDocumentStore();
   const vectorStore = createInMemoryVectorStore();
   const memory = createGoodMemory({
@@ -44,7 +44,7 @@ function harness(options: { documentStore?: DocumentStore } = {}) {
     adapters: {
       documentStore: options.documentStore ?? documentStore,
       sessionStore: createInMemorySessionStore(),
-      vectorStore,
+      vectorStore: options.vectorStore ?? vectorStore,
       embeddingAdapter: createFakeEmbeddingAdapter(),
       terminalDeletionSemantics: "shared-coordinated-backends-v1",
     },
@@ -63,6 +63,95 @@ function pagesSha256(pages: Array<{ path: string; content: string }>): string {
 }
 
 describe("importMemory", () => {
+  it.each(["x".repeat(8192), "x ".repeat(4094) + "a界"])(
+    "round-trips a maximum-size note without adding body bytes",
+    async (body) => {
+      const source = harness();
+      await source.memory.remember(buildNoteRememberInput({
+        body,
+        scope,
+        title: "Maximum-size note",
+      }));
+      const exported = await source.memory.exportMemory({ scope });
+      const pages = exported.pages.files
+        .filter((file) => file.kind === "page")
+        .map((file) => ({ content: file.content, path: file.relativePath.slice("pages/".length) }));
+      expect(Buffer.byteLength(body, "utf8")).toBe(8192);
+      expect(pages).toHaveLength(1);
+
+      const target = harness();
+      const restored = await target.memory.importMemory({ scope, source: { kind: "pages", pages } });
+      expect(restored.counts).toMatchObject({ imported: 1, rejected: 0 });
+      expect((await target.memory.exportMemory({ scope })).durable.notes?.[0]?.body).toBe(body);
+      const repeated = await source.memory.importMemory({ scope, source: { kind: "pages", pages } });
+      expect(repeated.counts).toMatchObject({ unchanged: 1, rejected: 0 });
+    },
+  );
+
+  it("restores exact old vectors after a partially applied retirement fails", async () => {
+    const vectors = createInMemoryVectorStore();
+    const retired = new Set<string>();
+    let deleted = 0;
+    const flaky: VectorStore = {
+      ...vectors,
+      async delete(collection, id) {
+        await vectors.delete(collection, id);
+        if (collection === "notes" && retired.has(id) && ++deleted === 2) {
+          throw new Error("retirement failed after delete");
+        }
+      },
+    };
+    const { documentStore, memory } = harness({ vectorStore: flaky });
+    const pages = [{ path: "wok.md", content: WOK_PAGE }, { path: "wiki.md", content: WIKI_PAGE }];
+    await memory.importMemory({ scope, source: { kind: "pages", pages } });
+    const before = await documentStore.query<NoteMemory>("notes");
+    const priorVectors = await Promise.all(before.map(note => vectors.get("notes", note.id)));
+    for (const note of before) retired.add(note.id);
+    await expect(memory.importMemory({ scope, source: { kind: "pages", pages: pages.map(page => ({ ...page, content: `${page.content}\nAn updated detail.\n` })) } })).rejects.toThrow("retirement failed after delete");
+    expect(await documentStore.query<NoteMemory>("notes")).toEqual(before);
+    expect(await Promise.all(before.map(note => vectors.get("notes", note.id)))).toEqual(priorVectors);
+  });
+
+  it.each(["pages", "durable"] as const)("continues vector cleanup and reports document rollback failures for %s", async (kind) => {
+    const documents = createInMemoryDocumentStore();
+    const vectors = createInMemoryVectorStore();
+    let firstId: string | undefined;
+    const rollbackError = new Error("document rollback failed");
+    const writeError = new Error("vector batch failed after write");
+    const flakyDocuments: DocumentStore = {
+      ...documents,
+      async writeBatchIfUnchanged(batch) {
+        if (batch.delete?.some(({ collection, id }) => collection === "notes" && id === firstId)) {
+          throw rollbackError;
+        }
+        return documents.writeBatchIfUnchanged(batch);
+      },
+      async delete(collection, id) {
+        if (collection === "notes" && id === firstId) throw rollbackError;
+        return documents.delete(collection, id);
+      },
+    };
+    const flakyVectors: VectorStore = {
+      ...vectors,
+      async upsert(collection, records) {
+        await vectors.upsert(collection, records);
+        firstId = records[0]?.id;
+        throw writeError;
+      },
+    };
+    const { memory } = harness({ documentStore: flakyDocuments, vectorStore: flakyVectors });
+    const pages = [{ path: "wok.md", content: WOK_PAGE }, { path: "wiki.md", content: WIKI_PAGE }];
+    const seed = harness();
+    await seed.memory.importMemory({ scope, source: { kind: "pages", pages } });
+    const durable = (await seed.memory.exportMemory({ scope })).durable;
+    const source = kind === "pages" ? { kind, pages } : { kind, durable };
+    const failure = await memory.importMemory({ scope, source }).then(() => null, error => error);
+    expect(failure).toBeInstanceOf(AggregateError);
+    expect((failure as AggregateError).errors).toEqual([writeError, rollbackError]);
+    expect(await documents.query("notes")).toHaveLength(1);
+    expect(await vectors.get("notes", firstId!)).toBeNull();
+  });
+
   it("imports memoryfield pages as notes with lineage, idempotently", async () => {
     const { documentStore, memory, vectorStore } = harness();
     const pages = [

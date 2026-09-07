@@ -1,0 +1,30 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..fc071eacc7514b0af4b2b93f556dfd5cf2160fc6 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -138,6 +138,25 @@ export function kebabCase<
+     : "";
+ }
+ 
++const PATH_SEPARATOR_RE = /[-_/.\s]+/u;
++
++export function pathCase(str: string | readonly string[] = ""): string {
++  const chunks = Array.isArray(str)
++    ? [...str]
++    : typeof str === "string"
++      ? str.split(PATH_SEPARATOR_RE)
++      : [];
++  const words = chunks
++    .flatMap((chunk) => splitByCase(chunk, []))
++    .filter(Boolean)
++    .map((word) => word.toLowerCase());
++  if (words.length === 0) {
++    return "";
++  }
++  const leading = typeof str === "string" && str.startsWith("/") ? "/" : "";
++  return leading + words.join("/");
++}
++
+ export function snakeCase(): "";
+ export function snakeCase<T extends string | readonly string[]>(
+   str: T,

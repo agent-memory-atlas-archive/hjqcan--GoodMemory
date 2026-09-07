@@ -283,7 +283,74 @@ describe("Codex coding-effect C5 evidence ledger", () => {
       await rm(root, { force: true, recursive: true });
     }
   });
+  it("commits a Level-2 cluster only after its eight stage rows and four pairs are durable", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-ledger-level2-"));
+    try {
+      const plan = await level2PilotPlan();
+      const cluster = plan.clusters[0]!;
+      const stages = orderedStageExecutions(plan).slice(0, 8);
+      const pairs = orderedPairResults(plan).slice(0, 4);
+      expect(stages.every((stage) => stage.clusterId === cluster.id)).toBe(true);
+      expect(pairs.every((pair) => pair.clusterId === cluster.id)).toBe(true);
+      const ledger = await openC5EvidenceLedger({
+        directory: root,
+        identity: {
+          planSha256: SHA,
+          runId: "c5-ledger-level2-fixture",
+          schemaVersion: 1,
+        },
+        plan,
+      });
+
+      for (const stage of stages.slice(0, 6)) await ledger.appendStageExecution(stage);
+      for (const pair of pairs.slice(0, 3)) await ledger.appendPair(pair);
+      await expect(ledger.commitCluster(cluster.id)).rejects.toThrow(
+        "C5 cluster cannot commit before all exact rows are durable",
+      );
+      for (const stage of stages.slice(6)) await ledger.appendStageExecution(stage);
+      await ledger.appendPair(pairs[3]!);
+      await ledger.commitCluster(cluster.id);
+
+      expect(lines(await readFile(join(root, "cluster-commits.jsonl"), "utf8")))
+        .toHaveLength(1);
+      const resumed = await openC5EvidenceLedger({
+        directory: root,
+        identity: {
+          planSha256: SHA,
+          runId: "c5-ledger-level2-fixture",
+          schemaVersion: 1,
+        },
+        plan,
+        resume: true,
+      });
+      expect(resumed.remainingClusterIds).toHaveLength(plan.clusters.length - 1);
+      expect(resumed.remainingClusterIds[0]).toBe(plan.clusters[1]!.id);
+      expect(resumed.stageExecutions).toHaveLength(8);
+      expect(resumed.pairs).toHaveLength(4);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
 });
+
+async function level2PilotPlan() {
+  const loaded = await loadCodexCodingEffectDataset(
+    join(
+      REPOSITORY_ROOT,
+      "fixtures/codex-coding-effect/level2-controlled-mutation",
+    ),
+  );
+  return buildC5PilotPlan({
+    assetLockSha256: SHA,
+    assetRootSha256: SHA,
+    baselineCeilingReportSha256: SHA,
+    c4ReadinessReportSha256: SHA,
+    dataset: loaded.dataset,
+    manifestSha256: SHA,
+    materialEffectPercentagePoints: 10,
+    orderSeed: 73,
+  });
+}
 
 async function pilotPlan() {
   const loaded = await loadCodexCodingEffectDataset(

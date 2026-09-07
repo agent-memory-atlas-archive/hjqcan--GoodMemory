@@ -49,6 +49,14 @@ protocol has no protocol session. The tools' optional `sessionId` remains an
 application-level memory scope and is not an MCP session id. The transport
 remains stdio; this command does not expose an HTTP MCP endpoint.
 
+The upcoming 0.8 MCP input contract accepts omitted optional fields or explicit
+`null` values. The server normalizes `null` to absence before calling core APIs;
+this does not make library, HTTP, or stored record fields nullable. Required
+inputs still reject `null`. Never use empty strings or invented timestamps for
+unknown optional values. In particular, supplied temporal instants must include
+a timezone, and supplied timezone names must be valid. This contract is not a
+claim about the currently published 0.7.5 runtime.
+
 ## Flags and environment fallbacks
 
 Precedence: per-call tool argument > CLI flag > environment variable > default.
@@ -56,7 +64,7 @@ Precedence: per-call tool argument > CLI flag > environment variable > default.
 | Flag | Env fallback | Default |
 |---|---|---|
 | `--user-id <id>` | `GOODMEMORY_USER_ID` | required |
-| `--workspace-id <id>` | `GOODMEMORY_WORKSPACE_ID` | derived from the per-call `cwd` basename |
+| `--workspace-id <id>` | `GOODMEMORY_WORKSPACE_ID` | 0.8 candidate: normalized absolute `cwd` fingerprint; published 0.7.5: `cwd` basename |
 | `--agent-id <id>` | `GOODMEMORY_AGENT_ID` | unset (see scope note) |
 | `--session-id <id>` | — | unset; per-call `sessionId` overrides |
 | `--storage-provider <memory\|sqlite\|postgres>` | `GOODMEMORY_STORAGE_PROVIDER` | `sqlite` |
@@ -69,6 +77,22 @@ Precedence: per-call tool argument > CLI flag > environment variable > default.
 progressive-recall secret and cache).
 For sqlite `--storage-url` values, GoodMemory expands `~` itself so JSON-based
 MCP clients do not need shell expansion.
+
+## Scope note: workspace identity
+
+In the unpublished 0.8 candidate, an omitted workspace ID becomes
+`workspace-<sha256>` of `node:path.resolve(cwd)`. Different absolute paths with
+the same basename are isolated. Relative paths and dot segments normalize;
+symlink aliases and case variants are not collapsed. Always supply one
+consistent absolute project-root path. Moving or cloning a workspace changes
+its default ID. An explicit ID intentionally shares a scope across paths.
+
+The published 0.7.5 runtime still uses the basename. Until upgrading, do not
+rely on absolute `cwd` alone to isolate two same-named directories; configure
+distinct explicit workspace IDs. Upgrading does not migrate old records or
+rewrite configured IDs. See the
+[0.8 migration guide](./GoodMemory-0.7-to-0.8-Migration-Guide.md#default-workspace-identity)
+before reconciling an old or possibly mixed scope.
 
 ## Scope note: agent visibility
 

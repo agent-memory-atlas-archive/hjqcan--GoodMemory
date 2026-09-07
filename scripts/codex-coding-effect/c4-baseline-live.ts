@@ -38,6 +38,8 @@ import {
   serializeC4BaselineCeilingReport,
   serializeC4BaselineRunIdentity,
   verifyC4BaselineRawStageEvidenceFiles,
+  buildC4BaselineCeilingPlan,
+  c4BaselineTargetLabel,
 } from "./c4-baseline-ceiling";
 import type {
   C4BaselineCeilingReport,
@@ -164,6 +166,11 @@ export async function runC4NoMemoryCeilingPilot(
       datasetRoot: datasetSnapshotRoot,
       repositories,
     });
+    const ceilingPlan = buildC4BaselineCeilingPlan(
+      buildC4BaselineCeilingTargets(controlledDataset),
+      { targetLabel: c4BaselineTargetLabel(controlledDataset.datasetId) },
+    );
+
     const runIdentity: C4BaselineRunIdentity = {
       assetLockSha256: storedAssetLock.assetLockSha256,
       assetRootSha256: storedAssetLock.assetLock.assetRootSha256,
@@ -182,7 +189,7 @@ export async function runC4NoMemoryCeilingPilot(
       runId: input.runId,
       schemaVersion: 2,
       stageTimeoutMs: input.stageTimeoutMs,
-      strategy: "stage-3-first-then-stage-2-if-needed",
+      strategy: ceilingPlan.runIdentityStrategy,
       testTimeoutMs: input.testTimeoutMs,
     };
     const runIdentityBytes = serializeC4BaselineRunIdentity(runIdentity);
@@ -211,7 +218,8 @@ export async function runC4NoMemoryCeilingPilot(
           target,
         }),
       runIdentity,
-      targets: buildC4BaselineCeilingTargets(controlledDataset),
+      targetLabel: c4BaselineTargetLabel(controlledDataset.datasetId),
+      targets: ceilingPlan.targets,
     });
     verifyC4BaselineRawStageEvidenceFiles(
       report,

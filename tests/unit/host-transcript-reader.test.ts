@@ -154,6 +154,39 @@ describe("readClaudeTranscriptDelta", () => {
     });
   });
 
+  it("recovers the opening user instruction when a long single-shot session truncates the head", async () => {
+    const filler = "x".repeat(200);
+    const lines: unknown[] = [
+      userLine("Project policy: shout text ends with exactly one exclamation mark."),
+    ];
+    for (let index = 0; index < 40; index += 1) {
+      lines.push(assistantLine([{ text: `Working step ${index} ${filler}`, type: "text" }]));
+    }
+    lines.push(assistantLine([{ text: "Done implementing the change.", type: "text" }]));
+    const path = await createTranscript(lines);
+
+    const fresh = await readClaudeTranscriptDelta({
+      maxBytes: 600,
+      transcriptPath: path,
+    });
+    expect(fresh.truncatedHead).toBe(true);
+    // The declared policy lives in the head, outside the tail window, yet the
+    // reader still surfaces it as the first message.
+    expect(fresh.messages[0]).toEqual({
+      content: "Project policy: shout text ends with exactly one exclamation mark.",
+      role: "user",
+    });
+    // A resume read (cursor past the head) must not re-inject the opening turn.
+    const resumed = await readClaudeTranscriptDelta({
+      fromOffset: 300,
+      maxBytes: 600,
+      transcriptPath: path,
+    });
+    expect(
+      resumed.messages.some((message) => message.content.startsWith("Project policy:")),
+    ).toBe(false);
+  });
+
   it("resumes from a cursor offset and reports a stable nextOffset", async () => {
     const path = await createTranscript([userLine("First turn user statement here.")]);
 
@@ -381,6 +414,26 @@ describe("readCodexRolloutDelta", () => {
       { content: "oui", role: "user" },
       { content: "sí", role: "user" },
     ]);
+  });
+
+  it("recovers the opening user turn from a truncated Codex rollout head", async () => {
+    const filler = "x".repeat(200);
+    const lines: unknown[] = [
+      rolloutLine("user", "# Python utility task\n\nProject policy: round halves away from zero."),
+    ];
+    for (let index = 0; index < 40; index += 1) {
+      lines.push(rolloutLine("assistant", `Investigating rounding edge ${index} ${filler}`));
+    }
+    lines.push(rolloutLine("assistant", "Implemented the amount-rounding policy."));
+    const path = await createTranscript(lines);
+
+    const result = await readCodexRolloutDelta({ maxBytes: 600, transcriptPath: path });
+
+    expect(result.truncatedHead).toBe(true);
+    expect(result.messages[0]).toEqual({
+      content: "# Python utility task\n\nProject policy: round halves away from zero.",
+      role: "user",
+    });
   });
 
   it("resumes from a byte cursor like the claude reader", async () => {

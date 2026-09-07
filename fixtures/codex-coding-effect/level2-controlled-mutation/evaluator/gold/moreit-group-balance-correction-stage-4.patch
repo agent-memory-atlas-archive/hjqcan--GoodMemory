@@ -1,0 +1,80 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..4201765b8481de7381c18020cadbd980eb1ed078
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -4533,51 +4533,38 @@ class countable:
+ def chunked_even(iterable, n):
+     """Break *iterable* into lists of approximately length *n*.
+     Items are distributed such the lengths of the lists differ by at most
+-    1 item.
++    1 item, with the longer lists at the end.
+ 
+     >>> iterable = [1, 2, 3, 4, 5, 6, 7]
+     >>> n = 3
+-    >>> list(chunked_even(iterable, n))  # List lengths: 3, 2, 2
+-    [[1, 2, 3], [4, 5], [6, 7]]
++    >>> list(chunked_even(iterable, n))  # List lengths: 2, 2, 3
++    [[1, 2], [3, 4], [5, 6, 7]]
+     >>> list(chunked(iterable, n))  # List lengths: 3, 3, 1
+     [[1, 2, 3], [4, 5, 6], [7]]
+ 
++    A size below one raises ``ValueError`` and a non-integer size raises
++    ``TypeError``.
+     """
+-    iterator = iter(iterable)
+-
+-    # Initialize a buffer to process the chunks while keeping
+-    # some back to fill any underfilled chunks
+-    min_buffer = (n - 1) * (n - 2)
+-    buffer = list(islice(iterator, min_buffer))
++    if isinstance(n, bool) or not isinstance(n, int):
++        raise TypeError('n must be an integer')
++    if n < 1:
++        raise ValueError('n must be at least 1')
++    return _chunked_even_balanced(iterable, n)
+ 
+-    # Append items until we have a completed chunk
+-    for _ in islice(map(buffer.append, iterator), n, None, n):
+-        yield buffer[:n]
+-        del buffer[:n]
+ 
+-    # Check if any chunks need addition processing
+-    if not buffer:
++def _chunked_even_balanced(iterable, n):
++    items = list(iterable)
++    if not items:
+         return
+-    length = len(buffer)
+-
+-    # Chunks are either size `full_size <= n` or `partial_size = full_size - 1`
+-    q, r = divmod(length, n)
+-    num_lists = q + (1 if r > 0 else 0)
+-    q, r = divmod(length, num_lists)
+-    full_size = q + (1 if r > 0 else 0)
+-    partial_size = full_size - 1
+-    num_full = length - partial_size * num_lists
+-
+-    # Yield chunks of full size
+-    partial_start_idx = num_full * full_size
+-    if full_size > 0:
+-        for i in range(0, partial_start_idx, full_size):
+-            yield buffer[i : i + full_size]
+-
+-    # Yield chunks of partial size
+-    if partial_size > 0:
+-        for i in range(partial_start_idx, length, partial_size):
+-            yield buffer[i : i + partial_size]
++
++    num_lists = -(-len(items) // n)
++    q, r = divmod(len(items), num_lists)
++
++    start = 0
++    for index in range(num_lists):
++        size = q + 1 if index >= num_lists - r else q
++        yield items[start : start + size]
++        start += size
+ 
+ 
+ def zip_broadcast(*objects, scalar_types=(str, bytes), strict=False):

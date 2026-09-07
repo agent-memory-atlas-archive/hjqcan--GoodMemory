@@ -1,0 +1,59 @@
+diff --git a/src/number/min.ts b/src/number/min.ts
+index 44c09af08b00a3c576277386dffc2bb3463bc106..37b94d4b94229a9c7a0642b776070de21df58563 100644
+--- a/src/number/min.ts
++++ b/src/number/min.ts
+@@ -1,5 +1,17 @@
+ /**
+- * Min gets the smallest value from a list.
++ * List-reducer input policy (corrected): only actual numbers take
++ * part in the selection. Strings, booleans, nullish values, and
++ * non-array objects are skipped.
++ */
++function isCountable(value: unknown): value is number {
++  return typeof value === 'number' && !Number.isNaN(value)
++}
++
++/**
++ * Min gets the smallest value from a list. Nested arrays contribute
++ * their own items one level deep; items that are not numbers under
++ * the list-reducer input policy are skipped, and `null` is returned
++ * when nothing remains.
+  *
+  * @see https://radashi.js.org/reference/array/min
+  * @example
+@@ -23,9 +35,32 @@ export function min<T>(
+   array: readonly T[],
+   getter?: (item: T) => number,
+ ): T | null {
+-  if (!array || (array.length ?? 0) === 0) {
++  if (!array) {
+     return null
+   }
+-  const get = getter ?? ((v: any) => v)
+-  return array.reduce((a, b) => (get(a) < get(b) ? a : b))
++  const get = getter ?? ((item: any) => item)
++  let best: T | null = null
++  let bestValue = 0
++  let found = false
++  const consider = (item: T, value: unknown) => {
++    if (!isCountable(value)) {
++      return
++    }
++    if (!found || value < bestValue) {
++      best = item
++      bestValue = value
++      found = true
++    }
++  }
++  for (const item of array) {
++    const value: unknown = get(item)
++    if (Array.isArray(value)) {
++      for (const nested of value) {
++        consider(nested as T, nested)
++      }
++    } else {
++      consider(item, value)
++    }
++  }
++  return found ? best : null
+ }

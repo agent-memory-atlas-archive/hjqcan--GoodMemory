@@ -1,0 +1,39 @@
+{
+  "authorTaskName": "/root",
+  "dispatch": {
+    "byteLength": 1442,
+    "path": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-canary-flat-20260903T065126Z-verified/review/dispatch.json",
+    "sha256": "d22d67f86c99cd19f8c8a1f9b731d5a1c9398b9297d20c61e02d7289967dd856"
+  },
+  "inputBundle": {
+    "byteLength": 1841,
+    "path": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-canary-flat-20260903T065126Z-verified/review/input-bundle.json",
+    "sha256": "20a8198f7f51c0f02f89d025d3b55432b6c0082a2886a1c05e1e263c1f10fbd2"
+  },
+  "projectionRootPath": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-canary-flat-20260903T065126Z-verified",
+  "recordedAt": "2026-09-03T09:44:36.002Z",
+  "request": {
+    "byteLength": 4302,
+    "path": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-canary-flat-20260903T065126Z-verified/review/request.md",
+    "sha256": "c0eef777309abee30a6f28c3ab9658c3314ed7b5d19273f4337416e74c74d4e0"
+  },
+  "response": {
+    "byteLength": 8949,
+    "path": "/Users/hjqcan/.goodmemory-eval/codex-coding-effect/projected/run-c5-canary-flat-20260903T065126Z-verified/review/independent-review.json",
+    "sha256": "51b0758694b452cc0630bdfd2f808adbe677da44e62226c18e73ea979c8480d4"
+  },
+  "reviewDecision": "accepted",
+  "reviewer": {
+    "agentName": "/root/c5_final_independent_review_v1",
+    "contextPolicy": "fork-turns-none",
+    "orchestratorAttestation": {
+      "attestedByTaskName": "/root",
+      "basis": "orchestrator-observed-dispatch-no-cryptographic-receipt",
+      "cryptographicReceipt": false
+    },
+    "requestedTaskName": "c5_final_independent_review_v1",
+    "type": "independent-ai-agent"
+  },
+  "runId": "run-c5-canary-flat-20260903T065126Z",
+  "schemaVersion": 1
+}

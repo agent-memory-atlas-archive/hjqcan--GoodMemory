@@ -1,0 +1,24 @@
+{
+  "baseCommit": "0df44aff13f913027d9b2a5a58eb865d84a044f9",
+  "baseTree": "f81a1bd22bea1bb0ce592e67525c8e23bb61b9ae",
+  "canonicalUrl": "https://github.com/jpvanhal/inflection",
+  "ecosystem": "python",
+  "licenseSpdx": "MIT",
+  "notes": [
+    "Default branch is master (not main), cloned at HEAD with --depth 1; bundle contains the single HEAD commit (shallow).",
+    "setup.cfg declares python_requires >=3.5; imports unchanged on /usr/bin/python3 3.9.6 with stdlib only (re, typing, unicodedata). No pyproject [project] table (setuptools_scm + setup.cfg metadata); setup.cfg oddly says `py_modules = inflection` although the code lives in a package directory inflection/__init__.py.",
+    "Public namespace has 19 names: 12 functions (all in inflection/__init__.py), 1 typing alias RegexReplaceList (filtered out of surface.json), data lists PLURALS/SINGULARS/UNCOUNTABLES, and imported modules re/typing/unicodedata. No __all__.",
+    "Excluded: test_inflection.py (root-level test module), docs/, MANIFEST.in, tox.ini, requirements.txt, .travis.yml, .editorconfig, .gitignore, README.rst."
+  ],
+  "overlayFiles": [
+    "AGENTS.md",
+    "tests/base_health.py"
+  ],
+  "projectedFileCount": 6,
+  "projectionPolicy": "source-only-no-upstream-tests-v1",
+  "repositoryId": "jpvanhal-inflection",
+  "schemaVersion": 1,
+  "upstreamCommit": "88eefaacf7d0caaa701af7c8ab2d0ab3f17086f1",
+  "upstreamRef": "master (default branch HEAD)",
+  "upstreamTree": "4c4e426cdee4088acd49bcbe1c1b5eae411dbb2f"
+}

@@ -1,0 +1,41 @@
+diff --git a/src/humanize/time.py b/src/humanize/time.py
+index 0ea316d77b460f33accf6951754baf4d82c575b8..afada77b06ed57f787394bb04f45ab802dede812 100644
+--- a/src/humanize/time.py
++++ b/src/humanize/time.py
+@@ -259,6 +259,17 @@ def naturaltime(
+     """
+     import datetime as dt
+ 
++    if isinstance(value, bool):
++        return str(value)
++    seconds = _seconds_count(value)
++    if seconds is not None:
++        if seconds < 0:
++            future = True
++            seconds = -seconds
++        if 45 <= seconds < 60:
++            seconds = 60
++        value = seconds
++
+     value = _convert_aware_datetime(value)
+     when = _convert_aware_datetime(when)
+ 
+@@ -280,6 +291,18 @@ def naturaltime(
+     return str(ago % delta)
+ 
+ 
++def _seconds_count(value: Any) -> float | None:
++    """Return the seconds a plain numeric input stands for, or None otherwise."""
++    import datetime as dt
++
++    if isinstance(value, (dt.datetime, dt.timedelta)):
++        return None
++    try:
++        return float(value)
++    except (TypeError, ValueError):
++        return None
++
++
+ def _convert_aware_datetime(
+     value: dt.datetime | dt.timedelta | float | None,
+ ) -> Any:

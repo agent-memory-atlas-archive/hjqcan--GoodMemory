@@ -1,0 +1,15 @@
+{
+  "claimBoundary": "internal-native-longitudinal-pilot-only",
+  "decision": "accepted",
+  "evidenceClass": "native-longitudinal-pilot",
+  "independentReviewSha256": "51b0758694b452cc0630bdfd2f808adbe677da44e62226c18e73ea979c8480d4",
+  "planSha256": "1fcf14544d502bdc10d142ac8adc2f67d0afda2147f8442111ed07ee9fe58131",
+  "projectionManifestSha256": "c5bf50e8f77b82ff40173af31d0787db458f6d7516834c96b29965a3ebbedd7e",
+  "publicClaimEligible": false,
+  "publicCodingEffectProof": false,
+  "reviewProvenanceSha256": "c276ffbc3eea2da32aa043193dc2911b9cdd46c0b4389f265bae1d9214cc1e30",
+  "reasons": [],
+  "runId": "run-c5-canary-flat-20260903T065126Z",
+  "schemaVersion": 1,
+  "verificationSha256": "aae8d8ff9eb1fbebce97f829d56477521504c5074c55505ad745290b43125fe9"
+}

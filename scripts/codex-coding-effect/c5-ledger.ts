@@ -99,15 +99,22 @@ export async function openC5EvidenceLedger(input: {
   );
   validateStagePrefix(parsedStages.rows, expectedStages);
   validatePairPrefix(parsedPairs.rows, expectedPairs);
-  validateCommitPrefix(parsedCommits, clusters, parsedStages.rows, parsedPairs.rows);
+  const perCluster = clusterRowCounts(input.plan);
+  validateCommitPrefix(
+    parsedCommits,
+    clusters,
+    parsedStages.rows,
+    parsedPairs.rows,
+    perCluster,
+  );
 
   let completedClusterCount = parsedCommits.rows.length;
-  const stagePrefixCount = completedClusterCount * 6;
-  const pairPrefixCount = completedClusterCount * 3;
+  const stagePrefixCount = completedClusterCount * perCluster.stageRuns;
+  const pairPrefixCount = completedClusterCount * perCluster.pairs;
   const partialCluster = clusters[completedClusterCount];
   if (
-    parsedStages.rows.length > stagePrefixCount + 6 ||
-    parsedPairs.rows.length > pairPrefixCount + 3
+    parsedStages.rows.length > stagePrefixCount + perCluster.stageRuns ||
+    parsedPairs.rows.length > pairPrefixCount + perCluster.pairs
   ) {
     throw new Error("C5 resume ledger spans more than one incomplete cluster");
   }
@@ -189,11 +196,17 @@ export async function openC5EvidenceLedger(input: {
         if (cluster?.id !== clusterId) {
           throw new Error("C5 cluster commit is outside the frozen execution order");
         }
-        const stageRows = parsedStages.rows.slice(clusterIndex * 6, (clusterIndex + 1) * 6);
-        const pairRows = parsedPairs.rows.slice(clusterIndex * 3, (clusterIndex + 1) * 3);
+        const stageRows = parsedStages.rows.slice(
+          clusterIndex * perCluster.stageRuns,
+          (clusterIndex + 1) * perCluster.stageRuns,
+        );
+        const pairRows = parsedPairs.rows.slice(
+          clusterIndex * perCluster.pairs,
+          (clusterIndex + 1) * perCluster.pairs,
+        );
         if (
-          parsedStages.rows.length !== (clusterIndex + 1) * 6 ||
-          parsedPairs.rows.length !== (clusterIndex + 1) * 3 ||
+          parsedStages.rows.length !== (clusterIndex + 1) * perCluster.stageRuns ||
+          parsedPairs.rows.length !== (clusterIndex + 1) * perCluster.pairs ||
           stageRows.some((row) => row.clusterId !== clusterId) ||
           pairRows.some((row) => row.clusterId !== clusterId)
         ) {
@@ -220,24 +233,43 @@ interface C5ClusterCommit {
   schemaVersion: 1;
 }
 
+// Every cluster runs both arms over the episode's stages, so its durable
+// rows are two stage rows per stage and one pair row per stage.
+export function clusterRowCounts(
+  plan: Pick<C5PilotPlan, "clusters" | "counts">,
+): { pairs: number; stageRuns: number } {
+  const stageRuns = plan.counts.stageRuns / plan.clusters.length;
+  if (!Number.isInteger(stageRuns) || stageRuns <= 0 || stageRuns % 2 !== 0) {
+    throw new Error("C5 plan stage runs do not divide evenly across clusters");
+  }
+  return { pairs: stageRuns / 2, stageRuns };
+}
+
 function validateCommitPrefix(
   commits: { rows: C5ClusterCommit[]; tornTail: string | null },
   clusters: C5PilotPlan["clusters"],
   stages: readonly C5RecordedStageExecution[],
   pairs: readonly C5LongitudinalPairResult[],
+  perCluster: { pairs: number; stageRuns: number },
 ): void {
   if (commits.rows.length > clusters.length) {
     throw new Error("C5 cluster commit ledger is incomplete");
   }
   for (const [index, commit] of commits.rows.entries()) {
     const cluster = clusters[index];
-    const stageRows = stages.slice(index * 6, (index + 1) * 6);
-    const pairRows = pairs.slice(index * 3, (index + 1) * 3);
+    const stageRows = stages.slice(
+      index * perCluster.stageRuns,
+      (index + 1) * perCluster.stageRuns,
+    );
+    const pairRows = pairs.slice(
+      index * perCluster.pairs,
+      (index + 1) * perCluster.pairs,
+    );
     if (
       commit.schemaVersion !== 1 ||
       commit.clusterId !== cluster?.id ||
-      stageRows.length !== 6 ||
-      pairRows.length !== 3
+      stageRows.length !== perCluster.stageRuns ||
+      pairRows.length !== perCluster.pairs
     ) {
       throw new Error("C5 cluster commit is not bound to its exact durable rows");
     }

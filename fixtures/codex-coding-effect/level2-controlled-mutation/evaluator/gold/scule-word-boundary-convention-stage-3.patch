@@ -1,0 +1,26 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..636fad601a4feca25d88ee5f907620aeca29295a 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -19,6 +19,21 @@ export function isUppercase(char = ""): boolean | undefined {
+   return char !== char.toLowerCase();
+ }
+ 
++export function isLowercase(str = ""): boolean | undefined {
++  let cased = false;
++  for (const char of str) {
++    const lower = char.toLowerCase();
++    if (lower === char.toUpperCase()) {
++      continue;
++    }
++    cased = true;
++    if (char !== lower) {
++      return false;
++    }
++  }
++  return cased ? true : undefined;
++}
++
+ export function splitByCase<T extends string>(str: T): SplitByCase<T>;
+ export function splitByCase<
+   T extends string,

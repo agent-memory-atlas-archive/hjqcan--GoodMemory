@@ -1,0 +1,53 @@
+diff --git a/src/humanize/lists.py b/src/humanize/lists.py
+index 3a52f1ecdf992210927ed94172835f8b2dae50b1..b73b2be207d0254fe935418debe8f03095d97a02 100644
+--- a/src/humanize/lists.py
++++ b/src/humanize/lists.py
+@@ -9,6 +9,28 @@ if TYPE_CHECKING:
+ __all__ = ["natural_list"]
+ 
+ 
++def _prepare_items(items: Any) -> list[str]:
++    """Render items as stripped text, dropping empties and repeated items."""
++    prepared: list[str] = []
++    for item in items:
++        text = str(item).strip()
++        if not text or text in prepared:
++            continue
++        prepared.append(text)
++    return prepared
++
++
++def _join_items(texts: list[str], conjunction: str) -> str:
++    """Join prepared items, with a comma before the conjunction for three or more."""
++    if not texts:
++        return ""
++    if len(texts) == 1:
++        return texts[0]
++    if len(texts) == 2:
++        return f"{texts[0]} {conjunction} {texts[1]}"
++    return ", ".join(texts[:-1]) + f", {conjunction} {texts[-1]}"
++
++
+ def natural_list(items: list[Any]) -> str:
+     """Natural list.
+ 
+@@ -16,7 +38,7 @@ def natural_list(items: list[Any]) -> str:
+ 
+     Examples:
+         >>> natural_list(["one", "two", "three"])
+-        'one, two and three'
++        'one, two, and three'
+         >>> natural_list(["one", "two"])
+         'one and two'
+         >>> natural_list(["one"])
+@@ -28,9 +50,4 @@ def natural_list(items: list[Any]) -> str:
+     Returns:
+         str: A string with commas and 'and' in the right places.
+     """
+-    if len(items) == 1:
+-        return str(items[0])
+-    elif len(items) == 2:
+-        return f"{str(items[0])} and {str(items[1])}"
+-    else:
+-        return ", ".join(str(item) for item in items[:-1]) + f" and {str(items[-1])}"
++    return _join_items(_prepare_items(items), "and")

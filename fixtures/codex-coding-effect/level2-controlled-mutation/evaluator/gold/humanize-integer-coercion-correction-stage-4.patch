@@ -1,0 +1,43 @@
+diff --git a/src/humanize/time.py b/src/humanize/time.py
+index 0ea316d77b460f33accf6951754baf4d82c575b8..8600921167e0c25412eac729edc798ffb0c62b52 100644
+--- a/src/humanize/time.py
++++ b/src/humanize/time.py
+@@ -50,6 +50,14 @@ def _now() -> dt.datetime:
+     return dt.datetime.now()
+ 
+ 
++def _nearest_integer(number: float) -> int:
++    """Round to the nearest integer, resolving halves away from zero."""
++    import math
++
++    rounded = math.floor(abs(number) + 0.5)
++    return -rounded if number < 0 else rounded
++
++
+ def _abs_timedelta(delta: dt.timedelta) -> dt.timedelta:
+     """Return an "absolute" value for a timedelta, always representing a time distance.
+ 
+@@ -140,15 +148,20 @@ def naturaldelta(
+         raise ValueError(msg)
+     min_unit = tmp
+ 
++    if isinstance(value, bool):
++        return str(value)
+     if isinstance(value, dt.timedelta):
+         delta = value
++    elif isinstance(value, int):
++        delta = dt.timedelta(seconds=value)
+     else:
+         try:
+-            int(value)  # Explicitly don't support string such as "NaN" or "inf"
+-            value = float(value)
+-            delta = dt.timedelta(seconds=value)
++            number = float(value)
+         except (ValueError, TypeError):
+             return str(value)
++        if number != number or number in (float("inf"), float("-inf")):
++            return str(value)
++        delta = dt.timedelta(seconds=_nearest_integer(number))
+ 
+     use_months = months
+ 

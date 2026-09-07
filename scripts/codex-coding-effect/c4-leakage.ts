@@ -158,10 +158,22 @@ export function mutationTestC4SurfaceHiddenArtifactMatrix(input: {
     if (artifact === undefined) {
       throw new Error(`missing C4 hidden artifact ${cell.artifactId}`);
     }
+    // An empty string renders to nothing and can never match a surface, so
+    // the injected candidate must be the first one with matchable text.
     return ([
       ["fragment", artifact.fragments.find((fragment) => fragment.length > 0)],
-      ["hidden-value", artifact.hiddenValues?.[0]],
-      ["hidden-value-relation", artifact.hiddenValueRelations?.[0]],
+      [
+        "hidden-value",
+        artifact.hiddenValues?.find((value) =>
+          renderHiddenValue(value).length > 0
+        ),
+      ],
+      [
+        "hidden-value-relation",
+        artifact.hiddenValueRelations?.find((relation) =>
+          relation.every((value) => renderHiddenValue(value).length > 0)
+        ),
+      ],
     ] as const).map(([candidateKind, candidate]): C4LeakageMutationCell => {
       if (candidate === undefined) {
         return {

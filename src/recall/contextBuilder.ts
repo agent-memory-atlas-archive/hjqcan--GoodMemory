@@ -711,9 +711,46 @@ export function rebuildMemoryPacket(
   });
 }
 
+// Section bodies are rank-ordered bullet entries ("- ..."); continuation
+// lines without the bullet prefix belong to the preceding entry, so an entry
+// is never split when a prefix of the section is kept.
+function splitSectionEntries(body: string): string[] {
+  const entries: string[] = [];
+  for (const line of body.split("\n")) {
+    if (line.startsWith("- ") || entries.length === 0) {
+      entries.push(line);
+    } else {
+      entries[entries.length - 1] = `${entries[entries.length - 1]}\n${line}`;
+    }
+  }
+  return entries;
+}
+
+function keepLeadingSectionEntries(
+  section: { title: string; body: string },
+  remainingTokens: number,
+): { title: string; body: string } | null {
+  const entries = splitSectionEntries(section.body);
+  if (entries.length < 2) {
+    return null;
+  }
+  const kept: string[] = [];
+  for (const entry of entries) {
+    const candidate = [...kept, entry].join("\n");
+    if (
+      estimateTextTokens(`## ${section.title}\n${candidate}`) > remainingTokens
+    ) {
+      break;
+    }
+    kept.push(entry);
+  }
+  return kept.length === 0 ? null : { ...section, body: kept.join("\n") };
+}
+
 function trimSections(
   sections: Array<{ title: string; body: string }>,
   maxTokens?: number,
+  options?: { keepLeadingEntries?: boolean },
 ) {
   if (!maxTokens) {
     return {
@@ -731,6 +768,18 @@ function trimSections(
     const nextTokens = tokens + estimateTextTokens(sectionText);
 
     if (nextTokens > maxTokens) {
+      // Prompt fragments keep the highest-ranked entries that still fit
+      // rather than dropping a whole section: under a small per-prompt
+      // budget the top fact is the one the prompt asked for, and previews
+      // of every fact are no substitute for it.
+      if (options?.keepLeadingEntries) {
+        const partial = keepLeadingSectionEntries(section, maxTokens - tokens);
+        if (partial !== null) {
+          kept.push(partial);
+          tokens += estimateTextTokens(`## ${partial.title}\n${partial.body}`);
+          continue;
+        }
+      }
       if (kept.length === 0) {
         const prefix = `## ${section.title}\n`;
         const clippedSection = truncateTextToEstimatedTokens(
@@ -934,10 +983,11 @@ function buildRenderableSections(
 }
 
 // Opt-in (off by default so benchmark rendering is byte-identical): drop
-// evidence bullet lines whose text is already shown verbatim under Facts. This
-// only fires for verbatim (rules-only) writes where a fact and its provenance
-// evidence carry identical content; distilled evidence (different text) is
-// preserved. Operates on the structured section bodies before flattening.
+// evidence bullet lines whose text is already shown verbatim under Facts, and
+// evidence excerpts that are clipped previews of a fact line. This fires for
+// verbatim (rules-only) writes where a fact and its provenance evidence carry
+// the same content; distilled evidence (different text) is preserved.
+// Operates on the structured section bodies before flattening.
 function suppressEvidenceDuplicatingFacts<
   T extends { key: string; body: string },
 >(sections: T[]): T[] {
@@ -951,13 +1001,28 @@ function suppressEvidenceDuplicatingFacts<
       .map((line) => line.trim())
       .filter(Boolean),
   );
+  // Evidence excerpts are whitespace-collapsed clips of their source record
+  // ending in "..."; a clip whose stem opens a fact line is a preview of that
+  // fact, not new information.
+  const collapsedFacts = splitSectionEntries(facts.body).map((entry) =>
+    entry.replace(/^- /u, "").replace(/\s+/gu, " ").trim()
+  );
+  const previewsFact = (line: string): boolean => {
+    const collapsed = line.replace(/^- /u, "").replace(/\s+/gu, " ").trim();
+    if (!collapsed.endsWith("...")) {
+      return false;
+    }
+    const stem = collapsed.slice(0, -3);
+    return stem.length > 0 &&
+      collapsedFacts.some((fact) => fact.startsWith(stem));
+  };
   return sections.flatMap((section) => {
     if (section.key !== "evidenceSummary" || !section.body) {
       return [section];
     }
     const kept = section.body
       .split("\n")
-      .filter((line) => !factLines.has(line.trim()));
+      .filter((line) => !factLines.has(line.trim()) && !previewsFact(line));
     if (kept.length === 0) {
       return [];
     }
@@ -1017,6 +1082,7 @@ export function renderMemoryPacket(
     effectiveMaxTokens === undefined
       ? undefined
       : Math.max(0, effectiveMaxTokens - frameTokens),
+    { keepLeadingEntries: isFragment },
   );
   const frameLines = frame && kept.length > 0 ? [frame] : [];
   // Prompt fragments flatten section bodies onto one line, except authored

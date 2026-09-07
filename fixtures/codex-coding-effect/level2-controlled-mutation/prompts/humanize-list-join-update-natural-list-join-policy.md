@@ -1,0 +1,5 @@
+# Python utility task
+
+Establish the list-join policy for this fork and apply it to natural_list in src/humanize/lists.py. Project policy: every item is rendered with str and surrounding whitespace is stripped; an item that is empty after stripping is dropped; an item equal to one already kept is dropped, so only the first occurrence survives (repetition is judged on the stripped text, case-sensitively); an empty sequence, or one with nothing left after dropping, renders as an empty string with no separator or conjunction; a single item renders as itself; items are never re-ordered; exactly two items are joined by the conjunction with a single space on each side and no comma; three or more items are separated by a comma and a space, and a comma also precedes the conjunction (the Oxford comma); the conjunction of natural_list is the word and, which keeps a single space on each side. Keep the exported signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

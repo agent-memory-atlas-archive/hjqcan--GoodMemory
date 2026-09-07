@@ -77,7 +77,7 @@ export interface C5LivePilotAdapter {
     executions: readonly (C5StageExecution & {
       clusterId: string;
       episodeId: string;
-      repetition: 1 | 2;
+      repetition: number;
       stageId: string;
     })[];
     runs: readonly C5PilotEpisodeArmRun[];
@@ -92,7 +92,7 @@ export interface C5LivePilotAdapter {
     executions: readonly (C5StageExecution & {
       clusterId: string;
       episodeId: string;
-      repetition: 1 | 2;
+      repetition: number;
       stageId: string;
     })[];
     runs: readonly C5PilotEpisodeArmRun[];
@@ -448,6 +448,7 @@ export async function runC5NativeLongitudinalCanary(
     );
     const report = buildC5NativeLongitudinalCanaryReport({
       clusterId: input.clusterId,
+      expectedStageCount: canaryRun.stages.length,
       generatedAt: input.generatedAt,
       pilot,
       planSha256: readiness.planSha256,
@@ -477,13 +478,20 @@ export async function runC5NativeLongitudinalCanary(
   }
 }
 
-function buildC5NativeLongitudinalCanaryReport(input: {
+// The canary runs one frozen cluster: every stage of the episode in both arms.
+// The expected shape comes from the frozen plan (three stages for the C4
+// controlled pilot, four for the Level-2 controlled-mutation dataset), so the
+// acceptance rule is "every planned stage executed in every arm and paired",
+// not a fixed process count.
+export function buildC5NativeLongitudinalCanaryReport(input: {
   clusterId: string;
+  expectedStageCount: number;
   generatedAt: string;
   pilot: C5LongitudinalPilotResult;
   planSha256: string;
   runId: string;
 }): C5NativeLongitudinalCanaryReport {
+  const expectedStageCount = input.expectedStageCount;
   const installed = input.pilot.stageExecutions.filter((execution) =>
     execution.arm === "goodmemory-installed"
   );
@@ -493,24 +501,24 @@ function buildC5NativeLongitudinalCanaryReport(input: {
     execution.arm !== "goodmemory-installed"
   );
   const reasons = [
-    ...(input.pilot.stageExecutions.length === 6
+    ...(input.pilot.stageExecutions.length === expectedStageCount * 2
       ? []
-      : ["canary-did-not-account-for-six-stage-executions"]),
-    ...(input.pilot.pairs.length === 3
+      : ["canary-did-not-account-for-every-stage-execution"]),
+    ...(input.pilot.pairs.length === expectedStageCount
       ? []
-      : ["canary-did-not-account-for-three-pairs"]),
+      : ["canary-did-not-account-for-every-pair"]),
     ...(input.pilot.stageExecutions.every((execution) =>
         execution.codexStatus === "completed" &&
         execution.infrastructureFailureStage === null
       )
       ? []
       : ["canary-stage-infrastructure-failure"]),
-    ...(installed.length === 3 && installed.every((execution) =>
+    ...(installed.length === expectedStageCount && installed.every((execution) =>
         execution.memoryChannelStatus === "passed"
       )
       ? []
       : ["canary-installed-memory-channel-failure"]),
-    ...(noMemory.length === 3 && noMemory.every((execution) =>
+    ...(noMemory.length === expectedStageCount && noMemory.every((execution) =>
         execution.memoryChannelStatus === "not-applicable" &&
         execution.memoryObservation === null
       )

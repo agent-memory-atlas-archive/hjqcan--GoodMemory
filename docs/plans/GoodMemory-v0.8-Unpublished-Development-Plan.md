@@ -1,12 +1,34 @@
 # GoodMemory v0.8 Unpublished Development Plan
 
-Status: planned, not release-authorized
+Status: prepare on main for maintainer publication; Phase 73 completion required
 
-v0.8 development remains real, but it will not be tagged, published to npm, or
-presented as a shipped release. Because this repository now uses only `main`,
-breaking v0.8 source changes must wait until the v0.7.3 release commit is
-actually tagged and published. Landing them earlier would make `main` cease to
-be a valid v0.7.3 candidate.
+The maintainer's 2026-09-04 direction is to finish v0.8 and Phase 73 together
+on `main`, then publish v0.8. The previous v0.7.3 sequencing constraint has
+been discharged; the current package version is 0.7.5. Do not present this
+working tree as a shipped 0.8 release. The Phase 73 Level-2 experiment freezes
+its runner dependency closure, including package.json, bun.lock, and
+tsconfig.json. Its process stopped in the 2026-09-05T01:36:35Z machine reboot;
+one frozen file had changed beforehand. The maintainer authorized recovery
+on 2026-09-05: the incomplete ledger and mutable roots were backed up, the
+original 171-file runner closure was materialized and hash-verified outside
+the working tree, and the same run resumed after passing its full preflight.
+The source-identity incident remains disclosed and requires independent
+review before this run can close; recovery does not prove historical source
+stability. Version metadata remains unchanged pending that disposition.
+
+The maintainer's latest 2026-09-06 direction is to continue until they can
+publish 0.8. This supersedes automatic publication: prepare and verify local
+changes and artifacts, then hand off readiness. Do not run npm publish, push
+a tag, upload release assets, or create a GitHub release without a new explicit
+publication request. A green gate is not publication authorization.
+
+On 2026-09-07 the maintainer confirmed that this is the only task responsible
+for the current checkout and authorized completing the existing changes.
+The development changes can be reviewed, corrected, and committed on `main`
+while Phase 73 continues from its separate frozen runner closure. This does
+not authorize changing that experiment, migrating existing user memory, or
+publishing a release. The clean development commit is not the final v0.8
+release candidate; version metadata still waits for Phase 73's disposition.
 
 ## Evidence boundary
 
@@ -17,7 +39,7 @@ or conflict API. Synthetic policy evidence favors recency-with-lineage over
 destructive replacement or freeze, but cannot authorize production incidence
 claims or a review workflow.
 
-## Scope after v0.7.3 publication
+## Breaking-change scope
 
 1. Remove the public fields frozen and deprecated in v0.7.3:
    `FactMemory.accessCount`, `FactMemory.lastAccessedAt`,
@@ -45,7 +67,9 @@ claims or a review workflow.
 - No claim that the `general_preference` coexistence problem is solved. Without
   a stable identity boundary, unrelated legacy-category values remain a known
   limitation with retained lineage rather than silent deletion.
-- No v0.8 tag, npm publish, GitHub release, or public benchmark projection.
+- No v0.8 tag, npm publish, or GitHub release before Phase 73 closure and all
+  release checks pass. Internal Phase 73 evidence never authorizes a public
+  coding-effect benchmark claim, even if its scientific result is positive.
 
 ## TDD order
 
@@ -72,8 +96,111 @@ claims or a review workflow.
   active latest legacy-category record.
 - No identity/conflict public contract exists anywhere in `src/`, package
   exports, HTTP, CLI, Inspector, or projections.
-- The work remains on `main` as an unpublished development state only after
-  v0.7.3 has been published and verified.
+- All development remains on `main`. Final publication requires a clean,
+  committed source identity, the Phase 73 Level-2 projection and independent
+  evidence review, documented interpretation of its preregistered result,
+  and a passing `release:prepare` manifest for the exact 0.8 tarball. A
+  documented negative result closes Phase 73; partial execution does not.
+
+## Release preparation checklist
+
+- Resolve the confirmed default workspace identity collision described below;
+  verify same-basename isolation and explicitly document the old-scope boundary.
+- Resolve the interrupted Level-2 run and its source-identity incident under
+  maintainer-approved recovery. Complete the required 720 attempts under the
+  accepted protocol; project, independently review, verify, and interpret
+  the full result. Never treat the incomplete ledger as completed evidence.
+- Finalize the 0.8.0 package metadata and packaged migration guide only after
+  the run's final source-identity verification. Preserve the experimental
+  tarball identity separately from the release tarball. Update the Kimi plugin
+  version/runtime pin and explicitly enable `goodmemory_write_note` in its
+  tool allowlist; the current published-runtime descriptor still exposes nine
+  tools. Re-test that final ten-tool descriptor with the exact 0.8 tarball.
+- Run full tests, typecheck, coverage, build, strict public-claim checks,
+  projection/storage scale checks, and real Postgres checks.
+- Validate pages import, durable round trip, invalid-input rejection, and
+  recall in fresh Node and Bun consumers of the exact packed tarball.
+- Hand the passing manifest and exact artifacts to the maintainer for
+  publication. After an explicit publication request, verify npm metadata,
+  fresh installation, the source tag, and GitHub release before calling 0.8
+  shipped.
+
+## Kimi readiness follow-up (2026-09-07 UTC)
+
+- The native Kimi 0.41.0 loop now verifies manual approval before a real model
+  write, fresh-session recall without the answer in its input, trace linkage
+  to the written record, and isolation between same-basename projects under
+  different absolute paths. This is isolated local candidate evidence, not
+  independent adoption or published 0.8 evidence.
+- The MCP startup timeout is 300 seconds. A same-tarball native control with
+  an injected 130-second startup delay fails at 120 seconds; the 300-second
+  candidate connects with nine tools. This verifies the timeout behavior, not
+  a guaranteed network cold-start latency.
+- Native model use exposed invented optional date fields. Remember, recall,
+  and trace instructions now require omitting unspecified temporal controls;
+  descriptions alone did not resolve it: a fresh candidate repeatedly sent
+  empty strings and failed validation. Schema-only request tracing confirms
+  Kimi sent optional properties without `strict`; it does not establish what
+  the model gateway did internally. The MCP wire contract now accepts `null`
+  for optional inputs and normalizes it to `undefined` before core handlers.
+  Required fields, empty/invalid timestamps, and invalid timezones remain
+  rejected, with no rejected-write mutation. This is an MCP input boundary,
+  not a change to library/HTTP/storage contracts. The rebuilt development
+  candidate passed the full native sequence at 2026-09-07T10:43Z: first write
+  with null optionals, fresh-session recall, trace linked to the written ID,
+  and same-basename/different-path isolation. All four MCP calls were singly
+  approved and successful without an MCP retry or Bash clock lookup. Nine
+  earlier provider-failed turns remain preserved. This does not establish
+  general provider availability or semantic retrieval; this local run used
+  rules-only recall. The candidate is still a nine-tool development tarball
+  labeled 0.7.5; final 0.8 ten-tool packaged model acceptance remains required.
+- The 0.8 release profile generates a deterministic seven-file plugin-only
+  ZIP and binds it into the authoritative manifest/evidence archive. The
+  workflow includes that optional ZIP in its prepared artifact set, while
+  the 0.7 profile remains unchanged. A public ZIP URL is not available before
+  publication. Native Kimi installed the development ZIP from loopback HTTP
+  after its trust prompt; every managed file matched the ZIP byte-for-byte,
+  and reload connected the version-pinned published runtime with nine tools.
+  Public GitHub release-asset download acceptance remains unverified.
+- External raw evidence and verifiers are under
+  `/Volumes/data/GoodMemory-external/v08-readiness-20260907-nagZHU`.
+  `model-r4-verification.json` is the unchanged full verifier's pass;
+  `model-r4-completion-20260907T1026Z.json` binds the source, immutable final
+  sessions, final model reply, privacy scan, and earlier failure prefixes.
+  Initial invalid local-tarball fixtures, date validation failures, provider
+  retry errors, and bare-GitHub-URL timeout remain preserved.
+
+## Workspace identity collision: repaired, pending final release validation
+
+Confirmed on 2026-09-05 in the published 0.7.5 standalone MCP and pre-fix
+`main`. `src/host/managedFiles.ts:resolveWorkspaceId` derived the default ID
+from `basename(workspaceRoot)`. Consequently, different absolute paths such
+as `/left/project-a` and `/right/project-a` select the same workspace scope
+when user/agent/storage settings are otherwise equal. A read-only MCP probe
+recalled the same synthetic stored fact from both paths; `/right/project-b`
+correctly returned no such fact. Different directory names passing an
+isolation test do not establish isolation for distinct absolute paths.
+
+The resolver is shared by standalone MCP, installed-host global activation,
+bootstrap, and workspace installation. This is not caused by the separately
+reported corrupt legacy database. No original user database or existing scope
+was changed during reproduction.
+
+The maintainer approved the correction and recovery work on 2026-09-05
+("可以，继续完成"). The resolver now derives `workspace-<sha256>` from the
+lexically normalized absolute path, preserving explicit IDs. Seven focused
+identity tests cover path normalization, aliases, installed global/opt-in,
+standalone, bootstrap, and legacy configured-ID preservation. A real MCP
+process over shared SQLite proves same-basename write/recall/delete isolation,
+explicit sharing, and preservation of legacy records. The first focused run
+passed 74 tests; final candidate-wide validation remains required.
+
+Existing stored/configured IDs
+must not be silently remapped, merged, copied, or deleted: records under an
+already-colliding legacy ID cannot safely be attributed to one original path
+from that ID alone. No automatic scope migration is implemented. Symlink/case
+spellings stay separate, and moves/clones get new defaults; the migration
+guide records the explicit-sharing and manual-reconciliation boundary.
 
 ## Scope expansion: memory-as-data program (2026-09-01)
 
@@ -115,6 +242,28 @@ minor as the field removals rather than as a separate rebuild.
 - 2026-09-02 Phase A-C close gate: full `bun test` green, `bun run typecheck`
   clean, `bun run build` clean, `bun run test:coverage` 92.40% overall with
   0 failures; ADR-010 accepted. Not committed, not tagged.
+
+## Phase 75 default-enablement follow-up (2026-09-05)
+
+The full provider-free paired protection gate passed on 500 LongMemEval
+cases and 1,986 LoCoMo questions per arm, with no execution errors and all
+22 type/category slices inside the predefined limits. Fresh Codex and Claude
+configs now enable long-record admission. Existing configs retain absent
+keys and explicit opt-outs; the library and file mirror remain opt-in.
+Note-page byte preservation and broader-scope mirror invalidation were also
+fixed with red/green regressions. Detailed evidence, source identities,
+limitations, and final validation status are recorded in
+`reports/quality-gates/phase-75/default-enablement-20260905.md`.
+
+Final main verification: `bun test` 7,145 pass / 60 skip / 0 fail;
+`bun run test:coverage` 6,993 pass / 60 skip / 0 fail, 92.45% overall and
+94.47% storage, with every coverage threshold passed. Typecheck, build, and
+actual final-package consumers on Node 20/22/24 and Bun passed. The report
+binds source identities and preserves earlier failed environment runs.
+
+This closes the Phase 75 fresh-install-default decision only. It does not
+resolve the workspace identity P1 above, resume Phase 73, change public
+benchmark declarations, or authorize publishing v0.8.
 
 ## Reopening preference identity
 

@@ -15,6 +15,7 @@ import {
 import type { GoodMemoryTraceLink } from "../observability/contracts";
 import { renderMemoryPacket } from "../recall/contextBuilder";
 import { deleteVectorForCollection } from "./governance";
+import { publicRecall } from "./publicRecords";
 import {
   deleteAllMemoryOperation,
   deleteMemorySupportingState,
@@ -208,18 +209,18 @@ class GoodMemoryImpl implements GoodMemory {
     internal?.fileMirrorHandle?.(this.fileMirror);
   }
 
-  recall(input: RecallInput): Promise<RecallResult> {
-    return orchestrateRecall(
+  async recall(input: RecallInput): Promise<RecallResult> {
+    return publicRecall(await orchestrateRecall(
       { assembly: this.assembly, config: this.config },
       input,
-    );
+    ));
   }
 
-  diagnoseRecall(input: RecallInput): Promise<RecallResult> {
-    return diagnoseRecallThroughOrchestrator(
+  async diagnoseRecall(input: RecallInput): Promise<RecallResult> {
+    return publicRecall(await diagnoseRecallThroughOrchestrator(
       { assembly: this.assembly, config: this.config },
       input,
-    );
+    ));
   }
 
   async buildContext(input: BuildContextInput): Promise<BuildContextResult> {
@@ -387,8 +388,11 @@ class GoodMemoryImpl implements GoodMemory {
   }
 
   async importMemory(input: ImportMemoryInput): Promise<ImportMemoryResult> {
-    return this.runScopeMutation(input.scope, () =>
-      this.importMemoryWithinScopeMutation(input)
+    return this.runScopeMutation(
+      input.scope,
+      () => this.importMemoryWithinScopeMutation(input),
+      (result) => result.outcome === "imported" &&
+        result.counts.imported + result.counts.superseded + result.counts.split > 0,
     );
   }
 
@@ -659,12 +663,15 @@ class GoodMemoryImpl implements GoodMemory {
   private async runScopeMutation<T>(
     scope: MemoryScope,
     operation: () => Promise<T>,
+    shouldMirror: (result: T) => boolean = () => true,
   ): Promise<T> {
     assertStorageSafeExternalValue(scope, "scope");
     const result = await (this.assembly.scopeDeletion
       ? this.assembly.scopeDeletion.runMutation(scope, operation)
       : operation());
-    this.fileMirror?.schedule(scope);
+    if (shouldMirror(result)) {
+      this.fileMirror?.schedule(scope);
+    }
     return result;
   }
 }

@@ -1,0 +1,5 @@
+# Python utility task
+
+Establish the integer-coercion policy for this fork and apply it to ordinal in src/humanize/number.py. Project policy: surrounding whitespace in a numeric string is ignored, and a leading plus sign is accepted; a numeric string may use underscores between digits as group separators; booleans are never numbers and come back as their text form; a float, or a numeric string, whose fractional part is non-zero is not an integer and comes back unchanged as its text form; a float or numeric string whose fractional part is zero counts as that integer; for a negative value the suffix or word is chosen from the magnitude, and any sign the function shows stays in front of the rendered magnitude; the text form always means str applied to the original input, never to a converted value; anything that cannot be converted at all comes back as its text form; values that are not finite keep the module's existing non-finite tokens. Keep the exported signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

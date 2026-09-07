@@ -1,0 +1,28 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..f30d67ae4b7f2a143ad782c431004f6e3e89018d 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -183,6 +183,23 @@ def dasherize(word: str) -> str:
+     return word.replace('_', '-')
+ 
+ 
++
++def deconstantize(path: str) -> str:
++    """
++    Remove the rightmost segment from a constant path.
++
++    Examples::
++
++        >>> deconstantize("Widgets::Gears::Frobnicator")
++        'Widgets::Gears'
++        >>> deconstantize("Frobnicator")
++        ''
++
++    """
++    head, separator, _ = path.rpartition('::')
++    return head if separator else ''
++
++
+ def humanize(word: str) -> str:
+     """
+     Capitalize the first word and turn underscores into spaces and strip a

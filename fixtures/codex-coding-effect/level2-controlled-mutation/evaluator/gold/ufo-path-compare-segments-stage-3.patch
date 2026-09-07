@@ -1,0 +1,28 @@
+diff --git a/src/parse.ts b/src/parse.ts
+index b2a2e7e03e14976f33e999eca25c04939b2f91aa..38d19aa040844ff1c36e9d7690e35bab677c0aa4 100644
+--- a/src/parse.ts
++++ b/src/parse.ts
+@@ -222,8 +222,19 @@ export function parseFilename(
+   opts?: { strict?: boolean },
+ ): string | undefined {
+   const { pathname } = parseURL(input);
+-  const matches = opts?.strict
+-    ? pathname.match(FILENAME_STRICT_REGEX)
+-    : pathname.match(FILENAME_REGEX);
+-  return matches ? matches[1] : undefined;
++  const path = pathname.trim();
++  if (path.endsWith("/")) {
++    return "";
++  }
++  const name = decode(path.slice(path.lastIndexOf("/") + 1)).trim();
++  if (!name) {
++    return "";
++  }
++  if (opts?.strict) {
++    const dot = name.lastIndexOf(".");
++    if (dot <= 0 || dot === name.length - 1) {
++      return "";
++    }
++  }
++  return name;
+ }

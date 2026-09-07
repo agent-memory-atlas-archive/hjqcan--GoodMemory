@@ -1,0 +1,60 @@
+{
+  "datasetLicense": "MIT",
+  "datasetLicensePath": "LICENSE",
+  "datasetLicenseSha256": "28788d8863354935f546f1ec292283c5a61cdb9ef2c7080790edd460cd583168",
+  "patchRedistribution": "permitted-under-source-mit-license",
+  "rawLogs": "internal-only-not-part-of-dataset",
+  "repositories": [
+    {
+      "dependencyLock": "not-required-no-dependencies",
+      "licensePath": "repositories/jpvanhal-inflection/LICENSE",
+      "licenseSha256": "9e9f9b4b2e7543ad1486f1328bf9ec50e5a5e2bb9caceb59652496dd61e64133",
+      "repositoryId": "jpvanhal-inflection",
+      "sourceLicense": "MIT",
+      "sourceUrl": "https://github.com/jpvanhal/inflection"
+    },
+    {
+      "dependencyLock": "not-required-no-dependencies",
+      "licensePath": "repositories/more-itertools-more-itertools/LICENSE",
+      "licenseSha256": "09f1c8c9e941af3e584d59641ea9b87d83c0cb0fd007eb5ef391a7e2643c1a46",
+      "repositoryId": "more-itertools-more-itertools",
+      "sourceLicense": "MIT",
+      "sourceUrl": "https://github.com/more-itertools/more-itertools"
+    },
+    {
+      "dependencyLock": "not-required-no-dependencies",
+      "licensePath": "repositories/python-humanize-humanize/LICENCE",
+      "licenseSha256": "8ba6c18112a431400ad3c743f70670079b302545d98884fc2f28a91c383a0380",
+      "repositoryId": "python-humanize-humanize",
+      "sourceLicense": "MIT",
+      "sourceUrl": "https://github.com/python-humanize/humanize"
+    },
+    {
+      "dependencyLock": "not-required-no-dependencies",
+      "licensePath": "repositories/radashi-org-radashi/LICENSE.md",
+      "licenseSha256": "e3f18e7d6b946c8fd473197e364bbe6d97cc00f133319f24c40bd7d32bff1aae",
+      "repositoryId": "radashi-org-radashi",
+      "sourceLicense": "MIT",
+      "sourceUrl": "https://github.com/radashi-org/radashi"
+    },
+    {
+      "dependencyLock": "not-required-no-dependencies",
+      "licensePath": "repositories/unjs-scule/LICENSE",
+      "licenseSha256": "46231df5a7733c3f52f11b71f3df61813007745b62b09031acfb45fb42d75082",
+      "repositoryId": "unjs-scule",
+      "sourceLicense": "MIT",
+      "sourceUrl": "https://github.com/unjs/scule"
+    },
+    {
+      "dependencyLock": "not-required-no-dependencies",
+      "licensePath": "repositories/unjs-ufo/LICENSE",
+      "licenseSha256": "46231df5a7733c3f52f11b71f3df61813007745b62b09031acfb45fb42d75082",
+      "repositoryId": "unjs-ufo",
+      "sourceLicense": "MIT",
+      "sourceUrl": "https://github.com/unjs/ufo"
+    }
+  ],
+  "sanitizedReadinessReportRedistribution": "permitted",
+  "schemaVersion": 1,
+  "taskMaterialLicense": "MIT"
+}

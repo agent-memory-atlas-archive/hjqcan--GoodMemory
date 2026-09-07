@@ -1,0 +1,5 @@
+# TypeScript utility task
+
+Establish and implement the query-serialization policy for this fork. Project policy: keys are trimmed of surrounding whitespace, and a key that is empty after trimming produces no output at all; string values are trimmed and every internal run of whitespace collapses to a single space before encoding, so the encoder renders it as one plus; a value that is null, or a string that is empty after trimming, renders as the bare key with no equals sign; an array value renders as repeated pairs whose key carries an empty pair of square brackets appended, one pair per entry; entries of an array that are nullish or empty after trimming are dropped, an entry repeated inside the same array keeps only its first occurrence, and an array with nothing left renders as the bare key; a plain-object value is serialized as JSON with its keys sorted ascending at every level before encoding; numbers and booleans render as their plain text. Apply this policy to encodeQueryItem in src/query.ts and keep the exported signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

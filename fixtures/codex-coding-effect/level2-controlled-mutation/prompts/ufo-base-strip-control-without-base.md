@@ -1,0 +1,5 @@
+# TypeScript utility task
+
+Establish and implement the base-strip policy for this fork. Project policy: the base is trimmed of surrounding whitespace and its trailing slash is ignored before it is compared; a base that is empty or only a slash is a no-op and the input is returned unchanged; an input that carries a protocol or a protocol-relative prefix is returned unchanged; the input is matched against the base case-insensitively; the base matches only at a segment boundary, meaning the input either ends right after it or continues with a slash, a question mark, or a hash; after the base is removed the result starts with exactly one slash, with any run of leading slashes collapsing into it; a trailing slash on the remaining path is removed unless the remaining path is only the root; the query string and fragment are preserved after the remaining path. Apply this policy to withoutBase in src/utils.ts and keep the exported signature unchanged.
+
+Keep the implementation dependency-free and run the visible test.

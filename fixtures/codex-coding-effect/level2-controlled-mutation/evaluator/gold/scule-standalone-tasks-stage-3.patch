@@ -1,0 +1,26 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..64694ab20b194dae919c077bdd9e7e7964acc22b 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -146,12 +146,20 @@ export function snakeCase<T extends string | readonly string[]>(str?: T) {
+   return kebabCase(str || "", "_") as SnakeCase<T>;
+ }
+ 
++const FLAT_MARK_RE = /\p{M}+/gu;
++const FLAT_NOISE_RE = /[^\p{L}\p{N}]+/gu;
++
+ export function flatCase(): "";
+ export function flatCase<T extends string | readonly string[]>(
+   str: T,
+ ): FlatCase<T>;
+ export function flatCase<T extends string | readonly string[]>(str?: T) {
+-  return kebabCase(str || "", "") as FlatCase<T>;
++  return (Array.isArray(str) ? str : splitByCase((str as string) || ""))
++    .join("")
++    .normalize("NFD")
++    .replace(FLAT_MARK_RE, "")
++    .replace(FLAT_NOISE_RE, "")
++    .toLowerCase() as FlatCase<T>;
+ }
+ 
+ export function trainCase(): "";

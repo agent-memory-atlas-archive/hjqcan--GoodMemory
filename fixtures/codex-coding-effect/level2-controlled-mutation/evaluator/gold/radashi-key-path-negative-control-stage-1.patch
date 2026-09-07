@@ -1,0 +1,82 @@
+diff --git a/src/object/keys.ts b/src/object/keys.ts
+index a5fbb153ae64a6a668dc90ddf689ca9065d8d96c..e975ea61d0f088f879a2bbeb2ef0d62de44b1325 100644
+--- a/src/object/keys.ts
++++ b/src/object/keys.ts
+@@ -1,7 +1,10 @@
+ import { isArray, isPlainObject } from 'radashi'
+ 
+ /**
+- * Get a string list of all key names that exist in an object (deep).
++ * Get a string list of all key names that exist in an object (deep),
++ * written under the key-path policy: dotted segments, bracketed
++ * array indexes, quoted bracketed keys for keys that contain a dot
++ * or a bracket, and empty containers below the root as leaves.
+  *
+  * @see https://radashi.js.org/reference/object/keys
+  * @example
+@@ -9,7 +12,7 @@ import { isArray, isPlainObject } from 'radashi'
+  * keys({ name: 'ra' }) // ['name']
+  *
+  * keys({ name: 'ra', children: [{ name: 'hathor' }] })
+- * // ['name', 'children.0.name']
++ * // ['name', 'children[0].name']
+  * ```
+  * @version 12.1.0
+  */
+@@ -17,25 +20,40 @@ export function keys(value: object): string[] {
+   if (!value) {
+     return []
+   }
+-  const keys: string[] = []
+-  const keyPath: (string | number)[] = []
+-  const recurse = (value: any) => {
+-    if (isPlainObject(value)) {
+-      for (const [prop, propValue] of Object.entries(value)) {
+-        keyPath.push(prop)
+-        recurse(propValue)
+-        keyPath.pop()
++  const paths: string[] = []
++  const recurse = (current: unknown, path: string) => {
++    if (isPlainObject(current)) {
++      const entries = Object.entries(current)
++      if (entries.length === 0) {
++        if (path) {
++          paths.push(path)
++        }
++        return
+       }
+-    } else if (isArray(value)) {
+-      value.forEach((item, index) => {
+-        keyPath.push(index)
+-        recurse(item)
+-        keyPath.pop()
++      for (const [prop, propValue] of entries) {
++        recurse(propValue, joinSegment(path, prop))
++      }
++    } else if (isArray(current)) {
++      if (current.length === 0) {
++        if (path) {
++          paths.push(path)
++        }
++        return
++      }
++      current.forEach((item, index) => {
++        recurse(item, `${path}[${index}]`)
+       })
+     } else {
+-      keys.push(keyPath.join('.'))
++      paths.push(path)
+     }
+   }
+-  recurse(value)
+-  return keys
++  recurse(value, '')
++  return paths
++}
++
++function joinSegment(path: string, prop: string): string {
++  if (/[.[\]]/.test(prop)) {
++    return `${path}["${prop.replace(/"/g, '\\"')}"]`
++  }
++  return path ? `${path}.${prop}` : prop
+ }

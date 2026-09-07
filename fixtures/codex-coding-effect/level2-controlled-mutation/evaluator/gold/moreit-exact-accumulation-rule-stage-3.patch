@@ -1,0 +1,48 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..435500b4da60d07da8fde1936a6e7d6dd971b714
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -2107,21 +2107,22 @@ def always_iterable(obj, base_type=(str, bytes)):
+         >>> list(always_iterable(None))
+         []
+ 
+-    By default, binary and text strings are not considered iterable::
++    By default, binary and text strings are not considered iterable, and an
++    empty string yields nothing::
+ 
+         >>> obj = 'foo'
+         >>> list(always_iterable(obj))
+         ['foo']
+ 
+-    If *base_type* is set, objects for which ``isinstance(obj, base_type)``
+-    returns ``True`` won't be considered iterable.
++    Mappings are always treated as a unit rather than iterated over::
+ 
+         >>> obj = {'a': 1}
+-        >>> list(always_iterable(obj))  # Iterate over the dict's keys
+-        ['a']
+-        >>> list(always_iterable(obj, base_type=dict))  # Treat dicts as a unit
++        >>> list(always_iterable(obj))
+         [{'a': 1}]
+ 
++    If *base_type* is set, objects for which ``isinstance(obj, base_type)``
++    returns ``True`` won't be considered iterable.
++
+     Set *base_type* to ``None`` to avoid any special handling and treat objects
+     Python considers iterable as iterable:
+ 
+@@ -2132,7 +2133,12 @@ def always_iterable(obj, base_type=(str, bytes)):
+     if obj is None:
+         return iter(())
+ 
++    if isinstance(obj, abc.Mapping):
++        return iter((obj,))
++
+     if (base_type is not None) and isinstance(obj, base_type):
++        if isinstance(obj, (str, bytes)) and not obj:
++            return iter(())
+         return iter((obj,))
+ 
+     try:

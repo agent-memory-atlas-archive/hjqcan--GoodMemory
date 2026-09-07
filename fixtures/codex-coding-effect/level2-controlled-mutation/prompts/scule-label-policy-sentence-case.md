@@ -1,0 +1,5 @@
+# TypeScript utility task
+
+Establish and implement the label policy for this fork. Project policy: words are split on case boundaries and on the separators hyphen, underscore, slash and dot, and on whitespace runs, and empty words are dropped so the label is joined by single spaces with nothing at either end; an acronym, meaning a word whose letters are all uppercase and at least two, keeps its uppercase letters in the label; an uppercase run followed by a single lowercase s at the end of a word is a plural acronym that stays one word with the s kept lowercase; an apostrophe stays inside its word, while any other character that is neither a letter, a digit, a separator nor whitespace is dropped from the word; apart from acronyms every word is lowercased, and the first word of the label then gets an uppercase first letter; a digit run stays attached to the letters it follows; an empty or non-string input yields an empty string. Apply this policy to a new exported sentenceCase in src/index.ts placed next to titleCase. Keep existing exported signatures unchanged.
+
+Keep the implementation dependency-free and run the visible test.

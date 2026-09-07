@@ -1,0 +1,24 @@
+diff --git a/more_itertools/recipes.py b/more_itertools/recipes.py
+index dacf61407d454907d661edde2d774bee11cec92a..725a2ff3436ce70839fa689a0507f9c52bef950b 100644
+--- a/more_itertools/recipes.py
++++ b/more_itertools/recipes.py
+@@ -129,7 +129,19 @@ def take(n, iterable):
+         >>> take(10, range(3))
+         [0, 1, 2]
+ 
++    A negative *n* returns the last ``-n`` items, and ``None`` returns every
++    item.
++
++        >>> take(-2, range(10))
++        [8, 9]
++
+     """
++    if n is None:
++        return list(iterable)
++    if not isinstance(n, int):
++        raise TypeError('n must be an integer or None')
++    if n < 0:
++        return list(deque(iterable, maxlen=-n))
+     return list(islice(iterable, n))
+ 
+ 

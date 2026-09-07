@@ -1,0 +1,37 @@
+diff --git a/src/array/unzip.ts b/src/array/unzip.ts
+index 33cac0e1e11f53dc0b207c2ac343d871afeaaa5e..51fd02cfe71806d119930d017978687ad4fb49cd 100644
+--- a/src/array/unzip.ts
++++ b/src/array/unzip.ts
+@@ -4,6 +4,10 @@
+  * The first array contains all first elements, the second array
+  * contains all second elements, and so on.
+  *
++ * Under the alignment policy the output stops at the length of the
++ * shortest input array, so incomplete groups are dropped, and a
++ * nullish input array counts as empty.
++ *
+  * @see https://radashi.js.org/reference/array/unzip
+  * @example
+  * ```ts
+@@ -16,13 +20,14 @@ export function unzip<T>(arrays: readonly (readonly T[])[]): T[][] {
+   if (!arrays || !arrays.length) {
+     return []
+   }
+-  const out = new Array(
+-    arrays.reduce((max, arr) => Math.max(max, arr.length), 0),
+-  )
+-  let index = 0
+-  const get = (array: T[]) => array[index]
+-  for (; index < out.length; index++) {
+-    out[index] = Array.from(arrays as { length: number }, get)
++  const lists = arrays.map(list => list ?? [])
++  let width = Number.POSITIVE_INFINITY
++  for (const list of lists) {
++    width = Math.min(width, list.length)
++  }
++  const out: T[][] = []
++  for (let index = 0; index < width; index++) {
++    out.push(lists.map(list => list[index]))
+   }
+   return out
+ }

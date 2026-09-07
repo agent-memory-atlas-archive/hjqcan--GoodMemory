@@ -1,0 +1,2 @@
+{"payload":{"content":[{"text":"Query serialization in this fork needs a house policy. Set it in the first task; I will review the array rule and may change it before it is applied elsewhere.","type":"input_text"}],"role":"user","type":"message"},"type":"response_item"}
+{"payload":{"content":[{"text":"Recorded that the query-serialization policy is established first and that its array rule is subject to review before later query helpers apply it.","type":"output_text"}],"role":"assistant","type":"message"},"type":"response_item"}

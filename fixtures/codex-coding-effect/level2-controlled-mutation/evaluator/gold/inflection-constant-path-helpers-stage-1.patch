@@ -1,0 +1,27 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..9c1cfc3570db79e024983db2d92fb6d7205ccaf4 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -183,6 +183,22 @@ def dasherize(word: str) -> str:
+     return word.replace('_', '-')
+ 
+ 
++
++def demodulize(path: str) -> str:
++    """
++    Remove the module part from a constant path.
++
++    Examples::
++
++        >>> demodulize("Widgets::Frobnicator")
++        'Frobnicator'
++        >>> demodulize("Frobnicator")
++        'Frobnicator'
++
++    """
++    return path.rsplit('::', 1)[-1]
++
++
+ def humanize(word: str) -> str:
+     """
+     Capitalize the first word and turn underscores into spaces and strip a

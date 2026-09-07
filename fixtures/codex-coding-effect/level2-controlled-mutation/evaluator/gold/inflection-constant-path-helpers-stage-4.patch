@@ -1,0 +1,28 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..bd16cba83866c564ef6dbf4365c9b5a336533b28 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -171,6 +171,23 @@ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+         return string[0].lower() + camelize(string)[1:]
+ 
+ 
++
++def classify(table_name: str) -> str:
++    """
++    Create a class name from a plural table name like Rails does for table
++    names to models.
++
++    Examples::
++
++        >>> classify("frobnicators")
++        'Frobnicator'
++        >>> classify("shop.gear_boxes")
++        'GearBox'
++
++    """
++    return camelize(singularize(table_name.rsplit('.', 1)[-1]))
++
++
+ def dasherize(word: str) -> str:
+     """Replace underscores with dashes in the string.
+ 

@@ -1,0 +1,11 @@
+{
+  "author": "GoodMemory Level-2 dataset author",
+  "authorTaskName": "/root",
+  "authoredBeforePairedExecution": true,
+  "c4PairedOutcomesInspectedBeforeFreeze": false,
+  "c5PairedOutcomesInspectedBeforeFreeze": false,
+  "datasetId": "codex-level2-controlled-mutation-v1",
+  "frozenAt": "2026-09-03T13:11:05Z",
+  "schemaVersion": 3,
+  "scope": "level2-summary-window-design-no-paired-outcomes"
+}

@@ -171,7 +171,58 @@ describe("Codex coding-effect C5 reporting", () => {
       runId: "c5-incomplete-fixture",
     })).toThrow("C5 report does not account for every scheduled stage run");
   });
+
+  it("derives Level-2 stage counts from the frozen plan instead of the C4 constant", async () => {
+    const plan = await level2PilotPlan();
+    const report = buildC5PilotReport({
+      generatedAt: "2026-09-04T00:00:00.000Z",
+      plan,
+      planSha256: SHA,
+      result: pilotResult(plan, () => "rescue"),
+      runId: "c5-report-level2-fixture",
+    });
+
+    expect(plan.clusters).toHaveLength(90);
+    expect(report.attempts).toMatchObject({
+      accountedCount: 720,
+      scheduledCount: 720,
+    });
+    expect(report.pairs).toMatchObject({
+      comparableCount: 360,
+      scheduledCount: 360,
+    });
+    expect(report.powerAnalysis).toMatchObject({
+      seeds: 3,
+      stagesPerEpisode: 4,
+    });
+    const required = report.powerAnalysis.requiredEpisodes;
+    expect(required).toBeGreaterThanOrEqual(30);
+    expect(report.fullSetBudget).toEqual({
+      arms: 2,
+      codexCalls: required * 4 * 2 * 3,
+      episodes: required,
+      repositories: 6,
+      scoredStages: required * 4,
+      seeds: 3,
+    });
+  });
 });
+
+async function level2PilotPlan() {
+  const loaded = await loadCodexCodingEffectDataset(
+    "fixtures/codex-coding-effect/level2-controlled-mutation",
+  );
+  return buildC5PilotPlan({
+    assetLockSha256: SHA,
+    assetRootSha256: SHA,
+    baselineCeilingReportSha256: SHA,
+    c4ReadinessReportSha256: SHA,
+    dataset: loaded.dataset,
+    manifestSha256: SHA,
+    materialEffectPercentagePoints: 10,
+    orderSeed: 73,
+  });
+}
 
 async function pilotPlan() {
   const loaded = await loadCodexCodingEffectDataset(

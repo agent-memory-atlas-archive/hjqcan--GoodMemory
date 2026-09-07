@@ -1,0 +1,41 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..2135d0359d55fcacf7041c2031c9b1289b80f90d
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -115,6 +115,7 @@ __all__ = [
+     'last',
+     'locate',
+     'longest_common_prefix',
++    'longest_common_suffix',
+     'lstrip',
+     'make_decorator',
+     'map_except',
+@@ -2541,6 +2542,26 @@ def longest_common_prefix(iterables):
+     return (c[0] for c in takewhile(all_equal, zip(*iterables)))
+ 
+ 
++def longest_common_suffix(iterables):
++    """Yield elements of the longest common suffix among given *iterables*.
++
++    >>> ''.join(longest_common_suffix(['xbcd', 'abcd', 'bcd']))
++    'bcd'
++
++    """
++    sequences = [list(iterable) for iterable in iterables]
++    if not sequences:
++        return
++    first = sequences[0]
++    shortest = min(len(sequence) for sequence in sequences)
++    length = 0
++    while length < shortest and all(
++        sequence[-1 - length] == first[-1 - length] for sequence in sequences[1:]
++    ):
++        length += 1
++    yield from first[len(first) - length :]
++
++
+ def lstrip(iterable, pred):
+     """Yield the items from *iterable*, but strip any from the beginning
+     for which *pred* returns ``True``.

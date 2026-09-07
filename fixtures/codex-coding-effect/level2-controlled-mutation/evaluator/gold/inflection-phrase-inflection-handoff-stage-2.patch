@@ -1,0 +1,29 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..c6111d692b710b49488b5640c181d9d12534a1dc 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -144,6 +144,7 @@ def _irregular(singular: str, plural: str) -> None:
+         ))
+ 
+ 
++
+ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+     """
+     Convert strings to CamelCase.
+@@ -165,10 +166,13 @@ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+         strings to UpperCamelCase. If set to `False` :func:`camelize` produces
+         lowerCamelCase. Defaults to `True`.
+     """
++    words = [part for part in re.split(r"[-_ .]+", string) if part]
++    if not words:
++        return ''
++    rest = ''.join(part[0].upper() + part[1:] for part in words[1:])
+     if uppercase_first_letter:
+-        return re.sub(r"(?:^|_)(.)", lambda m: m.group(1).upper(), string)
+-    else:
+-        return string[0].lower() + camelize(string)[1:]
++        return words[0][0].upper() + words[0][1:] + rest
++    return words[0].lower() + rest
+ 
+ 
+ def dasherize(word: str) -> str:

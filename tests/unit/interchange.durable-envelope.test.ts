@@ -50,6 +50,20 @@ async function realEnvelope() {
 }
 
 describe("durable envelope validation", () => {
+  it("enforces note byte limits and valid occurrence intervals on durable input", async () => {
+    const envelope = await realEnvelope();
+    const note = envelope.notes![0]!;
+    expect(describeInvalidDurable({ ...envelope, notes: [{ ...note, body: "a".repeat(8192) }] })).toBeNull();
+    expect(describeInvalidDurable({ ...envelope, notes: [{ ...note, body: "a".repeat(8193) }] })).toMatch(/^notes\[0\]\.body:/);
+    expect(describeInvalidDurable({ ...envelope, notes: [{ ...note, body: "字".repeat(3000) }] })).toMatch(/^notes\[0\]\.body:/);
+    const occurrence = { start: NOW, endExclusive: "2026-09-03T00:00:00.000Z", precision: "day", timezone: "UTC" };
+    const withOccurrence = (patch: Record<string, unknown>) => ({ ...envelope, facts: [{ ...envelope.facts[0], occurrence: { ...occurrence, ...patch } }] });
+    expect(describeInvalidDurable(withOccurrence({}))).toBeNull();
+    expect(describeInvalidDurable(withOccurrence({ start: "yesterday" }))).toMatch(/^facts\[0\]\.occurrence/);
+    expect(describeInvalidDurable(withOccurrence({ endExclusive: NOW }))).toMatch(/^facts\[0\]\.occurrence/);
+    expect(describeInvalidDurable(withOccurrence({ timezone: "not-a-zone" }))).toMatch(/^facts\[0\]\.occurrence/);
+  });
+
   it("accepts a real export envelope and tolerates unknown extra fields", async () => {
     const envelope = await realEnvelope();
     expect(envelope.facts.length).toBeGreaterThan(0);

@@ -1,7 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import { mkdtempSync, existsSync, rmSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
-import { basename, dirname, join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
+import { resolveWorkspaceId } from "../../src/host/managedFiles";
 import { DEFAULT_INSTALLED_HOST_WRITEBACK } from "../../src/install/hostConfigValidation";
 import {
   ensureStandaloneStorageReady,
@@ -341,7 +342,7 @@ describe("resolveStandaloneMcpContext", () => {
       sessionId: undefined,
       tenantId: undefined,
       userId: "u-1",
-      workspaceId: basename(resolve("/tmp/project-a")),
+      workspaceId: resolveWorkspaceId("/tmp/project-a", undefined),
     });
   });
 
@@ -389,7 +390,7 @@ describe("resolveStandaloneMcpContext", () => {
   it("defaults workspaceRoot to the current directory", () => {
     const context = resolveStandaloneMcpContext(baseConfig);
     expect(context.workspaceRoot).toBe(resolve("."));
-    expect(context.scope.workspaceId).toBe(basename(resolve(".")));
+    expect(context.scope.workspaceId).toBe(resolveWorkspaceId(".", undefined));
   });
 });
 

@@ -1,0 +1,19 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..30917749944fa2f578634447d12b7bac5c2b393b 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -755,7 +755,13 @@ export function withFragment(input: string, hash: string): string {
+  * @group utils
+  */
+ export function withoutFragment(input: string): string {
+-  return stringifyParsedURL({ ...parseURL(input), hash: "" });
++  const trimmed = (input || "").trim();
++  const hashIndex = trimmed.indexOf("#");
++  let result = hashIndex === -1 ? trimmed : trimmed.slice(0, hashIndex);
++  if (result.endsWith("?")) {
++    result = result.slice(0, -1);
++  }
++  return result || "/";
+ }
+ 
+ /**

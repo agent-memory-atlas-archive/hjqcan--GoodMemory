@@ -1,0 +1,31 @@
+diff --git a/src/number/lerp.ts b/src/number/lerp.ts
+index 36ba29f6183432747e55ab344ff272e42a4643c5..1922288d821a6721c0053e22a44d3d1a404a882a 100644
+--- a/src/number/lerp.ts
++++ b/src/number/lerp.ts
+@@ -1,5 +1,7 @@
+ /**
+- * Linearly interpolates between two numbers.
++ * Linearly interpolates between two numbers. The amount is clamped
++ * to the unit interval, a non-numeric amount yields the start value,
++ * and the endpoints are returned exactly at the ends of the interval.
+  *
+  * @see https://radashi.js.org/reference/number/lerp
+  * @example
+@@ -11,5 +13,16 @@
+  * @version 12.2.0
+  */
+ export function lerp(from: number, to: number, amount: number): number {
+-  return from + (to - from) * amount
++  if (from === to) {
++    return from
++  }
++  const ratio =
++    amount == null ? 0 : typeof amount === 'number' ? amount : Number.NaN
++  if (Number.isNaN(ratio) || ratio <= 0) {
++    return from
++  }
++  if (ratio >= 1) {
++    return to
++  }
++  return from + (to - from) * ratio
+ }

@@ -1,0 +1,68 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..ace62d9585da6d5fd852d62ef4f7ec7b2e0958ba 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -169,6 +169,44 @@ export function trainCase<
+     .join("-") as TrainCase<T, UserCaseOptions["normalize"]>;
+ }
+ 
++const LABEL_SEPARATOR_RE = /[-_/.\s]+/u;
++const LABEL_NOISE_RE = /[^\p{L}\p{N}']/gu;
++const LABEL_UPPER_RE = /^\p{Lu}+$/u;
++const LABEL_PLURAL_TAIL_RE = /^\p{Lu}s$/u;
++
++function splitLabelWords(str: string | readonly string[]): string[] {
++  const chunks = Array.isArray(str)
++    ? [...str]
++    : typeof str === "string"
++      ? str.split(LABEL_SEPARATOR_RE)
++      : [];
++  const words: string[] = [];
++  for (const chunk of chunks) {
++    const cleaned = chunk.replace(LABEL_NOISE_RE, "");
++    if (!cleaned) {
++      continue;
++    }
++    const merged: string[] = [];
++    for (const part of splitByCase(cleaned, [])) {
++      if (!part) {
++        continue;
++      }
++      const previous = merged.at(-1);
++      if (
++        previous !== undefined &&
++        LABEL_UPPER_RE.test(previous) &&
++        LABEL_PLURAL_TAIL_RE.test(part)
++      ) {
++        merged[merged.length - 1] = previous + part;
++      } else {
++        merged.push(part);
++      }
++    }
++    words.push(...merged);
++  }
++  return words;
++}
++
+ const titleCaseExceptions =
+   /^(a|an|and|as|at|but|by|for|if|in|is|nor|of|on|or|the|to|with)$/i;
+ 
+@@ -184,12 +222,12 @@ export function titleCase<
+   T extends string | readonly string[],
+   UserCaseOptions extends CaseOptions = CaseOptions,
+ >(str?: T, opts?: UserCaseOptions) {
+-  return (Array.isArray(str) ? str : splitByCase(str as string))
+-    .filter(Boolean)
+-    .map((p) =>
+-      titleCaseExceptions.test(p)
+-        ? p.toLowerCase()
+-        : upperFirst(opts?.normalize ? p.toLowerCase() : p),
++  void opts;
++  return splitLabelWords(str ?? "")
++    .map((word) =>
++      titleCaseExceptions.test(word)
++        ? word.toLowerCase()
++        : upperFirst(word.toLowerCase()),
+     )
+     .join(" ") as TrainCase<T, UserCaseOptions["normalize"]>;
+ }

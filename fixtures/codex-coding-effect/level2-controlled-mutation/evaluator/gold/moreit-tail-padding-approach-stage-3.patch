@@ -1,0 +1,38 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..b61ba83b44ae6f3817ea304710497411d117c742
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -2537,8 +2537,30 @@ def longest_common_prefix(iterables):
+     >>> ''.join(longest_common_prefix(['abcd', 'abc', 'abf']))
+     'ab'
+ 
++    Text items compare case-insensitively and keep the spelling of the first
++    iterable. A ``None`` item, or a boolean paired with an integer, ends the
++    prefix.
+     """
+-    return (c[0] for c in takewhile(all_equal, zip(*iterables)))
++    iterators = [iter(iterable) for iterable in iterables]
++    if not iterators:
++        return
++    for items in zip(*iterators):
++        first = items[0]
++        if first is None:
++            return
++        if not all(_prefix_items_match(first, item) for item in items[1:]):
++            return
++        yield first
++
++
++def _prefix_items_match(left, right):
++    if left is None or right is None:
++        return False
++    if isinstance(left, bool) != isinstance(right, bool):
++        return False
++    if isinstance(left, str) and isinstance(right, str):
++        return left.casefold() == right.casefold()
++    return left == right
+ 
+ 
+ def lstrip(iterable, pred):

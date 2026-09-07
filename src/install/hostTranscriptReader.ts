@@ -47,6 +47,15 @@ export interface ReadTranscriptDeltaInput {
 // session files; the writeback config re-bounds messages/chars downstream.
 const DEFAULT_MAX_BYTES = 262_144;
 const DEFAULT_MAX_MESSAGES = 48;
+// When a single-shot session (e.g. a long autonomous Codex run whose Stop
+// hook fires once over the whole transcript) grows past the tail window, the
+// window drops the head, which is where the session's opening instruction and
+// declared policy live. Recover the leading user turns from a bounded head
+// slice so writeback never silently loses the task/policy it must capture.
+// Only user turns are recovered: assistant output is policy-gated downstream,
+// and the durable signal in a coding session is the human-authored instruction.
+const HEAD_RECOVERY_MAX_BYTES = 65_536;
+const HEAD_RECOVERY_MAX_MESSAGES = 3;
 // Defensive per-message clamp; MAX_WRITEBACK_MESSAGE_CHARS re-clamps later.
 const MAX_MESSAGE_CHARS = 4_000;
 // Host-injected wrappers that are not user-authored conversation.
@@ -182,12 +191,80 @@ async function readTranscriptDeltaWithParser(
     }
   }
 
+  // Fresh read whose head fell outside the tail window: recover the opening
+  // user turns so the session's declared instruction/policy is not lost. Resume
+  // reads (cursor advanced past the head) already processed the head earlier.
+  const startedFresh = cursor === undefined || cursor === 0;
+  const withHead = truncatedHead && startedFresh
+    ? await prependLeadingUserMessages(
+        input.transcriptPath,
+        Math.min(HEAD_RECOVERY_MAX_BYTES, start),
+        parseLine,
+        messages,
+      )
+    : messages;
+
   return {
-    messages,
+    messages: withHead,
     nextOffset: consumedEnd,
     status: "ok",
     truncatedHead,
   };
+}
+
+// Read a bounded slice from offset 0 and return the windowed messages with the
+// first few head user turns prepended (deduped by content). Never throws: a
+// failed head read simply yields the original window.
+async function prependLeadingUserMessages(
+  transcriptPath: string,
+  headBytes: number,
+  parseLine: (line: string) => HostTranscriptMessage | null,
+  windowMessages: readonly HostTranscriptMessage[],
+): Promise<HostTranscriptMessage[]> {
+  if (headBytes <= 0) {
+    return [...windowMessages];
+  }
+  let headBuffer: Buffer;
+  try {
+    const handle = await open(transcriptPath, "r");
+    try {
+      headBuffer = Buffer.alloc(headBytes);
+      await handle.read(headBuffer, 0, headBytes, 0);
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return [...windowMessages];
+  }
+  const seen = new Set(windowMessages.map((message) => message.content));
+  const headUsers: HostTranscriptMessage[] = [];
+  let scan = 0;
+  while (
+    scan < headBuffer.length &&
+    headUsers.length < HEAD_RECOVERY_MAX_MESSAGES
+  ) {
+    const lineFeed = headBuffer.indexOf(LINE_FEED, scan);
+    if (lineFeed === -1) {
+      // The last line may be truncated by the head-byte bound; stop rather
+      // than parse a partial line.
+      break;
+    }
+    const line = headBuffer.subarray(scan, lineFeed).toString("utf8");
+    scan = lineFeed + 1;
+    let message: HostTranscriptMessage | null;
+    try {
+      message = parseLine(line);
+    } catch {
+      // Head slice is best-effort context; ignore format drift here (the
+      // windowed read is the authority for drift reporting).
+      continue;
+    }
+    if (message && message.role === "user" && !seen.has(message.content)) {
+      headUsers.push(message);
+      seen.add(message.content);
+    }
+  }
+  return [...headUsers, ...windowMessages];
 }
 
 function parseTranscriptLine(line: string): HostTranscriptMessage | null {

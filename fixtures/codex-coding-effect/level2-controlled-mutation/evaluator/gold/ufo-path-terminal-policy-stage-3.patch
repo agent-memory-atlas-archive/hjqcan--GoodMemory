@@ -1,0 +1,19 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..a112117429b094c229b92439199840b3ede6da96 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -734,11 +734,10 @@ export function isEqual(a: string, b: string, options: CompareURLOptions = {}) {
+  * @group utils
+  */
+ export function withFragment(input: string, hash: string): string {
+-  if (!hash || hash === "#") {
+-    return input;
+-  }
++  const trimmed = (hash ?? "").trim();
++  const text = trimmed.startsWith("#") ? trimmed.slice(1) : trimmed;
+   const parsed = parseURL(input);
+-  parsed.hash = hash === "" ? "" : "#" + encodeHash(hash);
++  parsed.hash = text ? "#" + text : "";
+   return stringifyParsedURL(parsed);
+ }
+ 

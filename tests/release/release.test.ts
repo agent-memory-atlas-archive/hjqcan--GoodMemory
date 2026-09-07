@@ -43,6 +43,9 @@ function extractMarkedSection(markdown: string, marker: string): string {
 let cachedReleaseTarball:
   | Promise<{ contents: Uint8Array; tarballName: string }>
   | undefined;
+// These consumer tests resolve dependencies from a fresh private cache. Allow
+// for cold registry setup as well as the unchanged package/runtime assertions.
+const COLD_INSTALL_CONSUMER_TIMEOUT_MS = 180_000;
 const RELEASE_TEST_ENV = {
   GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY: undefined,
   GOODMEMORY_ASSISTED_EXTRACTOR_BASE_URL: undefined,
@@ -813,6 +816,7 @@ describe("release metadata and docs", () => {
       "docs/README.md",
       "docs/GoodMemory-15-Minute-App-Integration.md",
       "docs/GoodMemory-0.6-to-0.7-Migration-Guide.md",
+      "docs/GoodMemory-0.7-to-0.8-Migration-Guide.md",
       "docs/GoodMemory-Claude-Code-Setup-Guide.md",
       "docs/GoodMemory-Codex-Handoff-Setup-Guide.md",
       "docs/GoodMemory-Cursor-Setup-Guide.md",
@@ -833,6 +837,7 @@ describe("release metadata and docs", () => {
       "docs/GoodMemory-记忆数据分层设计.md",
       "llms.txt",
       "package.json",
+      "reports/quality-gates/phase-75/default-enablement-20260905.md",
       "scripts/goodmemory-cli.js",
       "scripts/goodmemory-http-bridge.js",
       "scripts/goodmemory-mcp.js",
@@ -1063,6 +1068,8 @@ describe("release metadata and docs", () => {
       expect(entries).toContain("package/docs/GoodMemory-LanguagePack-Extension-Guide.md");
       expect(entries).toContain("package/docs/GoodMemory-Memory-Artifact-and-Interchange-Spec.md");
       expect(entries).toContain("package/docs/GoodMemory-0.6-to-0.7-Migration-Guide.md");
+      expect(entries).toContain("package/docs/GoodMemory-0.7-to-0.8-Migration-Guide.md");
+      expect(entries).toContain("package/reports/quality-gates/phase-75/default-enablement-20260905.md");
       expect(entries).toContain("package/docs/GoodMemory-Reference-Integration-Guide.md");
       expect(entries).toContain("package/docs/GoodMemory-Codex-Handoff-Setup-Guide.md");
       expect(entries).toContain("package/docs/GoodMemory-Claude-Code-Setup-Guide.md");
@@ -1733,7 +1740,7 @@ describe("release metadata and docs", () => {
       await rm(packOutputDir, { recursive: true, force: true });
       await rm(workspaceRoot, { recursive: true, force: true });
     }
-  }, 60_000);
+  }, COLD_INSTALL_CONSUMER_TIMEOUT_MS);
 
   it("installed-package Python bridge smoke covers goodmemory-http-bridge bin and Python consumer", async () => {
     const workspaceRoot = await mkdtemp(
@@ -1846,7 +1853,7 @@ describe("release metadata and docs", () => {
     expect(serverStdout).toContain('"auth":"bearer"');
     expect(serverStderr).not.toContain("Cannot find module");
     expect(serverStderr).not.toContain("ERR_MODULE_NOT_FOUND");
-  }, 30_000);
+  }, COLD_INSTALL_CONSUMER_TIMEOUT_MS);
 
   it("current top-level docs use the package-bin memory-first CLI contract", async () => {
     const readme = await readFile(join(import.meta.dir, "../../README.md"), "utf8");
@@ -2139,7 +2146,7 @@ describe("release metadata and docs", () => {
       await rm(packOutputDir, { recursive: true, force: true });
       await rm(workspaceRoot, { recursive: true, force: true });
     }
-  }, 60_000);
+  }, COLD_INSTALL_CONSUMER_TIMEOUT_MS);
 
   it("package-boundary bootstrap consumer smoke scaffolds and exports Codex and Claude artifacts", async () => {
     const fixtureRoot = join(
@@ -2385,7 +2392,7 @@ describe("release metadata and docs", () => {
       await rm(packOutputDir, { recursive: true, force: true });
       await rm(workspaceRoot, { recursive: true, force: true });
     }
-  }, 30_000);
+  }, COLD_INSTALL_CONSUMER_TIMEOUT_MS);
 
   it("installed-package write CLI smoke covers write -> hook recall -> MCP deep read", async () => {
     const fixtureRoot = join(
@@ -2645,7 +2652,7 @@ describe("release metadata and docs", () => {
       await rm(homeRoot, { recursive: true, force: true });
       await rm(workspaceRoot, { recursive: true, force: true });
     }
-  }, 30_000);
+  }, COLD_INSTALL_CONSUMER_TIMEOUT_MS);
 
   it("release checklist exists and covers the final gate", async () => {
     const checklist = await readFile(
@@ -3767,7 +3774,7 @@ describe("release metadata and docs", () => {
     }
   });
 
-  it("uploads only the prepared tarball, manifest, and evidence archive", async () => {
+  it("uploads only manifest-bound release artifacts, including the optional plugin ZIP", async () => {
     const workflow = await readFile(
       join(import.meta.dir, "../../.github/workflows/release.yml"),
       "utf8",
@@ -3781,6 +3788,7 @@ describe("release metadata and docs", () => {
       "${{ steps.prepare.outputs.artifact_path }}",
       "${{ steps.prepare.outputs.manifest_path }}",
       "${{ steps.prepare.outputs.archive_path }}",
+      "${{ steps.prepare.outputs.plugin_archive_path }}",
     ];
 
     expect(uploadIndex).toBeGreaterThan(-1);

@@ -4,9 +4,11 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 
 ## Current OSS Surface
 
-- The current source identity is the stable `goodmemory@0.7.5` release source
-  (`goodmemoryRelease.status=stable`, dist-tag intent `latest`). The published
-  installation baseline is `goodmemory@0.7.5`.
+- The published installation baseline and current package metadata remain
+  `goodmemory@0.7.5` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`).
+  Current `main` also contains unpublished v0.8 development; it is not identical
+  to the released 0.7.5 source and is not a publishable v0.8 candidate. Follow
+  `plans/GoodMemory-v0.8-Unpublished-Development-Plan.md` for its remaining gates.
 - The frozen published baseline is `goodmemory@0.7.4`, commit
   `05d39fcfb8bb6efe6b8065ec3ea8372c15b9c1b8`, tree
   `4f902b215c60f5bb6543e9b7c3ce501895b45725`. The tracked
@@ -321,8 +323,10 @@ cutover, and rollback contracts.
   `reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/`: on 34
   comparable pairs both arms resolve 0.941 with 0 rescues and 0 regressions,
   so the pre-registered +3.0-point memory-policy rule is not met and the
-  internal track is closed with a documented negative; the Level-2 set is
-  deferred and no public claim is authorized.
+  internal track is closed with a documented negative and no public claim is
+  authorized. The Level-2 set was resumed on 2026-09-03 by maintainer decision
+  under a pre-registered summary-window design (plan section 0.3), after a
+  reproduced prompt-budget recall defect in the installed profile was fixed.
   C6 has a deterministic preflight/checkpoint implementation, but its candidate
   manifest is not frozen and there is no finalized candidate dataset,
   packaged-Linux host profile, flat-summary corpus, Linux execution, or C6

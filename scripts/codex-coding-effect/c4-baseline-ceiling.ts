@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { validateC4ControlledPilotDataset } from "./c4-contracts";
+import { resolveControlledDatasetProfile } from "./controlled-dataset-profile";
 import {
   c4RepositoryIdForUrl,
   materializeC4SourceRepository,
@@ -15,9 +16,9 @@ import type {
 
 export interface C4BaselineCeilingTarget {
   episodeId: string;
-  position: 2 | 3;
+  position: number;
   stageInputSha256: string;
-  stageId: "stage-2" | "stage-3";
+  stageId: string;
 }
 
 export interface C4BaselineStageResult {
@@ -31,7 +32,7 @@ export interface C4BaselineStageResult {
   patchSha256: string | null;
   resolved: boolean;
   stageEvidenceSha256: string;
-  stageId: "stage-2" | "stage-3";
+  stageId: string;
   stageInputSha256: string;
   taskFailureReasons: string[];
   threadId: string | null;
@@ -41,9 +42,9 @@ export interface C4BaselineCeilingRound {
   attemptedCount: number;
   ceilingThreshold: number;
   infrastructureFailureCount: number;
-  position: 2 | 3;
+  position: number;
   resolvedCount: number;
-  stageId: "stage-2" | "stage-3";
+  stageId: string;
 }
 
 export interface C4BaselineCeilingReport {
@@ -75,14 +76,110 @@ export interface C4BaselineCeilingReport {
   schemaVersion: 2;
   stageEvidenceAggregateSha256: string;
   stageTimeoutMs: number;
-  strategy: {
-    earlyCeilingThreshold: 5;
-    finalCeilingThreshold: 10;
-    firstRound: "stage-3-all-episodes";
-    secondRound: "stage-2-all-episodes-if-needed";
-    stage1Excluded: true;
-  };
+  strategy: C4BaselineCeilingStrategy;
   testTimeoutMs: number;
+}
+
+export interface C4BaselineCeilingStrategy {
+  earlyCeilingThreshold: number;
+  finalCeilingThreshold: number;
+  firstRound: string;
+  laterRounds?: string;
+  secondRound: string;
+  stage1Excluded: true;
+}
+
+export interface C4BaselineCeilingRoundPlan {
+  position: number;
+  stageId: string;
+  targetCount: number;
+  threshold: number;
+}
+
+// The adaptive ceiling plan: rounds run from the highest position down; a
+// round stops the pilot when the cumulative resolved count reaches five
+// sixths of the cumulative targets (the C4 thresholds 5 of 6 and 10 of 12).
+export interface C4BaselineCeilingPlan {
+  rounds: C4BaselineCeilingRoundPlan[];
+  runIdentityStrategy: string;
+  strategy: C4BaselineCeilingStrategy;
+  targets: C4BaselineCeilingTarget[];
+}
+
+export type C4BaselineTargetLabel = "all-episodes" | "required-stages";
+
+// Which later stages the no-memory ceiling pilot attempts: every later stage
+// for uniform profiles (C4), only memory-required later stages for
+// declared-per-stage profiles (Level-2), whose intervening stages are
+// designed to be solvable without memory.
+export function c4BaselineTargetLabel(datasetId: string): C4BaselineTargetLabel {
+  return resolveControlledDatasetProfile(datasetId).laterStagePolicy ===
+      "declared-per-stage"
+    ? "required-stages"
+    : "all-episodes";
+}
+
+export function c4BaselineStageIsTarget(
+  datasetId: string,
+  stage: { memoryExpectation: { mode: string } | string; position: number },
+): boolean {
+  if (stage.position < 2) {
+    return false;
+  }
+  if (c4BaselineTargetLabel(datasetId) === "all-episodes") {
+    return true;
+  }
+  const mode = typeof stage.memoryExpectation === "string"
+    ? stage.memoryExpectation
+    : stage.memoryExpectation.mode;
+  return mode === "required";
+}
+
+export function buildC4BaselineCeilingPlan(
+  targets: readonly C4BaselineCeilingTarget[],
+  options: { targetLabel: C4BaselineTargetLabel },
+): C4BaselineCeilingPlan {
+  const validated = validateTargets(targets);
+  const positions = [...new Set(validated.map((target) => target.position))]
+    .sort((left, right) => right - left);
+  let cumulative = 0;
+  const rounds = positions.map((position): C4BaselineCeilingRoundPlan => {
+    const targetCount = validated.filter((target) =>
+      target.position === position
+    ).length;
+    cumulative += targetCount;
+    return {
+      position,
+      stageId: `stage-${position}`,
+      targetCount,
+      threshold: Math.ceil((cumulative * 5) / 6),
+    };
+  });
+  const first = rounds[0]!;
+  const last = rounds[rounds.length - 1]!;
+  const label = options.targetLabel;
+  const strategy: C4BaselineCeilingStrategy = {
+    earlyCeilingThreshold: first.threshold,
+    finalCeilingThreshold: last.threshold,
+    firstRound: `stage-${first.position}-${label}`,
+    ...(rounds.length > 2
+      ? {
+          laterRounds: rounds.slice(2)
+            .map((round) => `stage-${round.position}-${label}-if-needed`)
+            .join(","),
+        }
+      : {}),
+    secondRound: rounds[1] === undefined
+      ? "none"
+      : `stage-${rounds[1].position}-${label}-if-needed`,
+    stage1Excluded: true,
+  };
+  const runIdentityStrategy =
+    label === "all-episodes" && positions.length === 2 &&
+      positions[0] === 3 && positions[1] === 2
+      ? "stage-3-first-then-stage-2-if-needed"
+      : `stage-${first.position}-${label}-first-then-descending-if-needed`;
+  return { rounds, runIdentityStrategy, strategy, targets: validated };
 }
 
 export interface C4BaselineRunIdentity {
@@ -103,7 +200,7 @@ export interface C4BaselineRunIdentity {
   runId: string;
   schemaVersion: 2;
   stageTimeoutMs: number;
-  strategy: "stage-3-first-then-stage-2-if-needed";
+  strategy: string;
   testTimeoutMs: number;
 }
 
@@ -121,7 +218,7 @@ export interface C4BaselineFrozenStageBinding {
   promptSha256: string;
   repositoryCommit: string;
   repositoryTree: string;
-  stageId: "stage-2" | "stage-3";
+  stageId: string;
 }
 
 export async function buildC4BaselineFrozenStageBindings(input: {
@@ -139,9 +236,10 @@ export async function buildC4BaselineFrozenStageBindings(input: {
       ))),
     })),
   );
-  return Promise.all(validateC4ControlledPilotDataset(input.dataset).episodes
+  const validatedDataset = validateC4ControlledPilotDataset(input.dataset);
+  return Promise.all(validatedDataset.episodes
     .flatMap((episode) => episode.stages
-      .filter((stage) => stage.position === 2 || stage.position === 3)
+      .filter((stage) => c4BaselineStageIsTarget(validatedDataset.datasetId, stage))
       .map(async (stage): Promise<C4BaselineFrozenStageBinding> => {
         const repository = input.repositories.get(episode.repository.url);
         if (repository === undefined) {
@@ -160,7 +258,7 @@ export async function buildC4BaselineFrozenStageBindings(input: {
           promptSha256: sha256(prompt),
           repositoryCommit: repository.commit,
           repositoryTree: repository.tree,
-          stageId: stage.id as "stage-2" | "stage-3",
+          stageId: stage.id,
         };
       })));
 }
@@ -193,14 +291,15 @@ export async function reconstructC4BaselineFrozenStageBindings(input: {
 export function buildC4BaselineCeilingTargets(
   dataset: CodexCodingEffectDataset,
 ): C4BaselineCeilingTarget[] {
-  return validateC4ControlledPilotDataset(dataset).episodes.flatMap((episode) =>
+  const validated = validateC4ControlledPilotDataset(dataset);
+  return validated.episodes.flatMap((episode) =>
     episode.stages
-      .filter((stage) => stage.position === 2 || stage.position === 3)
+      .filter((stage) => c4BaselineStageIsTarget(validated.datasetId, stage))
       .map((stage) => ({
         episodeId: episode.id,
-        position: stage.position as 2 | 3,
+        position: stage.position,
         stageInputSha256: c4BaselineStageInputSha256(episode, stage),
-        stageId: stage.id as "stage-2" | "stage-3",
+        stageId: stage.id,
       }))
   );
 }
@@ -241,36 +340,46 @@ export async function runC4AdaptiveBaselineCeiling(input: {
     target: C4BaselineCeilingTarget,
   ) => Promise<C4BaselineStageResult>;
   runIdentity: C4BaselineRunIdentity;
+  targetLabel?: C4BaselineTargetLabel;
   targets: readonly C4BaselineCeilingTarget[];
 }): Promise<C4BaselineCeilingReport> {
-  const targets = validateTargets(input.targets);
+  const plan = buildC4BaselineCeilingPlan(input.targets, {
+    targetLabel: input.targetLabel ?? "all-episodes",
+  });
+  if (input.runIdentity.strategy !== plan.runIdentityStrategy) {
+    throw new Error("C4 baseline run identity strategy does not match its plan");
+  }
+  const targets = plan.targets;
   const runIdentityBytes = serializeC4BaselineRunIdentity(input.runIdentity);
   const results: C4BaselineStageResult[] = [];
   const rounds: C4BaselineCeilingRound[] = [];
+  let stoppedEarly = false;
 
-  await runRound({
-    executeStage: input.executeStage,
-    results,
-    roundTargets: targets.filter((target) => target.position === 3),
-  });
-  rounds.push(summarizeRound(results, 3, 5));
-
-  if (infrastructureFailureCount(results) === 0 && resolvedCount(results) < 5) {
+  for (const [index, round] of plan.rounds.entries()) {
     await runRound({
       executeStage: input.executeStage,
       results,
-      roundTargets: targets.filter((target) => target.position === 2),
+      roundTargets: targets.filter((target) => target.position === round.position),
     });
-    rounds.push(summarizeRound(results, 2, 10));
+    rounds.push(summarizeRound(results, round.position, round.threshold));
+    const lastRound = index === plan.rounds.length - 1;
+    if (
+      !lastRound &&
+      (infrastructureFailureCount(results) > 0 ||
+        resolvedCount(results) >= round.threshold)
+    ) {
+      stoppedEarly = true;
+      break;
+    }
   }
 
   const failures = infrastructureFailureCount(results);
   const resolved = resolvedCount(results);
   const ceilingRisk = failures > 0
     ? null
-    : rounds.length === 1
+    : stoppedEarly
     ? true
-    : resolved >= 10;
+    : resolved >= plan.strategy.finalCeilingThreshold;
   const report: C4BaselineCeilingReport = {
     assetLockSha256: input.runIdentity.assetLockSha256,
     assetRootSha256: input.runIdentity.assetRootSha256,
@@ -303,21 +412,16 @@ export async function runC4AdaptiveBaselineCeiling(input: {
       stageEvidenceReferences(results),
     )),
     stageTimeoutMs: input.runIdentity.stageTimeoutMs,
-    strategy: {
-      earlyCeilingThreshold: 5,
-      finalCeilingThreshold: 10,
-      firstRound: "stage-3-all-episodes",
-      secondRound: "stage-2-all-episodes-if-needed",
-      stage1Excluded: true,
-    },
+    strategy: plan.strategy,
     testTimeoutMs: input.runIdentity.testTimeoutMs,
   };
-  assertC4BaselineCeilingReportBindings(report);
+  assertC4BaselineCeilingReportBindings(report, plan);
   return report;
 }
 
 export function assertC4BaselineCeilingReportBindings(
   report: C4BaselineCeilingReport,
+  plan: C4BaselineCeilingPlan,
 ): void {
   const runIdentity: C4BaselineRunIdentity = {
     assetLockSha256: report.assetLockSha256,
@@ -337,7 +441,7 @@ export function assertC4BaselineCeilingReportBindings(
     runId: report.runId,
     schemaVersion: 2,
     stageTimeoutMs: report.stageTimeoutMs,
-    strategy: "stage-3-first-then-stage-2-if-needed",
+    strategy: plan.runIdentityStrategy,
     testTimeoutMs: report.testTimeoutMs,
   };
   if (
@@ -360,44 +464,62 @@ export function assertC4BaselineCeilingReportBindings(
   ) {
     throw new Error("C4 baseline result counts are inconsistent");
   }
-  const stage3Results = report.results.filter((result) =>
-    result.stageId === "stage-3"
-  );
-  const stage2Results = report.results.filter((result) =>
-    result.stageId === "stage-2"
-  );
   const resultKeys = report.results.map((result) =>
     `${result.episodeId}/${result.stageId}`
   );
-  const shouldRunSecondRound =
-    infrastructureFailureCount(stage3Results) === 0 &&
-    resolvedCount(stage3Results) < 5;
+  const planStageIds = new Set(plan.rounds.map((round) => round.stageId));
   if (
-    stage3Results.length !== 6 ||
-    stage2Results.length !== (shouldRunSecondRound ? 6 : 0) ||
     new Set(resultKeys).size !== resultKeys.length ||
     report.results.some((result) =>
-      (result.stageId !== "stage-2" && result.stageId !== "stage-3") ||
+      !planStageIds.has(result.stageId) ||
       !/^[a-z0-9][a-z0-9._-]*$/u.test(result.episodeId) ||
       !/^[a-f0-9]{64}$/u.test(result.stageInputSha256)
     )
   ) {
     throw new Error("C4 baseline adaptive rounds are inconsistent");
   }
-  const expectedRounds = [
-    summarizeRound(report.results, 3, 5),
-    ...(shouldRunSecondRound
-      ? [summarizeRound(report.results, 2, 10)]
-      : []),
-  ];
+  // Replay the adaptive schedule: every round up to the first stop must have
+  // attempted exactly its targets, and no later round may appear.
+  const expectedRounds: C4BaselineCeilingRound[] = [];
+  const cumulative: C4BaselineStageResult[] = [];
+  let expectRound = true;
+  let stoppedEarly = false;
+  for (const [index, round] of plan.rounds.entries()) {
+    const roundResults = report.results.filter((result) =>
+      result.stageId === round.stageId
+    );
+    if (!expectRound) {
+      if (roundResults.length !== 0) {
+        throw new Error("C4 baseline adaptive rounds are inconsistent");
+      }
+      continue;
+    }
+    if (roundResults.length !== round.targetCount) {
+      throw new Error("C4 baseline adaptive rounds are inconsistent");
+    }
+    cumulative.push(...roundResults);
+    expectedRounds.push(summarizeRound(cumulative, round.position, round.threshold));
+    const lastRound = index === plan.rounds.length - 1;
+    if (
+      !lastRound &&
+      (infrastructureFailureCount(cumulative) > 0 ||
+        resolvedCount(cumulative) >= round.threshold)
+    ) {
+      expectRound = false;
+      stoppedEarly = true;
+    }
+  }
   if (JSON.stringify(report.rounds) !== JSON.stringify(expectedRounds)) {
     throw new Error("C4 baseline round summaries are inconsistent");
   }
+  if (JSON.stringify(report.strategy) !== JSON.stringify(plan.strategy)) {
+    throw new Error("C4 baseline strategy does not match its plan");
+  }
   const expectedCeilingRisk = report.infrastructureFailureCount > 0
     ? null
-    : expectedRounds.length === 1
+    : stoppedEarly
     ? true
-    : report.resolvedCount >= 10;
+    : report.resolvedCount >= plan.strategy.finalCeilingThreshold;
   const expectedDecision = expectedCeilingRisk === null
     ? "inconclusive"
     : expectedCeilingRisk
@@ -431,7 +553,7 @@ export function verifyC4BaselineDatasetTargets(
   const actual = report.results.map((result) =>
     targetKey({
       episodeId: result.episodeId,
-      position: result.stageId === "stage-2" ? 2 : 3,
+      position: c4BaselineStagePosition(result.stageId),
       stageId: result.stageId,
       stageInputSha256: result.stageInputSha256,
     })
@@ -628,12 +750,20 @@ async function runRound(input: {
   }
 }
 
+export function c4BaselineStagePosition(stageId: string): number {
+  const match = stageId.match(/^stage-([1-9][0-9]*)$/u);
+  if (match === null) {
+    throw new Error(`C4 baseline stage id ${stageId} has no position`);
+  }
+  return Number(match[1]);
+}
+
 function summarizeRound(
   results: readonly C4BaselineStageResult[],
-  position: 2 | 3,
+  position: number,
   ceilingThreshold: number,
 ): C4BaselineCeilingRound {
-  const stageId = `stage-${position}` as const;
+  const stageId = `stage-${position}`;
   const roundResults = results.filter((result) => result.stageId === stageId);
   return {
     attemptedCount: roundResults.length,
@@ -648,13 +778,16 @@ function summarizeRound(
 function validateTargets(
   targets: readonly C4BaselineCeilingTarget[],
 ): C4BaselineCeilingTarget[] {
-  if (targets.length !== 12) {
-    throw new Error("C4 baseline requires stage 2 and stage 3 for six episodes");
+  if (targets.length === 0) {
+    throw new Error("C4 baseline requires at least one later-stage target");
   }
   const keys = new Set<string>();
-  const episodeIds = new Set<string>();
   for (const target of targets) {
-    if (target.stageId !== `stage-${target.position}`) {
+    if (
+      !Number.isInteger(target.position) ||
+      target.position < 2 ||
+      target.stageId !== `stage-${target.position}`
+    ) {
       throw new Error("C4 baseline target position and stage id must match");
     }
     if (!/^[a-f0-9]{64}$/u.test(target.stageInputSha256)) {
@@ -665,16 +798,6 @@ function validateTargets(
       throw new Error(`C4 baseline repeats target ${key}`);
     }
     keys.add(key);
-    episodeIds.add(target.episodeId);
-  }
-  if (
-    episodeIds.size !== 6 ||
-    [...episodeIds].some((episodeId) =>
-      !keys.has(`${episodeId}/stage-2`) ||
-      !keys.has(`${episodeId}/stage-3`)
-    )
-  ) {
-    throw new Error("C4 baseline targets must cover two stages for six episodes");
   }
   return [...targets].sort((first, second) =>
     first.position === second.position

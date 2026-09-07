@@ -1,0 +1,34 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..b7a90cdf8ce4c8a47f5982c9cf99549d2b5ae62a 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -309,6 +309,29 @@ def pluralize(word: str) -> str:
+         return word
+ 
+ 
++
++def possessive(word: str) -> str:
++    """
++    Return the possessive form of a noun or name.
++
++    Examples::
++
++        >>> possessive("cat")
++        "cat's"
++        >>> possessive("boss")
++        "boss'"
++
++    """
++    word = word.strip()
++    if not word:
++        return word
++    if word.endswith("'") or word.endswith("'s") or word.endswith("'S"):
++        return word
++    if word[-1] in ('s', 'S'):
++        return word + "'"
++    return word + ("'S" if word[-1].isupper() else "'s")
++
++
+ def singularize(word: str) -> str:
+     """
+     Return the singular form of a word, the reverse of :func:`pluralize`.

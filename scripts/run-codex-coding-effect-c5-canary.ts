@@ -23,7 +23,7 @@ export function parseC5LiveCanaryOptions(
   if (clusterId === undefined) {
     throw new Error("--cluster-id is required");
   }
-  if (!/^[a-z0-9][a-z0-9-]*\/repetition-[12]$/u.test(clusterId)) {
+  if (!/^[a-z0-9][a-z0-9-]*\/repetition-[1-9]$/u.test(clusterId)) {
     throw new Error("--cluster-id must name one frozen episode repetition");
   }
   return {

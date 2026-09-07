@@ -1,0 +1,32 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..49f87ba98a7f895a80c4d94a56d072490ef18138
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -2054,12 +2054,12 @@ def divide(n, iterable):
+         >>> [list(c) for c in children]
+         [[1, 2, 3], [4, 5], [6, 7]]
+ 
+-    If the length of the iterable is smaller than n, then the last returned
+-    iterables will be empty:
++    If the length of the iterable is smaller than n, only the non-empty
++    parts are returned:
+ 
+         >>> children = divide(5, [1, 2, 3])
+         >>> [list(c) for c in children]
+-        [[1], [2], [3], [], []]
++        [[1], [2], [3]]
+ 
+     This function will exhaust the iterable before returning.
+     If order is not important, see :func:`distribute`, which does not first
+@@ -2083,7 +2083,8 @@ def divide(n, iterable):
+     for i in range(1, n + 1):
+         start = stop
+         stop += q + 1 if i <= r else q
+-        ret.append(iter(seq[start:stop]))
++        if stop > start:
++            ret.append(iter(seq[start:stop]))
+ 
+     return ret
+ 

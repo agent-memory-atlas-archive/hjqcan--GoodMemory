@@ -1,0 +1,28 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..2ab263bc09bd205ed1566b7075ca021419ac7779 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -84,8 +84,22 @@ export function upperFirst<S extends string>(str: S): Capitalize<S> {
+   return (str ? str[0].toUpperCase() + str.slice(1) : "") as Capitalize<S>;
+ }
+ 
++const LEADING_UPPER_RUN_RE = /^\p{Lu}+/u;
++
+ export function lowerFirst<S extends string>(str: S): Uncapitalize<S> {
+-  return (str ? str[0].toLowerCase() + str.slice(1) : "") as Uncapitalize<S>;
++  if (!str) {
++    return "" as Uncapitalize<S>;
++  }
++  const run = str.match(LEADING_UPPER_RUN_RE)?.[0] ?? "";
++  if (run.length <= 1) {
++    return (str[0].toLowerCase() + str.slice(1)) as Uncapitalize<S>;
++  }
++  const next = str[run.length];
++  const keep =
++    next !== undefined && next !== next.toUpperCase()
++      ? run.length - 1
++      : run.length;
++  return (str.slice(0, keep).toLowerCase() + str.slice(keep)) as Uncapitalize<S>;
+ }
+ 
+ export function pascalCase(): "";

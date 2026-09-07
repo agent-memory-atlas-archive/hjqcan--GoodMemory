@@ -1,0 +1,2 @@
+{"payload":{"content":[{"text":"isSamePath in this fork was first patched with a whole-string decode and that broke on encoded slashes. Record why it failed, land the accepted comparison rule, and make sure later comparison helpers never repeat that mistake.","type":"input_text"}],"role":"user","type":"message"},"type":"response_item"}
+{"payload":{"content":[{"text":"Recorded the rejected whole-input decode and the accepted segment-wise path-comparison rule for later comparison helpers.","type":"output_text"}],"role":"assistant","type":"message"},"type":"response_item"}

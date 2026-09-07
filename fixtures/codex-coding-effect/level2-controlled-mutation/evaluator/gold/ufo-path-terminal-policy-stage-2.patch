@@ -1,0 +1,38 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..b45ef75d5f3beaa2d1206f111404c44dc346aa44 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -266,10 +266,29 @@ export function withLeadingSlash(input = ""): string {
+  * @group utils
+  */
+ export function cleanDoubleSlashes(input = ""): string {
+-  return input
+-    .split("://")
+-    .map((string_) => string_.replace(/\/{2,}/g, "/"))
+-    .join("://");
++  if (!input) {
++    return input;
++  }
++  if (/^\/+$/.test(input)) {
++    return "/";
++  }
++  let rest = input;
++  let suffix = "";
++  const cut = rest.search(/[?#]/);
++  if (cut !== -1) {
++    suffix = rest.slice(cut);
++    rest = rest.slice(0, cut);
++  }
++  let prefix = "";
++  const protocolMatch = rest.match(/^[a-z][a-z0-9+.-]*:\/\//i);
++  if (protocolMatch) {
++    prefix = protocolMatch[0];
++    rest = rest.slice(prefix.length);
++  } else if (rest.startsWith("//")) {
++    prefix = "//";
++    rest = rest.slice(2);
++  }
++  return prefix + rest.replace(/\/{2,}/g, "/") + suffix;
+ }
+ 
+ /**

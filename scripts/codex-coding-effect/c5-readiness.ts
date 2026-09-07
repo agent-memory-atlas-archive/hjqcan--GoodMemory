@@ -11,6 +11,8 @@ import {
   serializeC4BaselineCeilingReport,
   verifyC4BaselineDatasetTargets,
   verifyC4BaselineStageEvidenceFiles,
+  buildC4BaselineCeilingPlan,
+  c4BaselineTargetLabel,
 } from "./c4-baseline-ceiling";
 import type {
   C4BaselineCeilingReport,
@@ -25,6 +27,10 @@ import {
   finalizeC4DatasetReadiness,
   runC4DatasetCoreReadiness,
 } from "./c4-readiness";
+import {
+  CONTROLLED_DATASET_PROFILES,
+  expectedControlledPlanTopology,
+} from "./controlled-dataset-profile";
 import type {
   C5BaselineArm,
   C5PilotComparatorInput,
@@ -77,12 +83,12 @@ const acceptedC4ReadinessSchema = z.object({
   claimBoundary: z.literal("dataset-readiness-only-no-coding-uplift"),
   coreSha256: sha256Schema,
   counts: z.object({
-    baseProbes: z.literal(54),
-    episodes: z.literal(6),
-    repositories: z.literal(2),
-    stages: z.literal(18),
+    baseProbes: z.number().int().positive(),
+    episodes: z.number().int().positive(),
+    repositories: z.number().int().positive(),
+    stages: z.number().int().positive(),
   }).strict(),
-  datasetId: z.literal("codex-c4-controlled-pilot-v2"),
+  datasetId: trimmedStringSchema,
   excludedHosts: z.tuple([z.literal("claude-code")]),
   host: z.literal("codex"),
   leakageAuditSha256: sha256Schema,
@@ -94,11 +100,11 @@ const acceptedC4ReadinessSchema = z.object({
   readmeRowAllowed: z.literal(false),
   reviewedAt: trimmedStringSchema,
   reviewer: trimmedStringSchema,
-  reviewerAgentName: z.literal("/root/c4_final_independent_review_v5"),
+  reviewerAgentName: trimmedStringSchema,
   reviewerIdentityEvidence: z.literal(
     "orchestrator-attestation-not-cryptographic-receipt",
   ),
-  reviewerRequestedTaskName: z.literal("c4_final_independent_review_v5"),
+  reviewerRequestedTaskName: trimmedStringSchema,
   reviewerType: z.literal("independent-ai-agent"),
   reviewContextPolicy: z.literal("fork-turns-none"),
   reviewDispatchSha256: sha256Schema,
@@ -108,7 +114,42 @@ const acceptedC4ReadinessSchema = z.object({
   reviewSha256: sha256Schema,
   schemaVersion: z.literal(3),
   status: z.literal("accepted"),
-}).strict();
+}).strict().superRefine((readiness, context) => {
+  const profile = CONTROLLED_DATASET_PROFILES.find((candidate) =>
+    candidate.datasetId === readiness.datasetId
+  );
+  if (profile === undefined) {
+    context.addIssue({
+      code: "custom",
+      message: `accepted C4 readiness names unknown dataset ${readiness.datasetId}`,
+      path: ["datasetId"],
+    });
+    return;
+  }
+  const topology = expectedControlledPlanTopology(profile);
+  if (
+    readiness.counts.episodes !== profile.episodeCount ||
+    readiness.counts.repositories !== profile.repositoryCount ||
+    readiness.counts.stages !== topology.stages ||
+    readiness.counts.baseProbes !== topology.stages * 3
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "accepted C4 readiness counts do not match the dataset profile",
+      path: ["counts"],
+    });
+  }
+  if (
+    readiness.reviewerAgentName !== profile.reviewerAgentName ||
+    readiness.reviewerRequestedTaskName !== profile.reviewerTaskName
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "accepted C4 readiness names the wrong reviewer",
+      path: ["reviewerAgentName"],
+    });
+  }
+});
 
 export type AcceptedC4Readiness = z.infer<
   typeof acceptedC4ReadinessSchema
@@ -383,7 +424,12 @@ function validateAcceptedBaseline(
   let report: C4BaselineCeilingReport;
   try {
     report = JSON.parse(bytes) as C4BaselineCeilingReport;
-    assertC4BaselineCeilingReportBindings(report);
+    assertC4BaselineCeilingReportBindings(
+      report,
+      buildC4BaselineCeilingPlan(expectedTargets, {
+        targetLabel: c4BaselineTargetLabel(report.datasetId),
+      }),
+    );
     verifyC4BaselineDatasetTargets(report, expectedTargets);
   } catch {
     throw new Error("invalid accepted C4 baseline report");

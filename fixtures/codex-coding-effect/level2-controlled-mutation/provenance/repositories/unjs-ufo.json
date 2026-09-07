@@ -1,0 +1,24 @@
+{
+  "baseCommit": "97291dc4377c2242c279817613095e970266d5e7",
+  "baseTree": "c9b3ec109e670e9ab0c3d4bfe0469773c1cda3a6",
+  "canonicalUrl": "https://github.com/unjs/ufo",
+  "ecosystem": "bun",
+  "licenseSpdx": "MIT",
+  "notes": [
+    "Default branch main, cloned at HEAD with --depth 1; bundle contains the single HEAD commit (shallow).",
+    "package.json declares no runtime dependencies (devDependencies only); package exports/main point at dist/, TS source entry is src/index.ts which re-exports ./encoding, ./parse, ./query, ./url, ./utils (src/punycode.ts is internal).",
+    "All 52 exports are functions. Import check run with `bun --no-install`; static scan finds no bare (non-relative) imports in src/.",
+    "Excluded: test/ (incl. WPT fixture JSON), .github/ (CI + banner), eslint.config.mjs, .prettierrc, .editorconfig, .gitignore, pnpm-lock.yaml, renovate.json, CHANGELOG.md, README.md, SECURITY.md."
+  ],
+  "overlayFiles": [
+    "AGENTS.md",
+    "tests/base-health.test.ts"
+  ],
+  "projectedFileCount": 10,
+  "projectionPolicy": "source-only-no-upstream-tests-v1",
+  "repositoryId": "unjs-ufo",
+  "schemaVersion": 1,
+  "upstreamCommit": "f06c800d0c59f2a4a1b9ba65eb6cb61a84419be6",
+  "upstreamRef": "main (default branch HEAD)",
+  "upstreamTree": "081a356d65f403ba182430965216543b3fe302d4"
+}

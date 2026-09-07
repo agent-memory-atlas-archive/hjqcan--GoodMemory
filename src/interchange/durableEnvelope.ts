@@ -17,6 +17,8 @@ import type {
   UserProfile,
 } from "../domain/records";
 import type { TemporalInterval } from "../domain/temporal";
+import { isNoteBodyWithinLimit, NOTE_MAX_BYTES } from "../domain/records";
+import { isIanaTimezone, isRfc3339Instant } from "../domain/temporal";
 import type { EvidenceRecord, SourceMessageRecord } from "../evidence/contracts";
 
 // Runtime shape of the durable half of an export envelope. The envelope
@@ -61,11 +63,11 @@ const memorySource: z.ZodType<MemorySource> = z.object({
 });
 
 const temporalInterval: z.ZodType<TemporalInterval> = z.object({
-  start: z.string(),
-  endExclusive: z.string(),
+  start: z.string().refine(isRfc3339Instant, "must be an RFC 3339 instant"),
+  endExclusive: z.string().refine(isRfc3339Instant, "must be an RFC 3339 instant"),
   precision: z.enum(["instant", "day", "week", "month", "quarter", "year"]),
-  timezone: z.string(),
-});
+  timezone: z.string().refine(isIanaTimezone, "must be an IANA timezone"),
+}).refine((interval) => Date.parse(interval.start) < Date.parse(interval.endExclusive), "endExclusive must follow start");
 
 export const userProfileSchema: z.ZodType<UserProfile> = z.object({
   userId: z.string().min(1),
@@ -157,7 +159,7 @@ export const referenceSchema: z.ZodType<ReferenceMemory> = z.object({
 export const noteSchema: z.ZodType<NoteMemory> = z.object({
   ...scoped,
   title: z.string(),
-  body: z.string(),
+  body: z.string().refine(isNoteBodyWithinLimit, `must not exceed ${NOTE_MAX_BYTES} UTF-8 bytes`),
   format: z.enum(["markdown", "plain"]),
   subject: optionalString,
   tags: optionalStringList,

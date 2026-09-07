@@ -1998,6 +1998,258 @@ control on the C4 dataset); the C6-C7 public-claim steps stay open and
 fail-closed, and the Level-2 controlled-mutation set is deferred until a
 positive comparator signal exists.
 
+Level-2 resumption (2026-09-03)
+-------------------------------
+
+1. Maintainer decision on 2026-09-03: continue the Level-2 controlled-mutation
+   set despite the 0.2 recommendation to defer it. The comparator negative
+   result above stands unchanged and is not re-litigated.
+2. [DONE] Reproduced native-host defect and fix. A deterministic canary
+   (three prior sessions each declaring one project policy of at most 1,500
+   characters, then a prompt asking for the first policy) showed the installed
+   profile injecting only 120-character previews under the 512-token
+   per-prompt budget: `renderMemoryPacket` dropped the whole Facts section
+   when it did not fit and kept the evidence previews. One or two prior
+   sessions (the C4/C5 regime) rendered intact, which is why C5 never saw it.
+   Fix in `src/recall/contextBuilder.ts`: prompt-fragment trimming keeps the
+   leading whole entries that fit in rank order, and the host's opt-in
+   evidence de-duplication also drops clipped previews of kept facts; JSON and
+   markdown rendering are byte-identical to before. Tests:
+   `tests/unit/host-hook-recall-budget.test.ts` (host-level reproduction) and
+   `tests/unit/context-builder.outputs.test.ts`; rendering/host suites 439
+   pass; typecheck clean.
+3. [ACTIVE] Level-2 design is pre-registered in plan section 0.3 before any
+   outcome exists: 30 four-stage episodes over 6 real MIT repositories in two
+   ecosystems, declarations at position 1 recalled at position 4 across two
+   intervening sessions, the unchanged +3.0-point positions-two-and-later
+   rule with a positive bootstrap lower bound, three repetitions, and the
+   unchanged C5 comparator protocol. Public claim stays fail-closed.
+4. [DONE] Harness generalization. `controlled-dataset-profile.ts` replaces
+   the C4 literals (dataset id, six episodes, two repositories, three stages,
+   two repetitions, reviewer identity, fixture paths) in the C4 contracts,
+   readiness, review artifacts, C5 plan, coordinator, ledger, readiness, and
+   verifier; the C4 profile reproduces the frozen literals byte for byte
+   (C5 evidence gate 23 pass, C5 readiness gate 10 pass, C3/C4/C5 lanes 277
+   pass). The no-memory baseline ceiling now runs a profile-derived plan
+   (descending positions, five-sixths cumulative thresholds; Level-2 targets
+   only memory-required later stages). The hidden evaluator gains a Python
+   lane (`level2-evaluator-runner.ts`: the pinned Bun runner spawns
+   `/usr/bin/python3`) and per-case function overrides for new-export tasks.
+5. [ACTIVE] Level-2 dataset authoring. Six real MIT repositories are pinned
+   and projected (`unjs/ufo`, `unjs/scule`, `radashi-org/radashi`,
+   `jpvanhal/inflection`, `python-humanize/humanize` 4.13.0,
+   `more-itertools/more-itertools` v10.8.0; the last two re-pinned to their
+   newest Python 3.9 tags). `level2-controlled-dataset.ts` builds the fixture
+   from `scripts/codex-coding-effect/level2-authoring/` (repository specs,
+   overlays, per-episode prompts, gold trees, hidden cases; local-only
+   inputs, git-ignored except the README contract, because the frozen
+   fixture is the tracked dataset and regeneration also needs the pinned
+   upstream projections outside the repository) and
+   `check-codex-coding-effect-level2-authoring.ts` verifies each episode
+   locally (base fails case 1, gold passes, no hidden-value leakage). The
+   exemplar `ufo-path-terminal-policy` passes; the remaining 29 episodes were
+   authored by six independent authoring agents (one per repository) and all
+   30 episodes (120 stages) pass the checker; primary strata are exactly the
+   pre-registered quotas (4 x 6 positive strata, 3 irrelevant-memory, 3
+   no-history controls), now asserted by the builder. Two authoring defects
+   the readiness audit caught and the checker had missed are fixed in the
+   checker: visible surfaces were collected after `git init` (hook samples
+   made words look public), and the audit's role-labelled history and
+   argument-to-expected relations were not scanned.
+6. [DONE] Frozen dataset `fixtures/codex-coding-effect/level2-controlled-mutation`
+   (asset lock f23c5af2..., asset root f3af3fca...; 30 episodes, 120 stages,
+   6 repositories, 2 ecosystems). Core readiness accepted at
+   `reports/quality-gates/phase-73/level2-controlled-mutation-core.json`
+   (core sha256 8bd840de...): 360 base probes, 120 gold replays, and the full
+   leakage matrix with its mutation test. Three defects surfaced on the way
+   and were fixed in the tooling, not by weakening the audit: the builder
+   declared only pass-to-pass relations public (real docstrings carry
+   worked examples, so fail-to-pass relations must be declared too); the
+   leakage mutation test injected an empty-string candidate that can never
+   match (it now injects the first matchable candidate; C4 bytes unchanged,
+   C5 readiness gate 10 pass); and base commits were created with a
+   different identity than readiness reconstructs (the builder now uses the
+   shared C4 initializer). Review bundle prepared (input bundle 4319146c...,
+   request 8cf1bb04..., dispatch 3a9cc16a...).
+7. [DONE] No-memory baseline ceiling pilot (required later stages only:
+   24 recall stages first, then 4 supersession and 4 correction stages if
+   needed; thresholds 20/24/27 of 24/28/32). The first attempt
+   (`level2-baseline-20260903T131642Z`) ended inconclusive after 24
+   attempts: 16 stages completed (1 resolved without memory) and the last 8
+   were infrastructure failures because this machine's proxied egress to
+   `chatgpt.com` started returning Cloudflare 403/404 at 14:46Z for every
+   Codex client version (api.openai.com still answered), so Codex could not
+   start. A relaunch waits for the backend to answer again, prefers the
+   validated Codex 0.152.1 and falls back to a mirror-installed 0.153.0
+   copy, and replaces the inconclusive publication; the backend recovered at
+   15:18Z and the relaunch runs with Codex 0.152.1. The independent review
+   (`/root/level2_final_independent_review_v1`, fork-turns-none) was
+   interrupted six times by provider overload (HTTP 529) on two models and
+   completed on a third; it returned `accepted` for all 30 episodes with zero
+   failed checks, after mechanically re-verifying all 120 stages (base fails
+   case 1, gold passes) and reading the shared runner. Provenance recorded
+   at `review/provenance.json`.
+8. [DONE] Baseline ceiling accepted: `level2-baseline-20260903T151806Z`
+   (Codex 0.152.1) attempted all 32 required later stages with zero
+   infrastructure failures; no-memory resolved 3 (2 of 24 recall stages, 1
+   of 4 supersession stages, 0 of 4 correction stages), far under the 20/24/27
+   thresholds, so `ceilingRisk: false` and `proceed-to-c5-pilot`. Published
+   at `reports/quality-gates/phase-73/level2-baseline-ceiling-pilot/`
+   (report, sanitized stages, raw stages). Dataset readiness finalized and
+   accepted at `reports/quality-gates/phase-73/level2-controlled-mutation-readiness.json`
+   (sha256 56689604...), binding the core (8bd840de...), the accepted
+   review, its provenance, and the baseline.
+9. [ACTIVE] C5 comparator run (three repetitions, 360 pairs), verification,
+   independent review, gate, and the recorded result. The frozen plan has 90
+   clusters (45 GoodMemory-first), 720 stage runs, 360 pairs; the canary runs
+   clusters[0] (`ufo-query-serialization-policy/repetition-1`) and an
+   accepted canary resumes into the pilot. Two canaries failed before any
+   cluster committed and exposed C4-shape assumptions in the live path that
+   the profile generalization had not reached; each is fixed with a test:
+   - The first canary (2026-09-04 00:58Z) died in a machine reboot with no
+     ledger rows. Before relaunching, the canary acceptance report was found
+     to hard-code six stage executions and three pairs; it now takes the
+     cluster's stage count from the frozen plan.
+   - The second canary (03:53Z, eight Codex stages spent) ran the full
+     cluster and failed at the ledger commit, which also hard-coded six
+     rows and three pairs per cluster (now `clusterRowCounts(plan)`). Its
+     rows showed two more defects: every live leakage audit was rejected and
+     the flat-summary arm hit `flat-summary-injection` infrastructure
+     failures at stages 2-4 ("output leaked hidden or gold content"). Root
+     cause for both: the live leakage builder treated only visible file
+     contents as public, while the readiness matrix that accepted the dataset
+     treats paths plus contents as public. Level-2 prompts name the file to
+     change and the handoff note names changed files; `src/query.ts` appears
+     in no file body, so the stage's own expected changed path counted as a
+     hidden fragment. The live builder now uses paths plus contents (a
+     repository path is public by construction). A dry check regenerated a
+     real handoff note from the failed canary's stage-1 transcript and it now
+     audits clean. The report and evidence verifier also derived stages per
+     episode, the pairs schedule, the power-analysis design effect, and the
+     full-set budget from a constant of three; they now derive them from the
+     plan, byte-identical for the C4 evidence (all codex-coding-effect lanes
+     and phase-73 gates: 1398 pass).
+   The third canary (`run-c5-level2-flat-20260904T045827Z`, 04:58Z) was
+   accepted (8 stages, 0 infrastructure failures, 4 comparable pairs, all
+   live leakage audits accepted), but the resumed pilot died preparing the
+   second cluster, a Python repository: the task-alias isolation probes
+   read `package.json` in the other arm's workspace and the source
+   repository, and Python projections carry `pyproject.toml`. The probe file
+   now follows the episode's ecosystem. Because that changed the runner
+   import closure, the run could not be resumed and its cluster is kept
+   only as a diagnostic.
+   Before spending real Codex time again, two smoke runs validated the
+   fixed closure: a real-Codex canary on a Python-first ordering
+   (`smoke-real-py-c5-level2-20260904T061151Z`, `moreit-group-balance-
+   correction`, order seed 3) was accepted with 0 infrastructure failures
+   and 4 comparable pairs; and a fake-Codex pass over the frozen 90-cluster
+   plan (`smoke-fake-c5-level2-20260904T063107Z`) exercised trajectory
+   preparation, alias isolation, visible base health, summarizer injection,
+   all live leakage audits, and ledger commits for every cluster with no
+   failure kinds beyond the fake host's expected hook canaries.
+   The fake pass (all 90 clusters, exit 0, every attempt accounted for and
+   the Level-2 report built with plan-derived counts) also measured the
+   comparator's leak-rejection exposure: 8 of 90 summarizable stages were
+   rejected as leaking hidden or gold content and became
+   `flat-summary-injection` infrastructure failures. Six are systematic
+   (`inflection-number-rendering-update` stages 3-4, every repetition): the
+   hidden expected values include the error class names `ValueError` and
+   `TypeError`, the prompt names them in prose, and the handoff note renders
+   them as identifiers. Two are sporadic (`ufo-path-compare-segments`,
+   `radashi-strict-numeric-parsing`): for example a gold patch line
+   consisting only of `segments,` matched ordinary English. 44 of 120 stages carry such trivially short
+   gold lines (`return value`, `a number.`), so sporadic rejections will
+   recur; overlaps that originate in a prior stage's own transcript are
+   origin-attested and do not reject. The C4 comparator lost 2 of 36 pairs
+   to the same rule (`flat-summary-injection`, 8.3% of summarizable stages
+   against 8.9% here), the rule applies identically to the GoodMemory arm's
+   injected context, and changing it would alter the pre-registered
+   protocol, so the rules stay frozen and the rate is reported with the
+   result as a known limitation.
+   The first frozen-seed run (`run-c5-level2-flat-20260904T070105Z`, 07:01Z)
+   was accepted at the canary (ufo committed a memory record) but the pilot
+   failed at cluster 2, a long Python session (`humanize-amount-rounding-
+   handoff`, a single 373 KB Codex rollout). Its installed arm failed the
+   host canary "native Stop did not commit a memory record". Root cause is a
+   real GoodMemory capture defect the all-TypeScript C4 dataset never hit:
+   the writeback transcript reader kept only a 262 KB tail window, which on a
+   long single-shot session drops the opening user prompt where the policy is
+   stated; the surviving messages were all assistant output, which the
+   writeback policy blocks unless annotated. The flat-summary arm always
+   receives the full prior-stage prompt, so this silently handicapped the
+   GoodMemory arm on long sessions. Fixed in `src/install/hostTranscriptReader.ts`
+   by recovering the leading user turns from a bounded head slice when a fresh
+   read truncates the head (resume reads unaffected; non-truncated sessions
+   behave identically, so the ufo and more-itertools stages that already
+   passed are unchanged). Unit tests cover both the Claude and Codex readers.
+   The change alters the package, so the tarball was rebuilt and re-packed
+   (`goodmemory-0.7.5.tgz` now sha256 5cac2fc3...); the packaged Stop hook was
+   verified end to end on the exact failing rollout and now commits a memory
+   record where it committed none. A secondary, unfixed observation: the
+   credential regex `sk-[A-Za-z0-9_-]{16,}` false-positives on the workspace
+   directory name `task-<16 hex>`, redacting that one assistant message; it is
+   harmless here because assistant text is blocked regardless, and the regex is
+   security-sensitive, so it is left unchanged and reported as a limitation.
+   The frozen-seed run is being relaunched with the fixed tarball after a
+   fake-Codex full-plan structural regression check. Level-2 stages average
+   about 6.6 minutes of Codex time against 2.0 for C4, so the sequential
+   pilot needs roughly 3.3 days; a resume script lives outside the
+   reboot-wiped temp directory.
+
+2026-09-04/05 execution incident (not a scientific result)
+-------------------------------------------------------
+
+Run `run-c5-level2-flat-20260904T100113Z` has 145 recorded stage executions,
+72 pairs, and 18 committed clusters out of 720 / 360 / 90. Its last recorded
+event is the flat-summary stage-1 start at 2026-09-05T01:25:46.462Z. The Mac
+rebooted at 2026-09-05T01:36:35Z; the original pilot and launcher processes
+were absent when checked after reboot. No completion is claimed.
+
+Concurrent authorized v0.8 product work changed
+`src/governance/pageArtifacts.ts` (mtime 2026-09-05T01:25:19Z): the exporter
+no longer appends a newline to canonical note bodies. This fixes an 8192-byte
+round-trip defect, but the file belongs to the 171-file C5 runner closure.
+The observed aggregate changed from
+`56fdf4fccb4b7b413443a4eece70a7fde7e3f01d77af7b53f3a6719667e5247e` to
+`0949b36da857d56a22b7743e7c406db645e96caed782984e082c34264ae102c0`.
+The exact saved source bytes remain in the run's `runner-source-state.json`.
+The experimental package tarball itself was not changed by this fix.
+
+The maintainer requested "do not interrupt; preserve the current state".
+No process was stopped and no repair was reverted to conceal the drift.
+After discovering the reboot, the run was not automatically resumed. The
+main product fix, raw evidence, and incomplete trajectory remain preserved.
+Before resuming or accepting this run, inspect the interrupted cluster and
+frozen-source loading boundary, obtain the maintainer's recovery direction,
+and disclose the drift to the independent reviewer. A post-hoc matching hash
+alone cannot establish uninterrupted source stability. Phase 73 and the 0.8
+publication gate remain incomplete; no interim effect claim is permitted.
+
+2026-09-05 approved recovery
+---------------------------
+
+The maintainer subsequently authorized the proposed frozen-snapshot recovery
+and default-workspace-identity correction ("可以，继续完成"). The original raw
+directory and all three run-owned mutable roots were copied before recovery
+to /Volumes/data/GoodMemory-external/phase73-recovery-20260905-40fbBO/before-resume.
+All 171 saved source entries were materialized in that directory's `runner`
+subdirectory; main's product repairs were not reverted. The isolated frozen
+lockfile dependency install passed. Its ancillary Inspector workspace manifest
+was supplied to satisfy the frozen workspace lock without changing the runner
+source closure.
+
+The original runner's full readiness replay passed at 2026-09-05T05:39:33Z.
+Source closure, exact plan and prerequisite bytes, owned-root identity,
+GoodMemory tarball SHA 5cac2fc3369de423b13bcdc7e19c7618c6899b98a59b55767c8bce8989087217,
+and Codex executable SHA 134063e133f0b4244fa3b251acf973d4fe4b4aeeacbdc135211bf480f59f1477
+match the original run and its 19 retained host preflights. The external
+`resume.ts` invokes the unchanged frozen runner and original protocol flags.
+Normal same-run resume preserves the incomplete cluster as an interrupted
+attempt and restarts that entire cluster; committed clusters are retained.
+This is recovery authorization and input verification, not completion or
+retroactive proof of uninterrupted source stability. Independent review must
+still examine the reboot/source-drift incident and preserved partial attempt.
+
 Boundary
 --------
 

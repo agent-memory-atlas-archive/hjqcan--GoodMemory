@@ -1,0 +1,32 @@
+diff --git a/src/index.ts b/src/index.ts
+index f1983fd4b3ed8c5e0fa8027d639180cb7ac25265..fdf37b7d2042d35716d8078a81bb159073c018c5 100644
+--- a/src/index.ts
++++ b/src/index.ts
+@@ -88,6 +88,27 @@ export function lowerFirst<S extends string>(str: S): Uncapitalize<S> {
+   return (str ? str[0].toLowerCase() + str.slice(1) : "") as Uncapitalize<S>;
+ }
+ 
++const INITIALS_SEPARATOR_RE = /[-_/.\s]+/u;
++
++export function initials(
++  str: string | readonly string[] = "",
++  limit = 2,
++): string {
++  const chunks = Array.isArray(str)
++    ? [...str]
++    : typeof str === "string"
++      ? str.split(INITIALS_SEPARATOR_RE)
++      : [];
++  const letters: string[] = [];
++  for (const word of chunks.flatMap((chunk) => splitByCase(chunk, []))) {
++    if (!word || NUMBER_CHAR_RE.test(word[0])) {
++      continue;
++    }
++    letters.push(word[0].toUpperCase());
++  }
++  return letters.slice(0, limit).join("");
++}
++
+ export function pascalCase(): "";
+ export function pascalCase<
+   T extends string | readonly string[],

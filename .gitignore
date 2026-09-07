@@ -232,6 +232,8 @@ reports/eval/research/**
 !reports/eval/live/phase-22-smoke/run-1776651237720/report.json
 # Commit canonical phase quality gates plus the phase-20 dependency summaries.
 reports/quality-gates/**
+!reports/quality-gates/phase-75/
+!reports/quality-gates/phase-75/default-enablement-20260905.md
 !reports/quality-gates/*/
 !reports/quality-gates/*/run-*/
 # Keep only accepted gate artifacts explicitly cited by docs/status.
@@ -277,6 +279,13 @@ reports/quality-gates/**
 !reports/quality-gates/phase-73/c4-controlled-pilot-readiness.json
 !reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16/
 !reports/quality-gates/phase-73/c5-native-longitudinal-pilot-v16/*.json
+# Fixed-hash comparator summaries required by the canonical release suite.
+!reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/
+!reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/c5-gate.json
+!reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/c5-verification.json
+!reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/independent-review.json
+!reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/provenance.json
+!reports/quality-gates/phase-73/c5-native-comparator-flat-summary-v1/report.json
 !reports/quality-gates/phase-73/c6-controlled-mutation-canary/
 !reports/quality-gates/phase-73/c6-controlled-mutation-canary/linux-amd64-receipt.json
 !reports/quality-gates/phase-18/run-20260419031141/phase-18-quality-gate.json
@@ -356,3 +365,11 @@ reports/quality-gates/**
 !reports/quality-gates/phase-20/run-20260420023503/dependency-gates/phase-19-maintenance/
 !reports/quality-gates/phase-20/run-20260420023503/dependency-gates/phase-19-maintenance/run-20260420023503-phase-19-maintenance/
 !reports/quality-gates/phase-20/run-20260420023503/dependency-gates/phase-19-maintenance/run-20260420023503-phase-19-maintenance/*.json
+
+# Phase 73 Level-2 controlled-mutation authoring inputs (30 episodes x prompts/gold
+# plus per-repository overlays, ~300 files) stay local: the frozen fixture at
+# fixtures/codex-coding-effect/level2-controlled-mutation is the tracked dataset
+# the evidence binds to, and regenerating it also needs the pinned upstream
+# projections outside the repository. Keep the authoring contract (README) tracked.
+scripts/codex-coding-effect/level2-authoring/*
+!scripts/codex-coding-effect/level2-authoring/README.md

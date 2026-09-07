@@ -2293,7 +2293,7 @@ function hostCanaryEvidence(input: {
 function stageEvents(input: {
   arm: C5PilotArm;
   episodeId: string;
-  repetition: 1 | 2;
+  repetition: number;
   seed: number;
   stageId: string;
   stageRunId: string;

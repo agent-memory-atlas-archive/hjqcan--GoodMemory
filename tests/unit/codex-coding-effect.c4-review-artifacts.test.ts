@@ -168,3 +168,36 @@ describe("Codex coding-effect C4 review artifacts", () => {
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
+
+describe("Level-2 review artifacts", () => {
+  it("renders the Level-2 request with thirty episodes and the no-history check", async () => {
+    const { buildC4ReviewRequest, buildC4IndependentReviewDispatch } = await import(
+      "../../scripts/codex-coding-effect/c4-review-artifacts"
+    );
+    const { LEVEL2_CONTROLLED_MUTATION_PROFILE } = await import(
+      "../../scripts/codex-coding-effect/controlled-dataset-profile"
+    );
+    const request = buildC4ReviewRequest({
+      inputBundleSha256: "f".repeat(64),
+      profile: LEVEL2_CONTROLLED_MUTATION_PROFILE,
+    });
+    expect(request).toContain("For every one of the thirty episodes");
+    expect(request).toContain("`episodeReviews`: exactly thirty objects");
+    expect(request).toContain("memoryAbsentAndTaskSelfContained");
+    expect(request).toContain("final-stage");
+    expect(request).toContain("/root/level2_final_independent_review_v1");
+    expect(request).toContain("fixtures/codex-coding-effect/level2-controlled-mutation");
+
+    const dispatch = buildC4IndependentReviewDispatch({
+      profile: LEVEL2_CONTROLLED_MUTATION_PROFILE,
+      spawnMessage: "Read and follow the Level-2 request exactly.",
+    });
+    expect(dispatch).toMatchObject({
+      datasetRootPath: "fixtures/codex-coding-effect/level2-controlled-mutation",
+      readinessCorePath:
+        "reports/quality-gates/phase-73/level2-controlled-mutation-core.json",
+      requestedTaskName: "level2_final_independent_review_v1",
+      reviewerAgentName: "/root/level2_final_independent_review_v1",
+    });
+  });
+});

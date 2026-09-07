@@ -1,0 +1,5 @@
+# Python utility task
+
+Start the phrase-inflection work for this fork and establish its policy. Project policy: a phrase is cut into parts at every run of whitespace and at every hyphen; surrounding whitespace is dropped, a whitespace run is rejoined as one space, and a hyphen is rejoined as a hyphen; the head part is the part immediately before the first part that equals one of the prepositions of, in, at, on, for, or to (compared case-insensitively, whole part only), and when no such preposition follows another part the head is the last part; only the head is inflected, using the existing single-word rules, and every other part is kept verbatim; the head's letter case is whatever the single-word rules produce; an empty or whitespace-only phrase returns an empty string. Implement pluralize_phrase(phrase) in inflection/__init__.py, next to pluralize, under this policy. The second half of the work, singularize_phrase(phrase) under exactly the same rules, is deferred to a later session: leave a short pending note in the module and do not implement it now.
+
+Keep the implementation dependency-free and run the visible test.

@@ -1,0 +1,68 @@
+diff --git a/src/string/similarity.ts b/src/string/similarity.ts
+index 7bc92fc0a8fa9c042ee73fecf720948995ad8e12..12cf5bd5f6f03b4e833e36f198fcd4a264653827 100644
+--- a/src/string/similarity.ts
++++ b/src/string/similarity.ts
+@@ -1,8 +1,23 @@
+ // cSpell:ignore fabiospampinato
+ 
++import { deburr } from 'radashi'
++
++/**
++ * Comparison policy: case, accents, surrounding whitespace, and the
++ * width of inner whitespace runs are ignored; nullish input counts as
++ * an empty string.
++ */
++function normalize(value: unknown): string {
++  return deburr(String(value ?? ''))
++    .toLowerCase()
++    .trim()
++    .replace(/\s+/g, ' ')
++}
++
+ /**
+  * Calculate the similarity between two strings using the Levenshtein
+- * distance algorithm.
++ * distance algorithm, after normalizing both strings under the
++ * comparison policy.
+  *
+  * One thing to note is that the argument order is unimportant. The
+  * algorithm will always return the same result regardless of the
+@@ -25,21 +40,24 @@
+  * @version 12.2.0
+  */
+ export function similarity(str1: string, str2: string): number {
++  const left = normalize(str1)
++  const right = normalize(str2)
++
+   // Early return if strings are identical
+-  if (str1 === str2) {
++  if (left === right) {
+     return 0
+   }
+ 
+   // Find common prefix and suffix
+   let start = 0
+-  let end1 = str1.length - 1
+-  let end2 = str2.length - 1
++  let end1 = left.length - 1
++  let end2 = right.length - 1
+ 
+-  while (start <= end1 && start <= end2 && str1[start] === str2[start]) {
++  while (start <= end1 && start <= end2 && left[start] === right[start]) {
+     start++
+   }
+ 
+-  while (end1 >= start && end2 >= start && str1[end1] === str2[end2]) {
++  while (end1 >= start && end2 >= start && left[end1] === right[end2]) {
+     end1--
+     end2--
+   }
+@@ -78,7 +96,7 @@ export function similarity(str1: string, str2: string): number {
+         distances[i - 1] + 1,
+         // Cost of a substitution.
+         distances[i - numColumns - 1] +
+-          (str1[start + y - 1] === str2[start + x - 1] ? 0 : 1),
++          (left[start + y - 1] === right[start + x - 1] ? 0 : 1),
+       )
+     }
+   }

@@ -1,0 +1,59 @@
+{
+  "assertions": {
+    "claimBoundary": true,
+    "everyAttemptAccounted": true,
+    "failureTaxonomyReviewed": true,
+    "noSilentFallback": true,
+    "powerAnalysis": true
+  },
+  "claimBoundary": "internal-native-longitudinal-pilot-only",
+  "decision": "accepted",
+  "failureTaxonomySha256": "c4d5afafdfe63e31accc922a516fedf8a03452b5b8ca585d918dc9367dc2a289",
+  "findings": [
+    {
+      "code": "empty-run-attempts-ledger",
+      "severity": "advisory",
+      "summary": "The manifest projects run-attempts.jsonl at 0 bytes (SHA-256 e3b0c442..., the empty digest). Attempt accounting is therefore carried by stage-executions.jsonl (57180 bytes) and the 72 per-attempt stage-execution.sanitized.json captures, which do bind every attempt exactly once; the projection should either populate this ledger or document that it is intentionally empty for canary runs so the empty file is not mistaken for missing attempts."
+    },
+    {
+      "code": "no-memory-rate-label-ambiguity",
+      "severity": "advisory",
+      "summary": "report.effect.noMemoryResolveRate (0.94118) duplicates baselineResolveRate although baselineArm is flat-summary and no no-memory arm is scheduled in this run (fullSetBudget.arms = 2). The value is not a silent fallback, but the field name invites reading the flat-summary comparator as a no-memory baseline; label it by the actual baseline arm or omit it."
+    },
+    {
+      "code": "required-recall-denominator-not-exposed",
+      "severity": "advisory",
+      "summary": "report.memoryBehavior gives requiredRecallObservedCount 20 and injectionObservedCount 20 but not the number of goodmemory-installed attempts that required recall; 4 of the 24 stage-2/3 installed attempts show no observed injection and writebackCommittedCount is 10 of 36. Within the bound artifacts the reviewer relies on memoryChannelFailureCount 0, missingObservationCount 0 and verification.noMemoryChannelFailure = true; exposing the required-recall denominator (and writeback attempted/rejected counts) would make the no-silent-fallback claim verifiable from the report alone."
+    },
+    {
+      "code": "overlapping-taxonomy-labels",
+      "severity": "advisory",
+      "summary": "The same two comparator-injection events appear under four taxonomy reasons (infrastructure:flat-summary-injection, flat-summary-injection-mode-mismatch, flat-summary-infrastructure-flat-summary-injection, flat-summary-evaluator-infrastructure-failure), so the taxonomy sums to 12 while the projection contains 2 infrastructure events and 2 shared-fail pairs. Counts reconcile per level, but tagging each reason with its level (attempt, injection, pair) would prevent over-counting."
+    },
+    {
+      "code": "degenerate-pilot-effect-interval",
+      "severity": "advisory",
+      "summary": "With 0 rescues and 0 regressions across 34 comparable pairs, observedDiscordanceRate is 0 and the bootstrap interval collapses to [0, 0]; the pilot is uninformative about effect direction and the reported power rests entirely on the planning discordance rate 0.5 and the 391-episode expanded-run budget, which the internal-pilot-only claim boundary correctly reflects."
+    },
+    {
+      "code": "run-id-timestamp-vs-execution-duration",
+      "severity": "advisory",
+      "summary": "The run id timestamp (2026-09-03T06:51:26Z) precedes report.generatedAt (06:51:27.097Z) by about one second while resourceUsage.totalCodexDurationMs is 8242882 ms (~2.3 h), so the run id evidently marks report/finalization time rather than execution start; the bound artifacts expose no execution start/end timestamps, which lies outside this review's authenticity boundary but should be stated explicitly in the projection."
+    }
+  ],
+  "inputBundleSha256": "20a8198f7f51c0f02f89d025d3b55432b6c0082a2886a1c05e1e263c1f10fbd2",
+  "phase": "C5",
+  "projectionManifestSha256": "c5bf50e8f77b82ff40173af31d0787db458f6d7516834c96b29965a3ebbedd7e",
+  "publicClaimEligible": false,
+  "publicCodingEffectProof": false,
+  "rationale": "Binding integrity: input-bundle.json recomputed at 1841 bytes / SHA-256 20a8198f... (matches request). projection-manifest.json 129116 bytes / c5bf50e8..., report.json 3466 bytes / 570816f9..., c5-verification.json 1051 bytes / aae8d8ff..., and the report.json#failureTaxonomy fragment (two-space-indented JSON plus one LF) 519 bytes / c4d5afaf... all recomputed with shasum/python and match the bundle exactly. Cross-references inside the bundle also reconcile: verification.projectionManifestSha256 equals the recomputed manifest digest; report.planSha256 and verification.planSha256 equal the manifest's pilot-plan.json digest (1fcf1454...); manifest.sourceRunIdentitySha256 equals the manifest's run-identity.json digest (7ba3e851...); the manifest's report.json entry equals the bound report digest; runId, evidenceClass and claimBoundary agree across all four artifacts. everyAttemptAccounted: the manifest lists 428 unique paths forming 12 episode clusters x 3 stages = 36 pair directories (each with exactly flat-summary-evaluation.json, goodmemory-installed-evaluation.json, live-leakage-audit.json) and 12 x 2 arms x 3 stages = 72 attempt directories (each with exactly one stage-execution.sanitized.json and one agent.patch), plus 12 host-preflight, 24 permission-isolation-preflight and 24 task-alias-isolation captures; no duplicates or extras. This matches verification.counts (stageExecutions 72, pairs 36, hostPreflights 12, taskAliasAudits 24, projectedFiles 428, opaqueProcessOnlyTrajectoryOrigins 70) and report.attempts (scheduled 72, accounted 72, codexCompleted 70) and report.pairs (scheduled 36 = 32 shared-pass + 2 shared-fail + 2 incomparable). noSilentFallback: the two comparator hook-canary failures (flat-summary stage-2 of clusters 338a866d524f4a3d and dff4d6d3df47e184: no injection.sanitized.json, zero-byte agent.patch, ~1.2 KB stage-execution capture) are counted as infrastructure failures, their pairs are marked incomparable, and the effect is computed on the 34 comparable pairs only (32/34 = 0.94118 for both arms), not scored as passes or as memory-less runs; comparatorInjection 22 content + 12 zero (stage-1) + 2 canary failure = 36; all 36 goodmemory-installed attempts carry host-canary captures (observedAttemptCount 36, missingObservationCount 0, memoryChannelFailureCount 0, irrelevantInjectionCount 0) and verification reports noMemoryChannelFailure and noSilentFallback true with reportRecomputed true. failureTaxonomyReviewed: the taxonomy reconciles with every failure class the projection represents: infrastructure:flat-summary-injection 2 = infrastructureFailureCount 2 = missing injection captures; flat-summary-injection-mode-mismatch 2 = hookCanaryFailureCount 2; flat-summary-evaluator-infrastructure-failure 2 = incomparableCount 2; task:flat-summary and task:goodmemory-installed hidden-fail-to-pass-failed 2 each = 2 shared-fail pairs with 0 rescues and 0 regressions; memory-channel failures are 0 and correctly absent; missingUsageCount 2 matches the two attempts that never reached Codex. powerAnalysis: report.powerAnalysis states materialEffectRate 0.1 (planned effect threshold), alpha 0.05, power 0.8, planningDiscordanceRate 0.5, designEffect 9 (= 1 + (9-1) x observedWithinEpisodeCorrelation 1 for 3 stages x 3 seeds per episode) and requiredEpisodes 391; an independent paired-proportion normal-approximation recomputation gives n = ((1.96 x sqrt(0.5) + 0.8416 x sqrt(0.5 - 0.01))^2) / 0.01 = 390.1 -> 391, matching pairedObservationsBeforeClustering and requiredEpisodes; uncertainty is reported as a 10000-sample paired-episode-cluster percentile bootstrap interval; fullSetBudget gives an explicit expanded-run budget (391 episodes x 3 stages = 1173 scored stages, x 2 arms x 3 seeds = 7038 Codex calls, 6 repositories). claimBoundary: report, verification, manifest and bundle all carry internal-native-longitudinal-pilot-only with evidenceClass native-longitudinal-pilot; publicClaimEligible, publicCodingEffectProof and readmeRowAllowed are false in the report and bundle, and verification.externalAuthenticityVerified is false, consistent with the stated process-only preimage boundary. This review did not open any file listed in the manifest other than the four bound artifacts, and did not observe raw run directories, source preimages, prompts, hook payloads, evaluators, gold patches or repository source; the advisory findings below do not block acceptance within that boundary.",
+  "readmeRowAllowed": false,
+  "reportSha256": "570816f96f786ddff3fb97d8cd9be84fa03af6984a0c0830f25a0057a2bce534",
+  "reviewedAt": "2026-09-03T09:38:28.332Z",
+  "reviewer": "Claude (independent review subagent)",
+  "reviewerTaskName": "/root/c5_final_independent_review_v1",
+  "runId": "run-c5-canary-flat-20260903T065126Z",
+  "schemaVersion": 1,
+  "scope": "sanitized-projection-only",
+  "verificationSha256": "aae8d8ff9eb1fbebce97f829d56477521504c5074c55505ad745290b43125fe9"
+}

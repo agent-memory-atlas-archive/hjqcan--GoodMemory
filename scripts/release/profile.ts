@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { V08_CONSUMER_SMOKE } from "./v08Consumer";
 
 import type {
   ReleaseCheckStatus,
@@ -278,16 +279,17 @@ export function projectV07LegacyReadinessParity(
   };
 }
 
-export async function loadV07ReleaseProfile(
+async function loadVersionedReleaseProfile(
   repoRoot: string,
+  minor: "0.7" | "0.8",
 ): Promise<ReleaseProfile> {
   const packageJson = JSON.parse(
     await readFile(join(repoRoot, "package.json"), "utf8"),
   ) as PackageJson;
   const name = requiredString(packageJson.name, "name");
   const version = requiredString(packageJson.version, "version");
-  if (name !== "goodmemory" || !/^0\.7\.\d+$/u.test(version)) {
-    throw new Error(`v0.7 release profile cannot prepare ${name}@${version}`);
+  if (name !== "goodmemory" || !/^0\.(7|8)\.\d+$/u.test(version) || !version.startsWith(`${minor}.`)) {
+    throw new Error(`v${minor} release profile cannot prepare ${name}@${version}`);
   }
   const release = packageJson.goodmemoryRelease;
   const status = releaseStatus(release?.status);
@@ -309,11 +311,30 @@ export async function loadV07ReleaseProfile(
 
   return {
     artifact: {
-      consumerSmoke: LANGUAGE_CONSUMER_SMOKE,
+      consumerSmoke: LANGUAGE_CONSUMER_SMOKE + (minor === "0.8" ? V08_CONSUMER_SMOKE : ""),
       maxTarballBytes: 4 * 1024 * 1024,
-      requiredFiles: REQUIRED_PACKED_FILES,
+      requiredFiles: [...REQUIRED_PACKED_FILES, ...(minor === "0.8" ? [
+        "docs/GoodMemory-0.7-to-0.8-Migration-Guide.md",
+        "docs/GoodMemory-Memory-Artifact-and-Interchange-Spec.md",
+        "reports/quality-gates/phase-75/default-enablement-20260905.md",
+      ] : [])],
     },
-    checks: V07_COMMAND_CHECKS,
+    checks: [...V07_COMMAND_CHECKS, ...(minor === "0.8" ? [{
+      args: ["scripts/release/phase73.ts"],
+      command: "bun",
+      id: "phase-73",
+      required: true,
+      successDetail: "Complete Level-2 evidence and independent review verified; no public claim promoted",
+      title: "Phase 73 Level-2 closure",
+    }, {
+      args: ["scripts/release/kimiPlugin.ts", "--output", { outputPath: `goodmemory-kimi-plugin-${version}.zip` }],
+      command: "bun",
+      generatedEvidence: { id: "kimi-plugin-archive", path: `goodmemory-kimi-plugin-${version}.zip` },
+      id: "kimi-plugin",
+      required: true,
+      successDetail: "Version-pinned plugin-only ZIP generated from the allowlisted source closure",
+      title: "Kimi Code plugin release archive",
+    }] : [])],
     evidenceInputs: [{
       checkId: V07_HISTORICAL_CAPSULE_CHECK_ID,
       id: "v0.7.4-release-readiness-capsule",
@@ -322,7 +343,7 @@ export async function loadV07ReleaseProfile(
       sha256: V07_READINESS_CAPSULE_SHA256,
       title: "Frozen v0.7.4 release readiness capsule",
     }],
-    id: "goodmemory-v0.7",
+    id: `goodmemory-v${minor}`,
     package: {
       distTag,
       installCommandsApplyAfterPublish: true,
@@ -338,8 +359,13 @@ export async function loadV07ReleaseProfile(
   };
 }
 
+export async function loadV07ReleaseProfile(repoRoot: string): Promise<ReleaseProfile> {
+  return loadVersionedReleaseProfile(repoRoot, "0.7");
+}
+
 export async function loadReleaseProfile(
   repoRoot: string,
 ): Promise<ReleaseProfile> {
-  return loadV07ReleaseProfile(repoRoot);
+  const pkg = JSON.parse(await readFile(join(repoRoot, "package.json"), "utf8")) as PackageJson;
+  return loadVersionedReleaseProfile(repoRoot, typeof pkg.version === "string" && pkg.version.startsWith("0.8.") ? "0.8" : "0.7");
 }

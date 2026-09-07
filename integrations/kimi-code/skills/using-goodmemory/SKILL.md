@@ -9,8 +9,15 @@ GoodMemory is fallible supporting context. The user's latest instruction, the
 current repository, and current test or runtime evidence take precedence.
 
 For every GoodMemory tool call, pass the current project absolute path as
-`cwd`. Do not set or invent a fixed workspace id. This keeps sessions in the
-same project connected while isolating different projects.
+`cwd`, using the same project-root spelling across sessions. Do not invent a
+fixed workspace id or change a user-configured one. GoodMemory 0.7.5 derives
+only the directory name: different paths with the same basename are not
+isolated. Report that limitation if encountered. The 0.8 path-fingerprint
+default separates those paths; symlink aliases, case variants, moves, and
+clones deliberately get separate defaults. Explicit shared IDs opt out of
+that separation. Do not migrate, copy, merge, or delete older scoped memories
+without the user's explicit reconciliation direction; an empty new scope
+does not imply that the old records were lost.
 
 When earlier decisions, user preferences, prior failures, or project history
 could materially affect the task, call

@@ -1,0 +1,24 @@
+{
+  "baseCommit": "b9a0b28858ea8fc935a6c41631f3306971430c05",
+  "baseTree": "bbff2eaf49d5c685181c9d644fae34803d9c7a66",
+  "canonicalUrl": "https://github.com/unjs/scule",
+  "ecosystem": "bun",
+  "licenseSpdx": "MIT",
+  "notes": [
+    "Default branch main, cloned at HEAD with --depth 1; bundle contains the single HEAD commit (shallow).",
+    "package.json declares no runtime dependencies. All 11 exported functions are defined directly in src/index.ts; src/types.ts is type-only (the only re-export in the entry is `export * from './types'`).",
+    "Import check run with `bun --no-install`; no bare imports in src/.",
+    "Excluded: test/, .github/, .eslintrc, .eslintignore, .prettierrc, .editorconfig, .gitignore, pnpm-lock.yaml, renovate.json, CHANGELOG.md, README.md."
+  ],
+  "overlayFiles": [
+    "AGENTS.md",
+    "tests/base-health.test.ts"
+  ],
+  "projectedFileCount": 5,
+  "projectionPolicy": "source-only-no-upstream-tests-v1",
+  "repositoryId": "unjs-scule",
+  "schemaVersion": 1,
+  "upstreamCommit": "5bc68048caad7c0e7de35842c83a510e8e1a7c4f",
+  "upstreamRef": "main (default branch HEAD)",
+  "upstreamTree": "7314d954f882bd0bbcf6ac4db3693f813cfc15de"
+}

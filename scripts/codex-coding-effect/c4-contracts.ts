@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+import {
+  CONTROLLED_DATASET_PROFILES,
+  resolveControlledDatasetProfile,
+} from "./controlled-dataset-profile";
+import type { ControlledDatasetProfile } from "./controlled-dataset-profile";
 import type {
   CodexCodingEffectDataset,
   CodexCodingEffectDatasetV2,
@@ -38,6 +43,26 @@ const irrelevantMemoryReviewCheckSchema = z.object({
   ...sharedReviewCheckShape,
   memoryIrrelevantAndNonMisleading: z.boolean(),
 }).strict();
+const noHistoryReviewCheckSchema = z.object({
+  ...sharedReviewCheckShape,
+  memoryAbsentAndTaskSelfContained: z.boolean(),
+}).strict();
+
+function profileForDatasetId(
+  datasetId: string,
+): ControlledDatasetProfile | undefined {
+  return CONTROLLED_DATASET_PROFILES.find((profile) =>
+    profile.datasetId === datasetId
+  );
+}
+
+function profileForDatasetRootPath(
+  datasetRootPath: string,
+): ControlledDatasetProfile | undefined {
+  return CONTROLLED_DATASET_PROFILES.find((profile) =>
+    profile.datasetRootPath === datasetRootPath
+  );
+}
 
 const reviewInputBundleSchema = z.object({
   assetFiles: z.array(z.object({
@@ -47,10 +72,8 @@ const reviewInputBundleSchema = z.object({
   assetLockSha256: sha256Schema,
   assetRootSha256: sha256Schema,
   createdAt: trimmedStringSchema,
-  datasetRootPath: z.literal(
-    "fixtures/codex-coding-effect/c4-controlled-pilot",
-  ),
-  datasetId: z.literal("codex-c4-controlled-pilot-v2"),
+  datasetRootPath: trimmedStringSchema,
+  datasetId: trimmedStringSchema,
   excludedOutcomeArtifacts: z.tuple([
     z.literal("c4-baseline-results"),
     z.literal("c4-paired-results"),
@@ -58,13 +81,28 @@ const reviewInputBundleSchema = z.object({
   ]),
   leakageAuditSha256: sha256Schema,
   manifestSha256: sha256Schema,
-  readinessCorePath: z.literal(
-    "reports/quality-gates/phase-73/c4-controlled-pilot-core.json",
-  ),
+  readinessCorePath: trimmedStringSchema,
   readinessCoreSha256: sha256Schema,
   schemaVersion: z.literal(1),
   scope: z.literal("dataset-only-no-coding-outcomes"),
 }).strict().superRefine((bundle, context) => {
+  const profile = profileForDatasetId(bundle.datasetId);
+  if (profile === undefined) {
+    context.addIssue({
+      code: "custom",
+      message: `C4 review input bundle names unknown dataset ${bundle.datasetId}`,
+      path: ["datasetId"],
+    });
+  } else if (
+    bundle.datasetRootPath !== profile.datasetRootPath ||
+    bundle.readinessCorePath !== profile.readinessCorePath
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "C4 review input bundle paths do not match the dataset profile",
+      path: ["datasetRootPath"],
+    });
+  }
   const paths = new Set<string>();
   for (const [index, asset] of bundle.assetFiles.entries()) {
     if (paths.has(asset.path)) {
@@ -95,6 +133,13 @@ const episodeReviewSchema = z.discriminatedUnion(
       memoryExpectationMode: z.literal("irrelevant-control"),
       rationale: trimmedStringSchema,
     }).strict(),
+    z.object({
+      author: trimmedStringSchema,
+      checks: noHistoryReviewCheckSchema,
+      episodeId: trimmedStringSchema,
+      memoryExpectationMode: z.literal("none"),
+      rationale: trimmedStringSchema,
+    }).strict(),
   ],
 );
 
@@ -103,8 +148,8 @@ const independentDatasetReviewSchema = z.object({
   assetRootSha256: sha256Schema,
   c4AbResultsInspected: z.boolean(),
   codingOutcomeArtifactsInspected: z.boolean(),
-  datasetId: z.literal("codex-c4-controlled-pilot-v2"),
-  episodeReviews: z.array(episodeReviewSchema).length(6),
+  datasetId: trimmedStringSchema,
+  episodeReviews: z.array(episodeReviewSchema).min(1),
   inputBundleSha256: sha256Schema,
   manifestSha256: sha256Schema,
   leakageAuditSha256: sha256Schema,
@@ -112,11 +157,34 @@ const independentDatasetReviewSchema = z.object({
   readinessCoreSha256: sha256Schema,
   reviewedAt: trimmedStringSchema,
   reviewer: trimmedStringSchema,
-  reviewerTaskName: z.literal("/root/c4_final_independent_review_v5"),
+  reviewerTaskName: trimmedStringSchema,
   schemaVersion: z.literal(2),
   scope: z.literal("dataset-only-no-coding-outcomes"),
   status: z.enum(["accepted", "changes-requested"]),
 }).strict().superRefine((review, context) => {
+  const profile = profileForDatasetId(review.datasetId);
+  if (profile === undefined) {
+    context.addIssue({
+      code: "custom",
+      message: `C4 independent review names unknown dataset ${review.datasetId}`,
+      path: ["datasetId"],
+    });
+  } else {
+    if (review.episodeReviews.length !== profile.episodeCount) {
+      context.addIssue({
+        code: "custom",
+        message: `C4 independent review must cover exactly ${profile.episodeCount} episodes`,
+        path: ["episodeReviews"],
+      });
+    }
+    if (review.reviewerTaskName !== profile.reviewerAgentName) {
+      context.addIssue({
+        code: "custom",
+        message: "C4 independent review names the wrong reviewer task",
+        path: ["reviewerTaskName"],
+      });
+    }
+  }
   if (review.c4AbResultsInspected || review.codingOutcomeArtifactsInspected) {
     context.addIssue({
       code: "custom",
@@ -161,30 +229,39 @@ const reviewArtifactReferenceSchema = z.object({
 const independentReviewDispatchSchema = z.object({
   authorTaskName: z.literal("/root"),
   contextPolicy: z.literal("fork-turns-none"),
-  datasetRootPath: z.literal(
-    "fixtures/codex-coding-effect/c4-controlled-pilot",
-  ),
-  inputBundlePath: z.literal(
-    "fixtures/codex-coding-effect/c4-controlled-pilot/review/input-bundle.json",
-  ),
-  readinessCorePath: z.literal(
-    "reports/quality-gates/phase-73/c4-controlled-pilot-core.json",
-  ),
-  requestPath: z.literal(
-    "fixtures/codex-coding-effect/c4-controlled-pilot/review/request.md",
-  ),
-  requestedTaskName: z.literal("c4_final_independent_review_v5"),
-  responsePath: z.literal(
-    "fixtures/codex-coding-effect/c4-controlled-pilot/review/independent-review.json",
-  ),
-  reviewerAgentName: z.literal("/root/c4_final_independent_review_v5"),
+  datasetRootPath: trimmedStringSchema,
+  inputBundlePath: trimmedStringSchema,
+  readinessCorePath: trimmedStringSchema,
+  requestPath: trimmedStringSchema,
+  requestedTaskName: trimmedStringSchema,
+  responsePath: trimmedStringSchema,
+  reviewerAgentName: trimmedStringSchema,
   schemaVersion: z.literal(1),
   spawnMessage: trimmedStringSchema,
-}).strict();
+}).strict().superRefine((dispatch, context) => {
+  const profile = profileForDatasetRootPath(dispatch.datasetRootPath);
+  if (
+    profile === undefined ||
+    dispatch.inputBundlePath !==
+      `${profile.datasetRootPath}/review/input-bundle.json` ||
+    dispatch.readinessCorePath !== profile.readinessCorePath ||
+    dispatch.requestPath !== `${profile.datasetRootPath}/review/request.md` ||
+    dispatch.requestedTaskName !== profile.reviewerTaskName ||
+    dispatch.responsePath !==
+      `${profile.datasetRootPath}/review/independent-review.json` ||
+    dispatch.reviewerAgentName !== profile.reviewerAgentName
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "C4 independent review dispatch does not match a dataset profile",
+      path: ["datasetRootPath"],
+    });
+  }
+});
 
 const independentReviewProvenanceSchema = z.object({
   authorTaskName: trimmedStringSchema,
-  datasetId: z.literal("codex-c4-controlled-pilot-v2"),
+  datasetId: trimmedStringSchema,
   dispatch: reviewArtifactReferenceSchema.extend({
     path: z.literal("review/dispatch.json"),
   }).strict(),
@@ -199,20 +276,34 @@ const independentReviewProvenanceSchema = z.object({
     path: z.literal("review/independent-review.json"),
   }).strict(),
   reviewer: z.object({
-    agentName: z.literal("/root/c4_final_independent_review_v5"),
+    agentName: trimmedStringSchema,
     contextPolicy: z.literal("fork-turns-none"),
     orchestratorAttestation: z.object({
       attestedByTaskName: trimmedStringSchema,
       basis: z.literal(
         "dispatch-plus-recorder-cli-no-cryptographic-receipt",
       ),
-      canonicalTaskName: z.literal("/root/c4_final_independent_review_v5"),
+      canonicalTaskName: trimmedStringSchema,
     }).strict(),
-    requestedTaskName: z.literal("c4_final_independent_review_v5"),
+    requestedTaskName: trimmedStringSchema,
     type: z.literal("independent-ai-agent"),
   }).strict(),
   schemaVersion: z.literal(2),
 }).strict().superRefine((provenance, context) => {
+  const profile = profileForDatasetId(provenance.datasetId);
+  if (
+    profile === undefined ||
+    provenance.reviewer.agentName !== profile.reviewerAgentName ||
+    provenance.reviewer.orchestratorAttestation.canonicalTaskName !==
+      profile.reviewerAgentName ||
+    provenance.reviewer.requestedTaskName !== profile.reviewerTaskName
+  ) {
+    context.addIssue({
+      code: "custom",
+      message: "C4 review provenance does not name the dataset profile reviewer",
+      path: ["reviewer", "agentName"],
+    });
+  }
   if (provenance.authorTaskName === provenance.reviewer.agentName) {
     context.addIssue({
       code: "custom",
@@ -254,7 +345,9 @@ function countFailedEpisodeReviewChecks(
   ];
   const memoryCheck = episode.memoryExpectationMode === "required"
     ? episode.checks.memoryUsefulNotAnswer
-    : episode.checks.memoryIrrelevantAndNonMisleading;
+    : episode.memoryExpectationMode === "irrelevant-control"
+      ? episode.checks.memoryIrrelevantAndNonMisleading
+      : episode.checks.memoryAbsentAndTaskSelfContained;
   return [...sharedChecks, memoryCheck].filter((passed) => !passed).length;
 }
 
@@ -264,21 +357,29 @@ export function validateC4ControlledPilotDataset(
   if (dataset.schemaVersion !== 2) {
     throw new Error("C4 requires Codex coding-effect dataset schema version 2");
   }
-  if (dataset.datasetId !== "codex-c4-controlled-pilot-v2") {
-    throw new Error("C4 dataset id must be codex-c4-controlled-pilot-v2");
-  }
-  if (dataset.episodes.length !== 6) {
+  const profile = profileForDatasetId(dataset.datasetId);
+  if (profile === undefined) {
     throw new Error(
-      `C4 requires exactly 6 episodes; received ${dataset.episodes.length}`,
+      `C4 dataset id ${dataset.datasetId} is not a registered controlled dataset profile`,
     );
   }
-  if (new Set(dataset.episodes.map((episode) => episode.repository.url)).size < 2) {
-    throw new Error("C4 requires at least 2 repositories");
+  if (dataset.episodes.length !== profile.episodeCount) {
+    throw new Error(
+      `C4 requires exactly ${profile.episodeCount} episodes; received ${dataset.episodes.length}`,
+    );
+  }
+  if (
+    new Set(dataset.episodes.map((episode) => episode.repository.url)).size <
+      profile.repositoryCount
+  ) {
+    throw new Error(
+      `C4 requires at least ${profile.repositoryCount} repositories`,
+    );
   }
   for (const episode of dataset.episodes) {
-    if (episode.stages.length < 3) {
+    if (episode.stages.length < profile.stagesPerEpisode) {
       throw new Error(
-        `C4 episode ${episode.id} requires at least 3 stages`,
+        `C4 episode ${episode.id} requires at least ${profile.stagesPerEpisode} stages`,
       );
     }
     if (episode.claimEligibility !== "pilot-only") {
@@ -290,9 +391,32 @@ export function validateC4ControlledPilotDataset(
         `C4 first stage ${episode.id}/${firstStage.id} must use no history`,
       );
     }
-    const irrelevantControl = episode.strata.includes(
-      "irrelevant-memory-negative-control",
-    );
+    validateLaterStageModes(profile, episode);
+  }
+  const strata = new Set(dataset.episodes.flatMap((episode) => episode.strata));
+  for (const required of C4_REQUIRED_MEMORY_STRATA) {
+    if (!strata.has(required)) {
+      throw new Error(`C4 is missing memory stratum ${required}`);
+    }
+  }
+  return dataset;
+}
+
+// Later-stage memory expectations. The C4 rule is uniform per episode: every
+// later stage requires memory, or is an irrelevant control in an
+// irrelevant-memory episode. The Level-2 rule is declared per stage: the
+// final stage requires memory, intervening stages are irrelevant controls or
+// required (corrections and supersessions), irrelevant-memory episodes stay
+// irrelevant-control throughout, and no-history control episodes never
+// expect memory.
+function validateLaterStageModes(
+  profile: ControlledDatasetProfile,
+  episode: CodexCodingEffectDatasetV2["episodes"][number],
+): void {
+  const irrelevantControl = episode.strata.includes(
+    "irrelevant-memory-negative-control",
+  );
+  if (profile.laterStagePolicy === "uniform-by-episode") {
     for (const stage of episode.stages.slice(1)) {
       const expectedMode = irrelevantControl ? "irrelevant-control" : "required";
       if (stage.memoryExpectation.mode !== expectedMode) {
@@ -306,14 +430,43 @@ export function validateC4ControlledPilotDataset(
         );
       }
     }
+    return;
   }
-  const strata = new Set(dataset.episodes.flatMap((episode) => episode.strata));
-  for (const required of C4_REQUIRED_MEMORY_STRATA) {
-    if (!strata.has(required)) {
-      throw new Error(`C4 is missing memory stratum ${required}`);
+  const noHistoryControl =
+    episode.primaryStratum === "no-history-negative-control";
+  const laterStages = episode.stages.slice(1);
+  for (const [index, stage] of laterStages.entries()) {
+    const mode = stage.memoryExpectation.mode;
+    if (irrelevantControl) {
+      if (mode !== "irrelevant-control") {
+        throw new Error(
+          `C4 irrelevant-memory episode ${episode.id}/${stage.id} must use irrelevant-control`,
+        );
+      }
+      continue;
+    }
+    if (noHistoryControl) {
+      if (mode !== "none") {
+        throw new Error(
+          `C4 no-history episode ${episode.id}/${stage.id} must use no history`,
+        );
+      }
+      continue;
+    }
+    if (index === laterStages.length - 1) {
+      if (mode !== "required") {
+        throw new Error(
+          `C4 final stage ${episode.id}/${stage.id} must require relevant memory`,
+        );
+      }
+      continue;
+    }
+    if (mode === "none") {
+      throw new Error(
+        `C4 intervening stage ${episode.id}/${stage.id} must declare irrelevant-control or required`,
+      );
     }
   }
-  return dataset;
 }
 
 export function parseC4IndependentDatasetReview(

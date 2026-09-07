@@ -1,0 +1,57 @@
+diff --git a/src/array/zipToObject.ts b/src/array/zipToObject.ts
+index bf82c4737e89b7f3b04d184e7a8a46b09ea99915..a8b56bb5357d80510e03efe6424d08ca82423742 100644
+--- a/src/array/zipToObject.ts
++++ b/src/array/zipToObject.ts
+@@ -2,7 +2,9 @@ import { isArray, isFunction } from 'radashi'
+ 
+ /**
+  * Creates an object mapping the specified keys to their corresponding
+- * values.
++ * values. The first occurrence of a key wins, nullish keys are
++ * skipped, and a key without a value at its position in a value list
++ * is omitted.
+  *
+  * @see https://radashi.js.org/reference/array/zipToObject
+  * @example
+@@ -22,21 +24,30 @@ export function zipToObject<K extends string | number | symbol, V>(
+   keys: readonly K[],
+   values: V | ((key: K, idx: number) => V) | readonly V[],
+ ): Record<K, V> {
++  const result = {} as Record<K, V>
+   if (!keys || !keys.length) {
+-    return {} as Record<K, V>
++    return result
+   }
+ 
++  const valueList = isArray(values) ? values : null
+   const getValue = isFunction(values)
+     ? values
+-    : isArray(values)
+-      ? (_k: K, i: number) => values[i]
+-      : (_k: K, _i: number) => values
++    : valueList
++      ? (_k: K, i: number) => valueList[i]
++      : (_k: K, _i: number) => values as V
+ 
+-  return keys.reduce(
+-    (acc, key, idx) => {
+-      acc[key] = getValue(key, idx)
+-      return acc
+-    },
+-    {} as Record<K, V>,
+-  )
++  keys.forEach((key, idx) => {
++    if (key == null) {
++      return
++    }
++    if (Object.prototype.hasOwnProperty.call(result, key)) {
++      return
++    }
++    if (valueList && idx >= valueList.length) {
++      return
++    }
++    result[key] = getValue(key, idx)
++  })
++
++  return result
+ }

@@ -18,6 +18,7 @@ import {
   buildC4BaselinePrompt,
   runC4AdaptiveBaselineCeiling,
   verifyC4BaselineStageEvidenceFiles,
+  buildC4BaselineCeilingPlan,
 } from "../../scripts/codex-coding-effect/c4-baseline-ceiling";
 import type {
   C4BaselineCeilingReport,
@@ -34,6 +35,8 @@ import {
   runC4BaselineCli,
 } from "../../scripts/run-codex-coding-effect-c4-baseline-ceiling";
 
+const PLAN = buildC4BaselineCeilingPlan(targets(), { targetLabel: "all-episodes" });
+
 describe("Codex coding-effect C4 baseline ceiling", () => {
   it("stops after six stage-3 calls when no-memory reaches the ceiling", async () => {
     const calls: string[] = [];
@@ -46,15 +49,15 @@ describe("Codex coding-effect C4 baseline ceiling", () => {
       targets: targets(),
     });
 
-    expect(() => assertC4BaselineCeilingReportBindings(report)).not.toThrow();
+    expect(() => assertC4BaselineCeilingReportBindings(report, PLAN)).not.toThrow();
     expect(() => assertC4BaselineCeilingReportBindings({
       ...report,
       model: "drifted-model",
-    })).toThrow("C4 baseline run identity hash is inconsistent");
+    }, PLAN)).toThrow("C4 baseline run identity hash is inconsistent");
     expect(() => assertC4BaselineCeilingReportBindings({
       ...report,
       stageTimeoutMs: report.stageTimeoutMs + 1,
-    })).toThrow("C4 baseline run identity hash is inconsistent");
+    }, PLAN)).toThrow("C4 baseline run identity hash is inconsistent");
     expect(() => assertC4BaselineCeilingReportBindings({
       ...report,
       results: report.results.map((result, index) =>
@@ -62,11 +65,11 @@ describe("Codex coding-effect C4 baseline ceiling", () => {
           ? { ...result, stageEvidenceSha256: "f".repeat(64) }
           : result
       ),
-    })).toThrow("C4 baseline stage evidence aggregate is inconsistent");
+    }, PLAN)).toThrow("C4 baseline stage evidence aggregate is inconsistent");
     expect(() => assertC4BaselineCeilingReportBindings({
       ...report,
       decision: "proceed-to-c5-pilot",
-    })).toThrow("C4 baseline ceiling decision is inconsistent");
+    }, PLAN)).toThrow("C4 baseline ceiling decision is inconsistent");
     const stageEvidenceFiles = evidenceFiles(report);
     expect(() => verifyC4BaselineStageEvidenceFiles(
       report,

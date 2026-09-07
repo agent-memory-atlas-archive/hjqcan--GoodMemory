@@ -1,0 +1,82 @@
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..47e937efcf218c6da3dd3d54d9a83c4c80434cd3 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -34,6 +34,35 @@ def _format_not_finite(value: float) -> str:
+     return ""
+ 
+ 
++def _trim_amount(text: str) -> str:
++    """Drop trailing fractional zeros and never show a signed zero."""
++    if "." in text:
++        text = text.rstrip("0").rstrip(".")
++    if text.lstrip("-").replace(".", "").strip("0") == "":
++        return "0"
++    return text
++
++
++def _policy_amount(number: float, fmt: str) -> str:
++    """Render an amount: the format sets the decimals, halves round away from zero.
++
++    Rounding works on the shortest decimal text of the number so a value that
++    reads as a half is treated as a half; trailing zeros are trimmed afterwards.
++    """
++    import re
++    from decimal import ROUND_HALF_UP, Decimal, localcontext
++
++    match = re.fullmatch(r"%0?\.(\d+)f", fmt)
++    if match is None:
++        return _trim_amount(fmt % number)
++    with localcontext() as context:
++        context.prec = 100
++        rounded = Decimal(repr(float(number))).quantize(
++            Decimal(1).scaleb(-int(match.group(1))), rounding=ROUND_HALF_UP
++        )
++        return _trim_amount("{:f}".format(rounded))
++
++
+ def ordinal(value: NumberOrString, gender: str = "male") -> str:
+     """Converts an integer to its ordinal as a string.
+ 
+@@ -209,7 +238,7 @@ def intword(value: NumberOrString, format: str = "%.1f") -> str:
+         >>> intword("12400")
+         '12.4 thousand'
+         >>> intword("1000000")
+-        '1.0 million'
++        '1 million'
+         >>> intword(1_200_000_000)
+         '1.2 billion'
+         >>> intword(8100000000000000000000000000000000)
+@@ -252,21 +281,25 @@ def intword(value: NumberOrString, format: str = "%.1f") -> str:
+         if value < power:
+             chopped = value / float(powers[ordinal_ - 1])
+             powers_difference = powers[ordinal_] / powers[ordinal_ - 1]
+-            if float(format % chopped) == powers_difference:
++            amount = _policy_amount(chopped, format)
++            if float(amount) == powers_difference:
+                 chopped = value / float(powers[ordinal_])
++                amount = _policy_amount(chopped, format)
+                 singular, plural = human_powers[ordinal_]
+                 return (
+                     negative_prefix
+-                    + " ".join(
+-                        [format, _ngettext(singular, plural, math.ceil(chopped))]
+-                    )
+-                ) % chopped
++                    + amount
++                    + " "
++                    + _ngettext(singular, plural, math.ceil(chopped))
++                )
+ 
+             singular, plural = human_powers[ordinal_ - 1]
+             return (
+                 negative_prefix
+-                + " ".join([format, _ngettext(singular, plural, math.ceil(chopped))])
+-            ) % chopped
++                + amount
++                + " "
++                + _ngettext(singular, plural, math.ceil(chopped))
++            )
+ 
+     return negative_prefix + str(value)
+ 

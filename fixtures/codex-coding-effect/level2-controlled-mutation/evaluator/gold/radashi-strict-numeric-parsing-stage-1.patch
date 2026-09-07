@@ -1,0 +1,54 @@
+diff --git a/src/number/toInt.ts b/src/number/toInt.ts
+index c140bf3280ccce62f891353978d2aaf1d8459ab3..849e3bff8c78ec1769f49b7fae981ce115df78c0 100644
+--- a/src/number/toInt.ts
++++ b/src/number/toInt.ts
+@@ -1,8 +1,29 @@
+-import { isSymbol } from 'radashi'
++const STRICT_DECIMAL = /^[+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?$/
+ 
+ /**
+- * Combines `Number.parseInt` with NaN handling. By default, a zero
+- * (0) is returned in place of NaN.
++ * Strict numeric parsing: the whole trimmed text must be a decimal
++ * number (optional sign, digits, optional fraction with digits on
++ * both sides of the point, optional exponent). Prefix parsing is not
++ * used because it silently accepted corrupt input.
++ */
++function parseStrictNumber(value: unknown): number | undefined {
++  if (typeof value === 'number') {
++    return Number.isFinite(value) ? value : undefined
++  }
++  if (typeof value === 'string') {
++    const text = value.trim()
++    if (!STRICT_DECIMAL.test(text)) {
++      return undefined
++    }
++    const parsed = Number(text)
++    return Number.isFinite(parsed) ? parsed : undefined
++  }
++  return undefined
++}
++
++/**
++ * Converts a value to an integer using strict whole-string parsing.
++ * By default, a zero (0) is returned when the value is not a number.
+  *
+  * @see https://radashi.js.org/reference/number/toInt
+  * @example
+@@ -25,11 +46,11 @@ export function toInt<T>(
+   value: any,
+   defaultValue?: T,
+ ): number | Exclude<T, undefined> {
+-  // Symbols throw on string coercion, which parseInt does.
+-  const parsedValue = isSymbol(value) ? Number.NaN : Number.parseInt(value)
+-  return Number.isNaN(parsedValue)
+-    ? defaultValue !== undefined
++  const parsed = parseStrictNumber(value)
++  if (parsed === undefined) {
++    return defaultValue !== undefined
+       ? (defaultValue as Exclude<T, undefined>)
+       : 0
+-    : parsedValue
++  }
++  return Math.trunc(parsed)
+ }

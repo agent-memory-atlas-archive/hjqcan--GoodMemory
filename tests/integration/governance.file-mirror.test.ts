@@ -1,13 +1,12 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join, relative } from "node:path";
 import { createGoodMemory } from "../../src";
 import { createInternalGoodMemory } from "../../src/api/createGoodMemory";
 import type { FileMirror } from "../../src/governance/fileMirror";
 import type { GoodMemoryTraceSpan } from "../../src/observability/contracts";
 
-const SCRATCH =
-  "/private/tmp/claude-501/-Users-hjqcan-workspace-GoodMemory/cd707382-ae3b-4889-98c1-ba694a90813c/scratchpad";
 const scope = { userId: "mirror-user", workspaceId: "workspace-a" };
 const cleanups: string[] = [];
 
@@ -18,7 +17,7 @@ afterEach(async () => {
 });
 
 async function tempDir(): Promise<string> {
-  const dir = await mkdtemp(join(SCRATCH, "file-mirror-"));
+  const dir = await mkdtemp(join(tmpdir(), "file-mirror-"));
   cleanups.push(dir);
   return dir;
 }
@@ -53,6 +52,59 @@ function mirrored(root: string, traces?: GoodMemoryTraceSpan[]) {
 }
 
 describe("governance file mirror", () => {
+  it.each(["forget", "deleteAllMemory"] as const)(
+    "removes workspace note files after a user-wide %s",
+    async (operation) => {
+      const dir = await tempDir();
+      const root = join(dir, "memory");
+      const { flush, memory } = mirrored(root);
+      const imported = await memory.importMemory({
+        scope,
+        source: { kind: "pages", pages: [{ path: "private.md", content: "# Private note\n\nPrivate workspace detail.\n" }] },
+      });
+      await flush();
+      const before = await memory.exportMemory({ scope });
+      const page = before.pages.files.find((file) => file.kind === "page")!;
+      expect(await readFile(join(root, page.relativePath), "utf8")).toContain("Private workspace detail.");
+
+      const userScope = { userId: scope.userId };
+      if (operation === "forget") {
+        await memory.forget({ memoryId: imported.pages[0]!.memoryId!, scope: userScope });
+      } else {
+        await memory.deleteAllMemory({ scope: userScope });
+      }
+      await flush();
+
+      const after = await memory.exportMemory({ scope });
+      expect(after.durable.notes).toEqual([]);
+      const expected = [...after.artifacts.files, ...after.pages.files];
+      expect(await listFiles(root)).toEqual(expected.map((file) => file.relativePath).sort());
+      for (const file of expected) {
+        expect(await readFile(join(root, file.relativePath), "utf8")).toBe(file.content);
+      }
+    },
+  );
+
+  it("does not create or rewrite the mirror for dry-run or unchanged imports", async () => {
+    const dir = await tempDir();
+    const root = join(dir, "memory");
+    const { flush, memory } = mirrored(root);
+    const source = { kind: "pages" as const, pages: [{ path: "notes.md", content: "# Notes\n\nKeep the original text.\n" }] };
+    const dry = await memory.importMemory({ dryRun: true, scope, source });
+    expect(dry.outcome).toBe("dry_run");
+    await flush();
+    expect(await readdir(dir)).toEqual([]);
+
+    await memory.importMemory({ scope, source });
+    await flush();
+    const before = await stat(root);
+    await memory.importMemory({ dryRun: true, scope, source });
+    await memory.importMemory({ scope, source });
+    await flush();
+    expect((await stat(root)).ino).toBe(before.ino);
+    expect((await stat(root)).mtimeMs).toBe(before.mtimeMs);
+  });
+
   it("mirrors the export bundle byte-for-byte after each durable mutation", async () => {
     const dir = await tempDir();
     const root = join(dir, ".goodmemory", "memory");

@@ -8,17 +8,38 @@
     "skipLibCheck": true,
     "verbatimModuleSyntax": true,
     "allowImportingTsExtensions": false,
-    "types": ["bun"],
+    "types": [
+      "bun"
+    ],
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "goodmemory": ["./src/index.ts"],
-      "goodmemory/ai-sdk": ["./src/ai-sdk/index.ts"],
-      "goodmemory/host": ["./src/host/index.ts"],
-      "goodmemory/http": ["./src/http/index.ts"],
-      "goodmemory/runtime-kit": ["./src/runtime-kit/index.ts"]
+      "@/*": [
+        "src/*"
+      ],
+      "goodmemory": [
+        "./src/index.ts"
+      ],
+      "goodmemory/ai-sdk": [
+        "./src/ai-sdk/index.ts"
+      ],
+      "goodmemory/host": [
+        "./src/host/index.ts"
+      ],
+      "goodmemory/http": [
+        "./src/http/index.ts"
+      ],
+      "goodmemory/runtime-kit": [
+        "./src/runtime-kit/index.ts"
+      ]
     }
   },
-  "include": ["src", "tests", "scripts"],
-  "exclude": ["tests/consumers/reference-package-smoke/smoke-types.ts"]
+  "include": [
+    "src",
+    "tests",
+    "scripts"
+  ],
+  "exclude": [
+    "tests/consumers/reference-package-smoke/smoke-types.ts",
+    "scripts/codex-coding-effect/level2-authoring"
+  ]
 }

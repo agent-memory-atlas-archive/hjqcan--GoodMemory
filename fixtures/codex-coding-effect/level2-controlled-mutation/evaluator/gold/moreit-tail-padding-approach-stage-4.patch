@@ -1,0 +1,57 @@
+diff --git a/more_itertools/more.py b/more_itertools/more.py
+old mode 100755
+new mode 100644
+index bf501956ae6c77e7597948abdaede960ca259444..100e42836d8fee57f9444b7fcf9198fec5cc52a8
+--- a/more_itertools/more.py
++++ b/more_itertools/more.py
+@@ -1480,32 +1480,37 @@ def sliced(seq, n, strict=False):
+     >>> list(sliced((1, 2, 3, 4, 5, 6), 3))
+     [(1, 2, 3), (4, 5, 6)]
+ 
+-    By the default, the last yielded slice will have fewer than *n* elements
+-    if the length of *seq* is not divisible by *n*:
++    If the length of *seq* is not divisible by *n*, the last slice is padded
++    at the front with ``None`` so that the real items end the slice:
+ 
+     >>> list(sliced((1, 2, 3, 4, 5, 6, 7, 8), 3))
+-    [(1, 2, 3), (4, 5, 6), (7, 8)]
++    [(1, 2, 3), (4, 5, 6), [None, 7, 8]]
+ 
+     If the length of *seq* is not divisible by *n* and *strict* is
+     ``True``, then ``ValueError`` will be raised before the last
+-    slice is yielded.
++    slice is yielded. A slice size below one raises ``ValueError``.
+ 
+     This function will only work for iterables that support slicing.
+     For non-sliceable iterables, see :func:`chunked`.
+ 
+     """
+-    iterator = takewhile(len, (seq[i : i + n] for i in count(0, n)))
+-    if strict:
++    if n < 1:
++        raise ValueError('n must be at least one')
+ 
+-        def ret():
+-            for _slice in iterator:
+-                if len(_slice) != n:
+-                    raise ValueError("seq is not divisible by n.")
++    def ret():
++        for i in count(0, n):
++            _slice = seq[i : i + n]
++            if not len(_slice):
++                return
++            if len(_slice) == n:
+                 yield _slice
++                continue
++            if strict:
++                raise ValueError("seq is not divisible by n.")
++            yield [None] * (n - len(_slice)) + list(_slice)
++            return
+ 
+-        return ret()
+-    else:
+-        return iterator
++    return ret()
+ 
+ 
+ def split_at(iterable, pred, maxsplit=-1, keep_separator=False):

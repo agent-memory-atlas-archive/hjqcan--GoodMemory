@@ -1,0 +1,62 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..171b67e3ca9fc1c271c94b18f84f88980cf63829 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -144,6 +144,32 @@ def _irregular(singular: str, plural: str) -> None:
+         ))
+ 
+ 
++
++def _mirror_case(original: str, inflected: str) -> str:
++    """
++    Restore the letter case of ``original`` onto ``inflected``, which was
++    computed from the lowercased original.
++    """
++    letters = [char for char in original if char.isalpha()]
++    if not letters:
++        return inflected
++    lowered = original.lower()
++    prefix = 0
++    while (prefix < len(lowered) and prefix < len(inflected)
++           and lowered[prefix] == inflected[prefix]):
++        prefix += 1
++    tail_upper = letters[-1].isupper()
++    result = []
++    for index, char in enumerate(inflected):
++        if index < prefix:
++            result.append(original[index])
++        elif index == 0:
++            result.append(char.upper() if letters[0].isupper() else char.lower())
++        else:
++            result.append(char.upper() if tail_upper else char.lower())
++    return ''.join(result)
++
++
+ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+     """
+     Convert strings to CamelCase.
+@@ -284,6 +310,7 @@ def parameterize(string: str, separator: str = '-') -> str:
+     return string.lower()
+ 
+ 
++
+ def pluralize(word: str) -> str:
+     """
+     Return the plural form of a word.
+@@ -302,11 +329,11 @@ def pluralize(word: str) -> str:
+     """
+     if not word or word.lower() in UNCOUNTABLES:
+         return word
+-    else:
+-        for rule, replacement in PLURALS:
+-            if re.search(rule, word):
+-                return re.sub(rule, replacement, word)
+-        return word
++    lowered = word.lower()
++    for rule, replacement in PLURALS:
++        if re.search(rule, lowered):
++            return _mirror_case(word, re.sub(rule, replacement, lowered))
++    return word
+ 
+ 
+ def singularize(word: str) -> str:

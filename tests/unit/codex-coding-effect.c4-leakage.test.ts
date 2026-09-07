@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { createHash } from "node:crypto";
 
 import {
   auditC4SurfaceHiddenArtifactMatrix,
@@ -514,4 +515,39 @@ function artifacts(): C4HiddenArtifact[] {
       : {}),
     id,
   }));
+}
+
+describe("C4 leakage mutation candidates", () => {
+  // Empty strings are legitimate hidden values (an empty input case) but can
+  // never match a surface, so the mutation test must inject the first
+  // candidate with matchable text instead of escaping on the empty one.
+  it("skips empty hidden values and relations when choosing what to inject", () => {
+    const artifactsWithEmpty = artifacts().map((artifact) =>
+      artifact.id === "hidden-test-source"
+        ? {
+            ...artifact,
+            hiddenValueRelations: [["", "secret-output"], ["secret-input", "secret-output"]],
+            hiddenValues: ["", 2500],
+          }
+        : artifact
+    );
+    const mutation = mutationTestC4SurfaceHiddenArtifactMatrix({
+      artifacts: artifactsWithEmpty,
+      surfaces: surfaces(),
+    });
+    expect(mutation.status).toBe("accepted");
+    const injected = mutation.cells.filter((cell) =>
+      cell.artifactId === "hidden-test-source" && cell.applicability === "applicable"
+    );
+    expect(injected.length).toBeGreaterThan(0);
+    expect(injected.every((cell) => cell.targetCellRejected === true)).toBe(true);
+    const valueCell = injected.find((cell) => cell.candidateKind === "hidden-value");
+    expect(valueCell?.injectedCandidateSha256).toBe(
+      sha256(JSON.stringify({ candidate: 2500, candidateKind: "hidden-value" })),
+    );
+  });
+});
+
+function sha256(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
 }

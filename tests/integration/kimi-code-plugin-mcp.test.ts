@@ -110,11 +110,26 @@ describe("Kimi Code plugin MCP flow", () => {
 
       const statement =
         "The Kimi plugin release decision is to use blue-green deployment for Atlas.";
+      for (const invalid of [{ observedAt: "2026-09-07" }, { observedAt: "" }, { timezone: "" }, { timezone: "not-a-timezone" }]) {
+        const result = await client.callTool({
+          arguments: { content: statement, cwd: projectA.root, role: "user", ...invalid },
+          name: "goodmemory_remember",
+        });
+        expect(result.isError).toBe(true);
+      }
+      const afterRejected = await client.callTool({ arguments: { cwd: projectA.root }, name: "goodmemory_stats" });
+      expect((afterRejected.structuredContent as { counts: Record<string, number> }).counts).toEqual(emptyCounts);
       const rememberedResult = await client.callTool({
         arguments: {
           content: statement,
           cwd: projectA.root,
+          extractionStrategy: null,
+          kindHint: null,
+          locale: null,
+          observedAt: null,
           role: "user",
+          sessionId: null,
+          timezone: null,
         },
         name: "goodmemory_remember",
       });
@@ -142,6 +157,12 @@ describe("Kimi Code plugin MCP flow", () => {
         arguments: {
           cwd: projectA.root,
           query: "What deployment decision did we make for Atlas?",
+          maxTokens: null,
+          output: null,
+          referenceTime: null,
+          retrievalProfile: null,
+          sessionId: null,
+          timezone: null,
         },
         name: "goodmemory_get_context",
       });

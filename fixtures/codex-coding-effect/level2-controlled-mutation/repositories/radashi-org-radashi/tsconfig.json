@@ -1,0 +1,22 @@
+{
+  "include": ["src/**/*.ts"],
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "exactOptionalPropertyTypes": true,
+    "moduleResolution": "node",
+    "outDir": "./dist/tmp",
+    "noEmitOnError": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "isolatedDeclarations": true,
+    "target": "es2017",
+    "lib": ["es2017"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "types": [],
+    "paths": {
+      "radashi": ["./src/mod.ts"]
+    }
+  }
+}

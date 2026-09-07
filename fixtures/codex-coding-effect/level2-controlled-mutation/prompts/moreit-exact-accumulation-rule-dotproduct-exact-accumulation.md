@@ -1,0 +1,5 @@
+# Python utility task
+
+Recorded failure and replacement rules for dotproduct in more_itertools/recipes.py. What was tried: the first version paired the two vectors with zip and added the pairwise products with the builtin sum. What failed in review: three tenth-scale products came out one rounding step above the correctly rounded total; a large positive term, a small fractional term and the matching large negative term collapsed into a rounding artifact instead of the small term; and a longer second vector was silently truncated rather than reported. Replacement rules (the exact-accumulation rules) that every product-sum helper in this fork follows from now on: form the products pairwise, index by index; when every product is an int, add them with ordinary integer arithmetic and return an int; when any product is a float, add all the products with math.fsum so the result is the correctly rounded sum; vectors of different lengths raise ValueError and are never truncated; empty vectors give the integer zero. Apply these rules to dotproduct and keep the signature dotproduct(vec1, vec2) unchanged.
+
+Keep the implementation dependency-free and run the visible test.

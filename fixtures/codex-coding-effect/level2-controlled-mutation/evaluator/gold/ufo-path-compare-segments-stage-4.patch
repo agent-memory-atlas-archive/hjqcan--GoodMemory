@@ -1,0 +1,85 @@
+diff --git a/src/utils.ts b/src/utils.ts
+index ea98aba4e7261c2199eeb69e1d5dede3b15a1130..ff133dea713afa1ff0de2657fe8c72dc3aebcbe8 100644
+--- a/src/utils.ts
++++ b/src/utils.ts
+@@ -682,6 +682,53 @@ interface CompareURLOptions {
+   encoding?: boolean;
+ }
+ 
++/**
++ *  Checks if two paths are equal regardless of encoding, trailing slash, and leading slash differences.
++ *
++ * You can make slash check strict by setting `{ trailingSlash: true, leadingSlash: true }` as options.
++ *
++ * You can make encoding check strict by setting `{ encoding: true }` as options.
++ *
++ * @example
++ *
++ * ```js
++ * isEqual("/foo", "foo"); // true
++ * isEqual("foo/", "foo"); // true
++ * isEqual("/foo bar", "/foo%20bar"); // true
++ *
++ * // Strict compare
++ * isEqual("/foo", "foo", { leadingSlash: true }); // false
++ * isEqual("foo/", "foo", { trailingSlash: true }); // false
++ * isEqual("/foo bar", "/foo%20bar", { encoding: true }); // false
++ * ```
++ *
++ * @group utils
++ */
++interface ComparablePath {
++  leading: boolean;
++  segments: string[];
++  trailing: boolean;
++}
++
++function comparablePath(input: string, decodeSegments: boolean): ComparablePath {
++  const text = input || "";
++  const tailIndex = text.search(/[?#]/);
++  const path = tailIndex === -1 ? text : text.slice(0, tailIndex);
++  const segments = path
++    .split("/")
++    .filter((segment) => segment !== "" && segment !== ".")
++    .map((segment) => (decodeSegments ? decode(segment) : segment));
++  return {
++    leading: path.startsWith("/"),
++    segments,
++    trailing: path.length > 1 && path.endsWith("/"),
++  };
++}
++
++function sameSegments(a: readonly string[], b: readonly string[]): boolean {
++  return a.length === b.length && a.every((segment, index) => segment === b[index]);
++}
++
+ /**
+  *  Checks if two paths are equal regardless of encoding, trailing slash, and leading slash differences.
+  *
+@@ -705,19 +752,15 @@ interface CompareURLOptions {
+  * @group utils
+  */
+ export function isEqual(a: string, b: string, options: CompareURLOptions = {}) {
+-  if (!options.trailingSlash) {
+-    a = withTrailingSlash(a);
+-    b = withTrailingSlash(b);
+-  }
+-  if (!options.leadingSlash) {
+-    a = withLeadingSlash(a);
+-    b = withLeadingSlash(b);
++  const left = comparablePath(a, !options.encoding);
++  const right = comparablePath(b, !options.encoding);
++  if (options.trailingSlash && left.trailing !== right.trailing) {
++    return false;
+   }
+-  if (!options.encoding) {
+-    a = decode(a);
+-    b = decode(b);
++  if (options.leadingSlash && left.leading !== right.leading) {
++    return false;
+   }
+-  return a === b;
++  return sameSegments(left.segments, right.segments);
+ }
+ 
+ /**

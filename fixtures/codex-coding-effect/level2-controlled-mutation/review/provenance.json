@@ -1,0 +1,33 @@
+{
+  "authorTaskName": "/root",
+  "datasetId": "codex-level2-controlled-mutation-v1",
+  "dispatch": {
+    "path": "review/dispatch.json",
+    "sha256": "3a9cc16a12109c0e9365f4676691ad08d57e46250f8fa88fcd3566a672eacaab"
+  },
+  "inputBundle": {
+    "path": "review/input-bundle.json",
+    "sha256": "4319146c109d1a13933ded8dfc851f618b51a837dc202b88ea34f21084cbef71"
+  },
+  "recordedAt": "2026-09-03T16:19:00.750Z",
+  "request": {
+    "path": "review/request.md",
+    "sha256": "8cf1bb046ffb45d3c9a6ca89229618b1c3c49868ed0c60cd94ad169fe3b5c647"
+  },
+  "response": {
+    "path": "review/independent-review.json",
+    "sha256": "f8c2a73ce5bf0d9119f61362cd3f7b64237169eb183d96059ae151df7b4ed1d3"
+  },
+  "reviewer": {
+    "agentName": "/root/level2_final_independent_review_v1",
+    "contextPolicy": "fork-turns-none",
+    "orchestratorAttestation": {
+      "attestedByTaskName": "/root",
+      "basis": "dispatch-plus-recorder-cli-no-cryptographic-receipt",
+      "canonicalTaskName": "/root/level2_final_independent_review_v1"
+    },
+    "requestedTaskName": "level2_final_independent_review_v1",
+    "type": "independent-ai-agent"
+  },
+  "schemaVersion": 2
+}

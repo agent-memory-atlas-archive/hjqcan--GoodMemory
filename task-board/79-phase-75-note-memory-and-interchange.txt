@@ -4,7 +4,7 @@ Phase 75: Note Memory Kind, Long-Record Admission, and Open Interchange
 Status
 ------
 
-[ACTIVE]
+[DONE] Implementation and fresh-host default gate complete; unpublished.
 
 Goal
 ----
@@ -158,7 +158,25 @@ questions); the Phase 75 gate passed with every slice identical
 (`reports/eval/research/phase-75/smoke-fixture-pair/`). Wiring proven, not a
 decision basis: the full-root pair (`GOODMEMORY_LONGMEMEVAL_ROOT` + a prepared
 LoCoMo root) is still required before flipping the fresh-install default.
-[TODO] WP2 fresh-install default after the full-root measurement gate passes.
+[DONE] 2026-09-05: WP2 full-root paired protection gate passed: LongMemEval
+500 cases/arm and LoCoMo 1986 questions/arm, zero execution failures, all 22
+type/category slices passed. Behavioral adaptation/Phase 30/Phase 31 pairs
+retain identical scored behavior. Fresh Codex and Claude configs now enable
+longRecordAdmission; existing absent/false settings, library opt-in, and
+file-mirror opt-in are preserved. This is an unpublished development change,
+not an answer-accuracy claim or release authorization. Exact source/data
+identity, metrics, limitations, and final verification status live in
+reports/quality-gates/phase-75/default-enablement-20260905.md.
+[DONE] 2026-09-05: review hardening preserves the exact note body at the
+8192-byte export/import boundary and refreshes a workspace-bound mirror after
+broader user-only forget/deleteAllMemory. Failing regressions were added first.
+[GATE] 2026-09-05 final merged main validation: canonical bun test 7145 pass /
+60 skip / 0 fail; native-Postgres coverage 6993 pass / 60 skip / 0 fail,
+92.45% overall and 94.47% storage, all thresholds passed. Typecheck/build and
+final packaged Node 20/22/24 + Bun consumers passed. Source identity and
+retained earlier candidate/environment failures are in the evidence report
+above. No commit, tag, publication, or existing-user config rewrite. Phase 73
+and the independent workspace-identity P1 are outside this closure.
 [GATE] 2026-09-02 Phase A-C close: full `bun test` sweep green (7017 pass /
 60 skip after three pin updates: phase-65 parsed-flag literal, MCP
 `omittedSections` under the 96-token budget now carrying the frame, stable

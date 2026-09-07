@@ -1,0 +1,3228 @@
+{
+  "assetRootSha256": "f3af3fcab87d766bd503bf71b80795ce0f381675a6c04feb4b6af19162a746a0",
+  "files": [
+    {
+      "bytes": 194973,
+      "kind": "evaluator",
+      "path": "evaluator/cases.json",
+      "sha256": "a714dd2d7ac56de416cb94695272e241d8210e6d734c80019138546455758de8"
+    },
+    {
+      "bytes": 2909,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-amount-rounding-handoff-stage-1.patch",
+      "sha256": "07962bed0c9b498f5f6b8d0216799f0a98835edea3e3df8253a07f78dbadb3ba"
+    },
+    {
+      "bytes": 1684,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-amount-rounding-handoff-stage-2.patch",
+      "sha256": "f914fcb3bebf1989c50dc360452923a6d604d8ee75eef619ed257a0eadbf32c1"
+    },
+    {
+      "bytes": 865,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-amount-rounding-handoff-stage-3.patch",
+      "sha256": "d8a66a0c20da4c25ec0a118767fcfff705a4283f46fdf799742ab9f1207b4e9e"
+    },
+    {
+      "bytes": 3172,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-amount-rounding-handoff-stage-4.patch",
+      "sha256": "d1275a7bf9296e15cad3af6c7e5ef3eca47ae0ebb2dd445b91735cfb7a4e031d"
+    },
+    {
+      "bytes": 1616,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-integer-coercion-correction-stage-1.patch",
+      "sha256": "746391c7fc1224cba82f5f440cf27a4afe9b17cff85d57f8716167586c438264"
+    },
+    {
+      "bytes": 1789,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-integer-coercion-correction-stage-2.patch",
+      "sha256": "5add67142b751e94ad6171bb7e53b3e50c470df821fa948d326c1449c4f892a9"
+    },
+    {
+      "bytes": 2717,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-integer-coercion-correction-stage-3.patch",
+      "sha256": "f65952107b97fbd3210cef2b0721b7a828be20985907510c48eea049328d685d"
+    },
+    {
+      "bytes": 1461,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-integer-coercion-correction-stage-4.patch",
+      "sha256": "d8360ec93857d2183702a1b5e3a90a8f5ecfb5e06f600158cadad87f5256a9e6"
+    },
+    {
+      "bytes": 1795,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-list-join-update-stage-1.patch",
+      "sha256": "145072d987183d01ce2e3c3bcb8e1b0f74d46de4ceb48807e0572380e76c02e5"
+    },
+    {
+      "bytes": 2297,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-list-join-update-stage-2.patch",
+      "sha256": "beae9dd533fab3aa4ff01849feb4e147147251c95454e697c37a8dcfb827e270"
+    },
+    {
+      "bytes": 431,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-list-join-update-stage-3.patch",
+      "sha256": "a01741afb2811d3ebcdbc90dac0f1d65a4f9552bda5a7ab8a98c890b64c3ed1a"
+    },
+    {
+      "bytes": 2678,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-list-join-update-stage-4.patch",
+      "sha256": "9288e03b0c806598db66de6e2ad0fee3958d4717dff053974113bfcb84ccf7e1"
+    },
+    {
+      "bytes": 1043,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-metric-prefix-control-stage-1.patch",
+      "sha256": "d6100a1175eda5035b0614ec4e223e75ed2d2198100f5be2ab15408942725fcf"
+    },
+    {
+      "bytes": 2305,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-metric-prefix-control-stage-2.patch",
+      "sha256": "9348f9c32b3129d89d27a811d78b9a72e256993b51cf0ff98904eb57f0e0a60e"
+    },
+    {
+      "bytes": 652,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-metric-prefix-control-stage-3.patch",
+      "sha256": "05bdf5cf10656749c79d401f7b48224452ba23f84442a36b99395e661a768de2"
+    },
+    {
+      "bytes": 2174,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-metric-prefix-control-stage-4.patch",
+      "sha256": "3b77315fac72ecc73f30bee3cbd34ede9833960cac4ec9a83788a2719b0543b8"
+    },
+    {
+      "bytes": 2214,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-size-unit-selection-stage-1.patch",
+      "sha256": "83c21ff58049e4d18bda6c95c68c484a165b54785c6bc083ccb361b7b996c176"
+    },
+    {
+      "bytes": 2196,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-size-unit-selection-stage-2.patch",
+      "sha256": "b78e9202336fb9b7840a2ccdf13f6d0531238dd257cf40181804eaf2bb80876b"
+    },
+    {
+      "bytes": 1172,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-size-unit-selection-stage-3.patch",
+      "sha256": "85eba88550bed60810085a9f4cf896ae5f7cce87587e692d90c1fb30d1d07733"
+    },
+    {
+      "bytes": 3798,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/humanize-size-unit-selection-stage-4.patch",
+      "sha256": "91944df0cd498f679d563fb9ac097a49ad25f0c96386e716714dc288cf13ed30"
+    },
+    {
+      "bytes": 2051,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-case-mirroring-approach-stage-1.patch",
+      "sha256": "fc878db1a51d275804c15710c835318ea710d4e1d2b5eb25cf64613b5058ff54"
+    },
+    {
+      "bytes": 1033,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-case-mirroring-approach-stage-2.patch",
+      "sha256": "a6c91fc69acb4a41a28d9ae4f7b9b21189970fb8d9e83d20daefca0b27976818"
+    },
+    {
+      "bytes": 810,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-case-mirroring-approach-stage-3.patch",
+      "sha256": "22b30c8b8531995fa2c0927334c17c9137f6187e6cf52c659da5229b0bc9628f"
+    },
+    {
+      "bytes": 1946,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-case-mirroring-approach-stage-4.patch",
+      "sha256": "1982b491c777724d931c65d8095a3fc758aecac5e34152f63d9b2f3d60edc613"
+    },
+    {
+      "bytes": 727,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-constant-path-helpers-stage-1.patch",
+      "sha256": "a03b8391fa0083d34b83dcbdaa4f45b8fba0c534af2241b3c5f74eaec4ade97d"
+    },
+    {
+      "bytes": 790,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-constant-path-helpers-stage-2.patch",
+      "sha256": "a939e809017ab9055266a03e6e874238a3f12d7a1b4ac7d0875193644a0a64e5"
+    },
+    {
+      "bytes": 933,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-constant-path-helpers-stage-3.patch",
+      "sha256": "f89df4ae78b9e77fee685903993a41df31ee4c3de3572f63ec2291c60fc9fce6"
+    },
+    {
+      "bytes": 828,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-constant-path-helpers-stage-4.patch",
+      "sha256": "39e648e6be7ce41ae691b55ab9fe7fe80494bd5ab70216197388995ea65c9a28"
+    },
+    {
+      "bytes": 1334,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-identifier-boundary-stage-1.patch",
+      "sha256": "6dc6d243d13426ddcd9c51a3511e8d403d93a4a67cbab586835ab0a61997b230"
+    },
+    {
+      "bytes": 1803,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-identifier-boundary-stage-2.patch",
+      "sha256": "6fc4c78370c5ea1d80c45a702c67802416cd0843e20ad281ef750b2396183776"
+    },
+    {
+      "bytes": 919,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-identifier-boundary-stage-3.patch",
+      "sha256": "426f180caa6c2cbf8676b7cda980e5a578dae457faa56a2f128d2ca4b69d8539"
+    },
+    {
+      "bytes": 1468,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-identifier-boundary-stage-4.patch",
+      "sha256": "824b3efd8b0bb4909877dfb8dd25621b4dc8b3072ce7b2978824ba024c567292"
+    },
+    {
+      "bytes": 1660,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-number-rendering-update-stage-1.patch",
+      "sha256": "fce39448ab20ebf8439ff2553e246fbab0e0933cf1f966d6bc57f1c2d45e61ec"
+    },
+    {
+      "bytes": 857,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-number-rendering-update-stage-2.patch",
+      "sha256": "299f2a4c0bc16b7f712ea65e98ec56cc868a2e86d09ea012b381e7338a77df88"
+    },
+    {
+      "bytes": 1932,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-number-rendering-update-stage-3.patch",
+      "sha256": "03f915fe6c4e0aad54f4b75b9e8c0794a788e52d9a549d8475982f415f8f5f22"
+    },
+    {
+      "bytes": 1793,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-number-rendering-update-stage-4.patch",
+      "sha256": "5e688f49e2b0349138e84fdc8846de83621d1b90a3c770f70cc03b79deff3b40"
+    },
+    {
+      "bytes": 1922,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-phrase-inflection-handoff-stage-1.patch",
+      "sha256": "5e8ab9e7fc770894feb6d20cc8fce18958bbf6a7007dcc71af4f024e5690f288"
+    },
+    {
+      "bytes": 1133,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-phrase-inflection-handoff-stage-2.patch",
+      "sha256": "63d4b6b98d2e4c48c87bef715c0db41ac91f281e92833cc4ac594ed5a05b03aa"
+    },
+    {
+      "bytes": 1142,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-phrase-inflection-handoff-stage-3.patch",
+      "sha256": "7be54139837a1281f5f86c52a6d5eec70f2917eead6f88f7faa11737b151539c"
+    },
+    {
+      "bytes": 2380,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/inflection-phrase-inflection-handoff-stage-4.patch",
+      "sha256": "d7df5baa84f0e23bd28640a6f35c8e3cc4b6404302370c1579eee9634d4ed3ec"
+    },
+    {
+      "bytes": 1490,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-exact-accumulation-rule-stage-1.patch",
+      "sha256": "ab3adea166c3ff245265e4bb501fbc0e3d99c8bd1c35bcaff2369aab848aac73"
+    },
+    {
+      "bytes": 2851,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-exact-accumulation-rule-stage-2.patch",
+      "sha256": "80bb200d7ef81e668418fa2a4aae1a05f4ce73c1c4c21b574990f35aeed15c44"
+    },
+    {
+      "bytes": 1735,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-exact-accumulation-rule-stage-3.patch",
+      "sha256": "a069299e3e4f66e9e2d6794b45168e573b2fe71c9497b847f0ba628bcb49f4a2"
+    },
+    {
+      "bytes": 1826,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-exact-accumulation-rule-stage-4.patch",
+      "sha256": "f54dcb8086d3622d0bd2d9cc390ae180b5856fbb623a51cd5efbc16a0a2b5570"
+    },
+    {
+      "bytes": 1688,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-extremum-index-handoff-stage-1.patch",
+      "sha256": "904316e7ee2492990bcd9c50290b2ea4a1a0859576736cbd5fc121c54a20bc27"
+    },
+    {
+      "bytes": 720,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-extremum-index-handoff-stage-2.patch",
+      "sha256": "7acf1c193c516a6df31705c122048631ba8ed1b06785cd6610a7aa945cc93a40"
+    },
+    {
+      "bytes": 950,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-extremum-index-handoff-stage-3.patch",
+      "sha256": "0df6c3d6ed2d14193e6d9bd9f21c2698b02877a5d7060dedbcd90fbf6afd6970"
+    },
+    {
+      "bytes": 1631,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-extremum-index-handoff-stage-4.patch",
+      "sha256": "de73aec22039ce6123e0c89ede39fe02b1f1b058aa4fe5e481f1e7a550bd8850"
+    },
+    {
+      "bytes": 1138,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-group-balance-correction-stage-1.patch",
+      "sha256": "af1c445567bea99144572a7463f2d19b48a0ef55e49325d1355dd329e5b73e3e"
+    },
+    {
+      "bytes": 2146,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-group-balance-correction-stage-2.patch",
+      "sha256": "e82c6e3cda046df7ff8667824f5052f2196ea41be555fcb802ad60944f2fee88"
+    },
+    {
+      "bytes": 1643,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-group-balance-correction-stage-3.patch",
+      "sha256": "82dea90bc307d48a7c7fdde492b0c375641792491f702c96475ab5f3b00c141f"
+    },
+    {
+      "bytes": 2820,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-group-balance-correction-stage-4.patch",
+      "sha256": "75da66ec0e15454c9fe4c4d3f7eea08aee01bf7d5e2dbab8d102093d3a93bc8c"
+    },
+    {
+      "bytes": 1297,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-plain-tasks-control-stage-1.patch",
+      "sha256": "ed8f4fec995ec1a7e6c9d96fab765afdd5a3e08a7c74222fc6625c3d397bb758"
+    },
+    {
+      "bytes": 1205,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-plain-tasks-control-stage-2.patch",
+      "sha256": "4c832e2e831747a37dd5b9e1120c4ca8bfe3bc8c276645a11d5b9e2b81033070"
+    },
+    {
+      "bytes": 1091,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-plain-tasks-control-stage-3.patch",
+      "sha256": "ca31021e71b74af73f1216dc0ab60a3a9c80df26a069c5dbd2165c04ff0b4090"
+    },
+    {
+      "bytes": 962,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-plain-tasks-control-stage-4.patch",
+      "sha256": "4a52cfa8546b7a0d2b4c83b4e46fd981ce2f460c9bd7c6c4a97bf71c2f05aeca"
+    },
+    {
+      "bytes": 2193,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-tail-padding-approach-stage-1.patch",
+      "sha256": "7eeaae0da9e21b2e39e09fabf0a9eec6c66b5cc6bc7a7723d89608472afe53e3"
+    },
+    {
+      "bytes": 848,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-tail-padding-approach-stage-2.patch",
+      "sha256": "6269502cbe7ab2b9626b9dedc7fb401ade4a35f44ae0413653b9a9d368ea43d4"
+    },
+    {
+      "bytes": 1300,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-tail-padding-approach-stage-3.patch",
+      "sha256": "d4af1a4dc8306c7e8b1543accbcd5688dbff6d5c6f13d3a885db88ebec6c1603"
+    },
+    {
+      "bytes": 2015,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/moreit-tail-padding-approach-stage-4.patch",
+      "sha256": "9698633cf17e0a611002a94e301100f8e4f8dd441233b1c04599b656f6cb7c48"
+    },
+    {
+      "bytes": 1347,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-alignment-policy-stage-1.patch",
+      "sha256": "6a95fd45803e1f240e77c9dce85bbfff01c9b5c61b65d959230cc9989ae9faf1"
+    },
+    {
+      "bytes": 2122,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-alignment-policy-stage-2.patch",
+      "sha256": "2032d3c9fc6663343acb9dc63194932b9f48b184ae49f5ba1f6fd0262ee296ae"
+    },
+    {
+      "bytes": 1302,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-alignment-policy-stage-3.patch",
+      "sha256": "5d4703650d1b558e29b3a76d23cdbd3ccee61cdd48c12941c8750e6cb1f31964"
+    },
+    {
+      "bytes": 1240,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-alignment-policy-stage-4.patch",
+      "sha256": "be426e5ccf4faf43907356d89646b76eed495d068e46ebab0ea80bbcd82bd753"
+    },
+    {
+      "bytes": 2377,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-case-word-boundary-policy-stage-1.patch",
+      "sha256": "8b8246f3f5a1190822e0cf9add672c471c92423e931f6e86f3fcf92a946b8c29"
+    },
+    {
+      "bytes": 2202,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-case-word-boundary-policy-stage-2.patch",
+      "sha256": "f8d444547629e1e731bf54458550a8da12f6266c20367c4b88a51f1275a2ed21"
+    },
+    {
+      "bytes": 1194,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-case-word-boundary-policy-stage-3.patch",
+      "sha256": "f18559cc60851dfbeeab965dd95a6d9253288d0cad3f4557605c22bd7d1c215d"
+    },
+    {
+      "bytes": 2652,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-case-word-boundary-policy-stage-4.patch",
+      "sha256": "00f3ffd5118aae45b22a1e1e3e81bd2cc5b2cafc2f73e7316bc669a7c4b97fad"
+    },
+    {
+      "bytes": 2502,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-key-path-negative-control-stage-1.patch",
+      "sha256": "501137bc3eb1d99b7a3a140c6fc1abe9a14adfcc63979bfc7e89d7ea5a1bd508"
+    },
+    {
+      "bytes": 989,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-key-path-negative-control-stage-2.patch",
+      "sha256": "ad6dd89d002495df803bfcbeb2ba857489d6f535f66cc9b055431ea09dd9b2ac"
+    },
+    {
+      "bytes": 1675,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-key-path-negative-control-stage-3.patch",
+      "sha256": "0958b676b41d5daa77bd56e702d2c811e788d424097c0b4b21700e6126c6b707"
+    },
+    {
+      "bytes": 1487,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-key-path-negative-control-stage-4.patch",
+      "sha256": "cf0804f769f9006d19221df67ce82368f9f21ef7a381d3c1ea3fdfede8b200cd"
+    },
+    {
+      "bytes": 1849,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-list-reducer-input-policy-stage-1.patch",
+      "sha256": "95d7e8bb33d54243e3f9d24802ce342f297a115685a9f49c891b76919074c013"
+    },
+    {
+      "bytes": 1781,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-list-reducer-input-policy-stage-2.patch",
+      "sha256": "15515e8378f15d5bc3ed665ace9eca240cfeb0d4c2ad5f162dfa4fb7d1fcc90b"
+    },
+    {
+      "bytes": 1283,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-list-reducer-input-policy-stage-3.patch",
+      "sha256": "41228eecda99162dd1c4403abf8c82ae99d8e6b1a457f1975247debbb41691f8"
+    },
+    {
+      "bytes": 1781,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-list-reducer-input-policy-stage-4.patch",
+      "sha256": "fcaf4496fbf969d2740a84046e57b7af436078e862a6d0d03fb028e904b84745"
+    },
+    {
+      "bytes": 1892,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-strict-numeric-parsing-stage-1.patch",
+      "sha256": "50565e4e2f36276a8cb2e21046593b8e367bd09e07e803e0cdf27426ef1b050c"
+    },
+    {
+      "bytes": 1132,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-strict-numeric-parsing-stage-2.patch",
+      "sha256": "f264bf271f8a1293124ff42859a1e3370be5235d9e55f9136701499cb9e3fdc5"
+    },
+    {
+      "bytes": 1607,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-strict-numeric-parsing-stage-3.patch",
+      "sha256": "40603d341ef6d4c0313c3d932f9ae7501f589e12ad0b306e8967ccf7c586645f"
+    },
+    {
+      "bytes": 2091,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/radashi-strict-numeric-parsing-stage-4.patch",
+      "sha256": "5807bfce55540dc8eaf47473c774bde5a5b5f828c9a8c1ec35307a26d5bd03b9"
+    },
+    {
+      "bytes": 1711,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-label-policy-stage-1.patch",
+      "sha256": "7e70346f41360b3016ccfc76bb15f7f201cd69ac96fd89068e26c2c5d359f98b"
+    },
+    {
+      "bytes": 880,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-label-policy-stage-2.patch",
+      "sha256": "8008a0b3933c0f017ba23a23ef63c2ed99f46db72a645956ffaa379dd278147d"
+    },
+    {
+      "bytes": 1526,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-label-policy-stage-3.patch",
+      "sha256": "a3a11d6e1463f34dff271eb9270fc5175310e17a556287ed4565ca13703c461b"
+    },
+    {
+      "bytes": 2084,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-label-policy-stage-4.patch",
+      "sha256": "bddd90e3549d42fc5bdaa9994f535b6a478700e74b7132c79cb3a75988d61bcc"
+    },
+    {
+      "bytes": 1939,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-placeholder-approach-stage-1.patch",
+      "sha256": "7bf85f06b4a49587c0daab846206fb2fb4d9d55520e57f5ba9b43841d44e2f32"
+    },
+    {
+      "bytes": 1030,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-placeholder-approach-stage-2.patch",
+      "sha256": "ed0bab285e900674150cf0d6157dbaf7bb71c5e6f152525effe4948c60f29617"
+    },
+    {
+      "bytes": 1014,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-placeholder-approach-stage-3.patch",
+      "sha256": "cd171ef3548cf21bc77d0f7a44436e765b920ef02aaed14ad2f137c6cc177c7e"
+    },
+    {
+      "bytes": 2101,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-placeholder-approach-stage-4.patch",
+      "sha256": "704e482d67191860ecd0cdcb366081bb6555a9469ab6fe45ceaf778b1cd32092"
+    },
+    {
+      "bytes": 645,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-standalone-tasks-stage-1.patch",
+      "sha256": "1c106835c992f6ddf806e168d5cddc12e3e85eda1a31f3d4045ebd7654c1fdb9"
+    },
+    {
+      "bytes": 801,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-standalone-tasks-stage-2.patch",
+      "sha256": "cf8d18c3fb08c9d1036c9613201cc661cd6d0c15ef70e097310c9aa05d9bd6fc"
+    },
+    {
+      "bytes": 913,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-standalone-tasks-stage-3.patch",
+      "sha256": "09930f716c163e76168bc146c1fd9d4aba0069c5e97f78e23f311b26f6cd5e2d"
+    },
+    {
+      "bytes": 1710,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-standalone-tasks-stage-4.patch",
+      "sha256": "e95cd7b5ced71ecfcbc41f849c517dc6e52c52b111b3e6b6b86508ea3ae9abe0"
+    },
+    {
+      "bytes": 1051,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-style-predicates-stage-1.patch",
+      "sha256": "8b6b38054967f492db83160500f5bd6fdddd0ce86c7ae5b3fa33778ec70a8340"
+    },
+    {
+      "bytes": 908,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-style-predicates-stage-2.patch",
+      "sha256": "a1b3e24153ebb9c69db1328d40938befcf606a24527dc4d50492e935553db8c6"
+    },
+    {
+      "bytes": 1323,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-style-predicates-stage-3.patch",
+      "sha256": "6a6baeb49708993c8804d9bd036df1c03db27f41e5b9454962b63291a6e68442"
+    },
+    {
+      "bytes": 1052,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-style-predicates-stage-4.patch",
+      "sha256": "eba89cbc9c104165f8b7f86a935f826ae5fa21953823bbbf9eff20f48e13d257"
+    },
+    {
+      "bytes": 2101,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-word-boundary-convention-stage-1.patch",
+      "sha256": "87d9d80ee093e3f15dbfb90cb6effb48ad41ecb6260ddb9edbdf58ebe7c8af2b"
+    },
+    {
+      "bytes": 832,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-word-boundary-convention-stage-2.patch",
+      "sha256": "33d3509ba018038127474c585158c04313be9f26423da04bd720c30e33d69165"
+    },
+    {
+      "bytes": 760,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-word-boundary-convention-stage-3.patch",
+      "sha256": "13b83c58fbd9274e1db6f6e2173de5c7ee81046ae38c59b6300ccb4808dc8d56"
+    },
+    {
+      "bytes": 2008,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/scule-word-boundary-convention-stage-4.patch",
+      "sha256": "88c6d84a7c211b898da8a9da898e3fa2e2d21775babc57bc2d54d0cbe437a93d"
+    },
+    {
+      "bytes": 1610,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-base-strip-control-stage-1.patch",
+      "sha256": "17bca7fdfdd7d6bb7450d42cf91cdbe46668023b16d748a25ec8dd5e4ef4ae09"
+    },
+    {
+      "bytes": 795,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-base-strip-control-stage-2.patch",
+      "sha256": "971f42d82d5cf61b54021cf48afa1565f281d42f4a99598289ba2337b7de23fb"
+    },
+    {
+      "bytes": 835,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-base-strip-control-stage-3.patch",
+      "sha256": "1baac1c8d877096d0f1d7d0d225f87d994a8f0938c3659557c07081b366734ce"
+    },
+    {
+      "bytes": 672,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-base-strip-control-stage-4.patch",
+      "sha256": "131508a7495c4c56ddae3e2cf9edb6abf3f5df26de0e0673f87c04931ec53b49"
+    },
+    {
+      "bytes": 1811,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-path-compare-segments-stage-1.patch",
+      "sha256": "74edcae0c6ca29d55b331b2b3f60dcde1eff83582f2d4a6ed3fe72eff1a3e049"
+    },
+    {
+      "bytes": 909,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-path-compare-segments-stage-2.patch",
+      "sha256": "7bf6c3b46c727d0b6ff6d737053d093ebc145b41f74f14b8b8f3fa050e065b7b"
+    },
+    {
+      "bytes": 835,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-path-compare-segments-stage-3.patch",
+      "sha256": "93ff62827eee40e2c20b58bf63895cc7a78968a569ff18b6b7fe2ad8955aa3a9"
+    },
+    {
+      "bytes": 2658,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-path-compare-segments-stage-4.patch",
+      "sha256": "3a91f58531b0d62221d0af8a99842aebd9e73f62e91835a67e7bce05b6beb3d0"
+    },
+    {
+      "bytes": 1387,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-path-terminal-policy-stage-1.patch",
+      "sha256": "18e6e19123fa71da1fdb4ab731bab989074b47cb0d072ac1a7d223240bd92553"
+    },
+    {
+      "bytes": 1040,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-path-terminal-policy-stage-2.patch",
+      "sha256": "4f041091488a13cffdfed89a2b35aa542baa690d0549a16b00bc4204dab8e9a0"
+    },
+    {
+      "bytes": 714,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-path-terminal-policy-stage-3.patch",
+      "sha256": "d5d48782541e9cf7ad8146a46e65d319ed19f0a209dd8e6ba1346cd2bc9bc43b"
+    },
+    {
+      "bytes": 1343,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-path-terminal-policy-stage-4.patch",
+      "sha256": "a09f476d41da2a336c28a1b3e1bd3cb0a6198091ac207c3bc0ba5a26c0c5d204"
+    },
+    {
+      "bytes": 3079,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-query-serialization-policy-stage-1.patch",
+      "sha256": "9d1c1bd06b35548b57a8d0470c4872f3a1f0fdc06d00e934c71a1f4feb143e59"
+    },
+    {
+      "bytes": 3117,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-query-serialization-policy-stage-2.patch",
+      "sha256": "3597f8e71d8f3167c4386e3d877ecbfc38a95af179c45fdf66c6a0e749cd3bac"
+    },
+    {
+      "bytes": 594,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-query-serialization-policy-stage-3.patch",
+      "sha256": "983098cfaa7e484a2a4041d66886b06b68e268d94604476109ded08e5b78c59b"
+    },
+    {
+      "bytes": 3117,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-query-serialization-policy-stage-4.patch",
+      "sha256": "3597f8e71d8f3167c4386e3d877ecbfc38a95af179c45fdf66c6a0e749cd3bac"
+    },
+    {
+      "bytes": 2534,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-segment-join-approach-stage-1.patch",
+      "sha256": "b0b75b85ba10a002da85b7c7237e2e6bc7a04b1cfe84d43c08efd78d8291eeff"
+    },
+    {
+      "bytes": 1134,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-segment-join-approach-stage-2.patch",
+      "sha256": "2d4c9ee211232c793fa910eba1e03fe0ad6e261e838422741c1375574a6b115b"
+    },
+    {
+      "bytes": 1050,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-segment-join-approach-stage-3.patch",
+      "sha256": "75e244a2e661c10db13c04b28bd3c67c3c9cc48dc80964e7a64a3c8f28b17737"
+    },
+    {
+      "bytes": 2130,
+      "kind": "gold-patch",
+      "path": "evaluator/gold/ufo-segment-join-approach-stage-4.patch",
+      "sha256": "95f07b8da29209017b70468c060d3722f44cffa8e2548de5bf0d1e3a8e5d6d29"
+    },
+    {
+      "bytes": 5993,
+      "kind": "evaluator",
+      "path": "evaluator/runner.ts",
+      "sha256": "c60ff66f8ae17a9c71669df42b9051c526b6c3c08efac0a12172d89440e57b5d"
+    },
+    {
+      "bytes": 1080,
+      "kind": "dataset-license",
+      "path": "LICENSE",
+      "sha256": "28788d8863354935f546f1ec292283c5a61cdb9ef2c7080790edd460cd583168"
+    },
+    {
+      "bytes": 2555,
+      "kind": "license-receipt",
+      "path": "licenses/receipt.json",
+      "sha256": "3f94a998c5121a1da29f98f03d616c34eec7d3e88f9aea19da48c99971854884"
+    },
+    {
+      "bytes": 298900,
+      "kind": "manifest",
+      "path": "manifest.json",
+      "sha256": "1a758fe92e538a4cfbbc9d4f3dc5884d4fbd378ed9963232d7b1ded7b2ad505d"
+    },
+    {
+      "bytes": 603,
+      "kind": "prehistory",
+      "path": "prehistory/humanize-amount-rounding-handoff.jsonl",
+      "sha256": "c6cbfce1e979555c7e88ddb1ff0efd69315b2c7db679bd0e0dcd759367991dbb"
+    },
+    {
+      "bytes": 615,
+      "kind": "prehistory",
+      "path": "prehistory/humanize-integer-coercion-correction.jsonl",
+      "sha256": "75e124d7519db8762fb62e47bcda9de1d16d73ffdff6299d2496e4b09bd56349"
+    },
+    {
+      "bytes": 584,
+      "kind": "prehistory",
+      "path": "prehistory/humanize-list-join-update.jsonl",
+      "sha256": "edaa46baee35bfecbe60f43816e74023c78ee43f6083a03ed75ba407ad8f6b40"
+    },
+    {
+      "bytes": 551,
+      "kind": "prehistory",
+      "path": "prehistory/humanize-metric-prefix-control.jsonl",
+      "sha256": "785ab23c3dc8fefd19266be36e48b360b4984cc40088223203750478237f1948"
+    },
+    {
+      "bytes": 619,
+      "kind": "prehistory",
+      "path": "prehistory/humanize-size-unit-selection.jsonl",
+      "sha256": "c06535bfe69b75f66d11b8cc642b0581dc0d31184aafa61bc5dafb184bfde103"
+    },
+    {
+      "bytes": 594,
+      "kind": "prehistory",
+      "path": "prehistory/inflection-case-mirroring-approach.jsonl",
+      "sha256": "15b3ad6f7bb47f769475eb3438a33d4c03bc37906f3d317a16af0cf268960a7c"
+    },
+    {
+      "bytes": 406,
+      "kind": "prehistory",
+      "path": "prehistory/inflection-constant-path-helpers.jsonl",
+      "sha256": "22920bc22c3604d5a189e841cff6626a9b3480476ed866475d805636c29085dd"
+    },
+    {
+      "bytes": 606,
+      "kind": "prehistory",
+      "path": "prehistory/inflection-identifier-boundary.jsonl",
+      "sha256": "915de2733078fc33fcbd32e496fd776094beba1dd846d48c4b8eba197c065111"
+    },
+    {
+      "bytes": 641,
+      "kind": "prehistory",
+      "path": "prehistory/inflection-number-rendering-update.jsonl",
+      "sha256": "7b665ecfe1c9c8bb5a9923c1fb12e9e91339bae4cceeaa67484e67412036bac3"
+    },
+    {
+      "bytes": 595,
+      "kind": "prehistory",
+      "path": "prehistory/inflection-phrase-inflection-handoff.jsonl",
+      "sha256": "5939bf78f3369caeab6e7fdf5fa1197fbdc01c0b5025ae036b16eeb6e3a53d86"
+    },
+    {
+      "bytes": 550,
+      "kind": "prehistory",
+      "path": "prehistory/moreit-exact-accumulation-rule.jsonl",
+      "sha256": "41b87452e3b9897815c5b686e4e9ccc77c146bdaad761d2974fd62bb4815886d"
+    },
+    {
+      "bytes": 539,
+      "kind": "prehistory",
+      "path": "prehistory/moreit-extremum-index-handoff.jsonl",
+      "sha256": "5b3867d0f49bed9788ae21b60cc1f7e219e5a99fdf44c4d73e87dafbc72e5920"
+    },
+    {
+      "bytes": 618,
+      "kind": "prehistory",
+      "path": "prehistory/moreit-group-balance-correction.jsonl",
+      "sha256": "7c644c1a329d7782ca7ae93629baea159f48435c040d54c8d437fb62d41c41a0"
+    },
+    {
+      "bytes": 461,
+      "kind": "prehistory",
+      "path": "prehistory/moreit-plain-tasks-control.jsonl",
+      "sha256": "28b988620ebb78c68ba4bd25e69ad51ad990aaf0cf1b54b36b1807f2fa91ff6e"
+    },
+    {
+      "bytes": 549,
+      "kind": "prehistory",
+      "path": "prehistory/moreit-tail-padding-approach.jsonl",
+      "sha256": "d3335a385b4e91e2a56e20961a99ff68bd6934b1c4109f92f86b3ce727dff580"
+    },
+    {
+      "bytes": 578,
+      "kind": "prehistory",
+      "path": "prehistory/radashi-alignment-policy.jsonl",
+      "sha256": "316a2ee53b58fe323f8cb01523ab5953d7e45401bcc9224d702a6f969cce2475"
+    },
+    {
+      "bytes": 538,
+      "kind": "prehistory",
+      "path": "prehistory/radashi-case-word-boundary-policy.jsonl",
+      "sha256": "c548e45cdc9c81374a602cf4511d5dc7b4742ef91169983a0039ea90ee3b6193"
+    },
+    {
+      "bytes": 523,
+      "kind": "prehistory",
+      "path": "prehistory/radashi-key-path-negative-control.jsonl",
+      "sha256": "c00f274ff73cbdb66a2cecf3020d8750d5c11796d2b08a4c943a2c58bc7976b8"
+    },
+    {
+      "bytes": 616,
+      "kind": "prehistory",
+      "path": "prehistory/radashi-list-reducer-input-policy.jsonl",
+      "sha256": "fea22501653c99548f06a54712027534fc4ae2298ec596b291d5ec884e598ee5"
+    },
+    {
+      "bytes": 577,
+      "kind": "prehistory",
+      "path": "prehistory/radashi-strict-numeric-parsing.jsonl",
+      "sha256": "2ad5b21448d276eb4de3fa2c9b2a6f9cc83ac4b30cf9a31278b49e482c2b87b8"
+    },
+    {
+      "bytes": 660,
+      "kind": "prehistory",
+      "path": "prehistory/scule-label-policy.jsonl",
+      "sha256": "441e95cb577abcd539f50389bb80feb460c65022c3795b58a13cd1d092d19bb4"
+    },
+    {
+      "bytes": 570,
+      "kind": "prehistory",
+      "path": "prehistory/scule-placeholder-approach.jsonl",
+      "sha256": "2f13e70f2e8ea2ef3dd506e380ee8c0918198f1716d0484df968127c2a6d46f3"
+    },
+    {
+      "bytes": 443,
+      "kind": "prehistory",
+      "path": "prehistory/scule-standalone-tasks.jsonl",
+      "sha256": "7a0874724c97818025660d1a89a761542ca10d0ceb4872b7fa983b01893a4ed2"
+    },
+    {
+      "bytes": 577,
+      "kind": "prehistory",
+      "path": "prehistory/scule-style-predicates.jsonl",
+      "sha256": "0fd072d6b1b4af53218f52996844dddc1a7d9d2f5fe1a886eb67ba075b0cdf2a"
+    },
+    {
+      "bytes": 607,
+      "kind": "prehistory",
+      "path": "prehistory/scule-word-boundary-convention.jsonl",
+      "sha256": "6e7986f5e5dd51313b9fd7921c8672ea557d65db23e0e4a8727a0533e60b5185"
+    },
+    {
+      "bytes": 489,
+      "kind": "prehistory",
+      "path": "prehistory/ufo-base-strip-control.jsonl",
+      "sha256": "5eb8b5c8dfb3b5f6eedb255b78b964fa4291c517b26744bb0279e16a39ec0bde"
+    },
+    {
+      "bytes": 577,
+      "kind": "prehistory",
+      "path": "prehistory/ufo-path-compare-segments.jsonl",
+      "sha256": "0dac3f3e2dcc1150017a3cfb311066838ffa3382d0b3fff7b8933208fd33f217"
+    },
+    {
+      "bytes": 552,
+      "kind": "prehistory",
+      "path": "prehistory/ufo-path-terminal-policy.jsonl",
+      "sha256": "60510c8434ad8c5dea899766ef78cfd2bdcfa848fb018c7cc1669dc2f521aa0a"
+    },
+    {
+      "bytes": 536,
+      "kind": "prehistory",
+      "path": "prehistory/ufo-query-serialization-policy.jsonl",
+      "sha256": "81253a66ae8ffe7789cf38e68f4210169db3964b5f1a4e6d1e3617530c4588b6"
+    },
+    {
+      "bytes": 548,
+      "kind": "prehistory",
+      "path": "prehistory/ufo-segment-join-approach.jsonl",
+      "sha256": "439a21f9aa4819aa72c9e167fc4c362ee1622c81b12a29a67b023868534faa4e"
+    },
+    {
+      "bytes": 777,
+      "kind": "prompt",
+      "path": "prompts/humanize-amount-rounding-handoff-fractional-fraction-policy.md",
+      "sha256": "8610dd873e8dcd22e2c4b2605f252f98e8c5eb4ae07dac883a054b7bd7c606f7"
+    },
+    {
+      "bytes": 1193,
+      "kind": "prompt",
+      "path": "prompts/humanize-amount-rounding-handoff-intcomma-amount-rounding.md",
+      "sha256": "67905620ca0b0a1f842d5fd7c7c4103612abc7ebc785385d197089e4367084e0"
+    },
+    {
+      "bytes": 305,
+      "kind": "prompt",
+      "path": "prompts/humanize-amount-rounding-handoff-intword-deferred-rounding.md",
+      "sha256": "ad9b1e0bd31ef7aaa1344c42acd4ff9d5b97010d5c773377c25662277558a55a"
+    },
+    {
+      "bytes": 669,
+      "kind": "prompt",
+      "path": "prompts/humanize-amount-rounding-handoff-scientific-exponent-notation.md",
+      "sha256": "3dbe40da3539b7629882b864eba801f00e7194833fc20bd2a218f346b75434f7"
+    },
+    {
+      "bytes": 579,
+      "kind": "prompt",
+      "path": "prompts/humanize-integer-coercion-correction-apnumber-corrected-rounding.md",
+      "sha256": "0fa015bab8c963455c5e461b9774d2838741bd992125b659929091bbaff07df8"
+    },
+    {
+      "bytes": 913,
+      "kind": "prompt",
+      "path": "prompts/humanize-integer-coercion-correction-engineering-notation.md",
+      "sha256": "894178f73b21fa38ce7dda1276a7cbf0e5f434b94a29a9d4f6fa8c47e5a0b672"
+    },
+    {
+      "bytes": 390,
+      "kind": "prompt",
+      "path": "prompts/humanize-integer-coercion-correction-naturaldelta-corrected-coercion.md",
+      "sha256": "4a4505e06f2f7c80f1da4ecdebc663cd9828094ebd4dee9d2da91c01f92e5614"
+    },
+    {
+      "bytes": 1056,
+      "kind": "prompt",
+      "path": "prompts/humanize-integer-coercion-correction-ordinal-integer-coercion.md",
+      "sha256": "a5987e0f245f617d4ac047409691ede8e878dcb3643935203bf55d2cf16edf8a"
+    },
+    {
+      "bytes": 853,
+      "kind": "prompt",
+      "path": "prompts/humanize-list-join-update-intabbr-compact-number.md",
+      "sha256": "49d309b3a0107c93beaa4c80dc5d7df92a8257ae675117b4b35dad38276704ab"
+    },
+    {
+      "bytes": 1001,
+      "kind": "prompt",
+      "path": "prompts/humanize-list-join-update-natural-list-join-policy.md",
+      "sha256": "d171a711cc8ba26cc7c6f9f4280357a55ece6b0a6e3925415ccf8e10c5b1be85"
+    },
+    {
+      "bytes": 387,
+      "kind": "prompt",
+      "path": "prompts/humanize-list-join-update-natural-or-list-updated-policy.md",
+      "sha256": "c7e23ec5b7c4a6677a237d5e7472a3e88f09ebbc532dae4c4e4e9f465d8dcb2e"
+    },
+    {
+      "bytes": 536,
+      "kind": "prompt",
+      "path": "prompts/humanize-list-join-update-precisedelta-updated-separator.md",
+      "sha256": "532bd5ea3152624ea712519def90223d0c1138480135dc8a057bd211eaac6e3b"
+    },
+    {
+      "bytes": 638,
+      "kind": "prompt",
+      "path": "prompts/humanize-metric-prefix-control-clamp-limit-policy.md",
+      "sha256": "5ad00c176933d5755c35c79e5ad9fc537b6a3ae09ca141d91f69727f4e32e883"
+    },
+    {
+      "bytes": 756,
+      "kind": "prompt",
+      "path": "prompts/humanize-metric-prefix-control-clocktime.md",
+      "sha256": "4083a3a9af6d439a56af998cd7fe20261cc8dad977d339fff47baab966a8b5ed"
+    },
+    {
+      "bytes": 1018,
+      "kind": "prompt",
+      "path": "prompts/humanize-metric-prefix-control-metric-prefix-policy.md",
+      "sha256": "c3bf3eb96da1ec4bd3443d9cfbd650cb74c20de8a5268674d3bcb5224bbb12ba"
+    },
+    {
+      "bytes": 743,
+      "kind": "prompt",
+      "path": "prompts/humanize-metric-prefix-control-natural-percent.md",
+      "sha256": "6ed51efbaf57522ffac966bfe1320b8d356a0cad9180a951e2130b0f746dc3cc"
+    },
+    {
+      "bytes": 884,
+      "kind": "prompt",
+      "path": "prompts/humanize-size-unit-selection-apordinal-spelled-ordinal.md",
+      "sha256": "27696ed2a8f9e133b9d30c8430fd3f1d991250e3421457ba9c7ce71f66231659"
+    },
+    {
+      "bytes": 745,
+      "kind": "prompt",
+      "path": "prompts/humanize-size-unit-selection-naturalbitrate-sibling.md",
+      "sha256": "01521bc67dc7e5d6b5bc99a0d289f1cb83fa9cac9d8804fd2f5a9df64b3592c4"
+    },
+    {
+      "bytes": 1345,
+      "kind": "prompt",
+      "path": "prompts/humanize-size-unit-selection-naturalsize-unit-selection.md",
+      "sha256": "762af5a699c8dc2cd38ad3159c4cbd6b8e080b0dfbcc0e9aede6a16b5d76ff88"
+    },
+    {
+      "bytes": 726,
+      "kind": "prompt",
+      "path": "prompts/humanize-size-unit-selection-naturaltime-signed-seconds.md",
+      "sha256": "25761b600d56a1f33cee8d7837d497e5b4aa4b5ab467c5570e0dfaf75aec6f1c"
+    },
+    {
+      "bytes": 558,
+      "kind": "prompt",
+      "path": "prompts/inflection-case-mirroring-approach-dasherize-runs.md",
+      "sha256": "468d3aa91d01fbd64bc4d8ba2fd6c27eb6d741d1ec75ee22be73c5c15e41f44b"
+    },
+    {
+      "bytes": 809,
+      "kind": "prompt",
+      "path": "prompts/inflection-case-mirroring-approach-parameterize-slug.md",
+      "sha256": "9d7becda13a56d986a1e1a969aa9c6dc0be36fa9aba65b2938d582af5038556c"
+    },
+    {
+      "bytes": 999,
+      "kind": "prompt",
+      "path": "prompts/inflection-case-mirroring-approach-pluralize-case-mirroring.md",
+      "sha256": "dc82924b611f511876c85b4940ba283ca2eb1f78317c57f507547047207ba7b4"
+    },
+    {
+      "bytes": 324,
+      "kind": "prompt",
+      "path": "prompts/inflection-case-mirroring-approach-singularize-case-mirroring.md",
+      "sha256": "6ea8a24756834ce2e1a6ffb51e26b1d97f4548eff4fe325f4a2b756c1b743479"
+    },
+    {
+      "bytes": 431,
+      "kind": "prompt",
+      "path": "prompts/inflection-constant-path-helpers-classify.md",
+      "sha256": "33f2676044f58c03b05ad442f7e4446819d67a52aed7a1a7210af6de64afdc94"
+    },
+    {
+      "bytes": 453,
+      "kind": "prompt",
+      "path": "prompts/inflection-constant-path-helpers-deconstantize.md",
+      "sha256": "1938570e66515432326598e74ebfbf19527c72eda5436e34b39a019b710f8648"
+    },
+    {
+      "bytes": 473,
+      "kind": "prompt",
+      "path": "prompts/inflection-constant-path-helpers-demodulize.md",
+      "sha256": "e9fecba769c3a77001924e3968751c75e457a5e831f1be8f0226b0ec1c66f67b"
+    },
+    {
+      "bytes": 510,
+      "kind": "prompt",
+      "path": "prompts/inflection-constant-path-helpers-foreign-key.md",
+      "sha256": "6f6d5f794e86d2bfa79ff5991bb2f621f8bf563f0648de83b7953dad667f3ac6"
+    },
+    {
+      "bytes": 1057,
+      "kind": "prompt",
+      "path": "prompts/inflection-identifier-boundary-kebabize.md",
+      "sha256": "41d1d38969db52644756bd9a5c9b0268dc79e53ed40526210c14641920695f72"
+    },
+    {
+      "bytes": 830,
+      "kind": "prompt",
+      "path": "prompts/inflection-identifier-boundary-possessive.md",
+      "sha256": "5cc81b0d1d94ad5cdbf86fbb873ae47fbe95cebf61b9f49de992ffe09c56dcb5"
+    },
+    {
+      "bytes": 745,
+      "kind": "prompt",
+      "path": "prompts/inflection-identifier-boundary-transliterate-ligatures.md",
+      "sha256": "5f931a0b3ed0a5f8637f800ffe053af3612896f65973e2cd8f8f728e8563a9f6"
+    },
+    {
+      "bytes": 325,
+      "kind": "prompt",
+      "path": "prompts/inflection-identifier-boundary-underscore-convention.md",
+      "sha256": "e9fd964b2e9e48718cfa02b6770c7c03a2bf0a23d52e14871b8331874076b087"
+    },
+    {
+      "bytes": 832,
+      "kind": "prompt",
+      "path": "prompts/inflection-number-rendering-update-count-noun.md",
+      "sha256": "8b92635f8f5b75a498de9d889608cc6bee537af7044c7da6603996da2a4b8881"
+    },
+    {
+      "bytes": 448,
+      "kind": "prompt",
+      "path": "prompts/inflection-number-rendering-update-ordinal-noun.md",
+      "sha256": "aa5a43bf1eefc4d17bc95e6bd3a685487cb47aec6b7be4573d15b54938c57882"
+    },
+    {
+      "bytes": 1033,
+      "kind": "prompt",
+      "path": "prompts/inflection-number-rendering-update-ordinalize-policy.md",
+      "sha256": "af5400be2d993f0241825d1c851fa5f02a73631ad8737703b3ca04ad109d618e"
+    },
+    {
+      "bytes": 612,
+      "kind": "prompt",
+      "path": "prompts/inflection-number-rendering-update-tableize-namespace.md",
+      "sha256": "5623ac227c5a6625d46298fa7c8e816148ee808f2b8ca50050b411993a48ed83"
+    },
+    {
+      "bytes": 728,
+      "kind": "prompt",
+      "path": "prompts/inflection-phrase-inflection-handoff-camelize-separators.md",
+      "sha256": "dfb3aaebbf1f835ac7f96e303e53928c62335c49d2cc5401d3a12c32a7248e2b"
+    },
+    {
+      "bytes": 685,
+      "kind": "prompt",
+      "path": "prompts/inflection-phrase-inflection-handoff-humanize-camel-input.md",
+      "sha256": "c094f02876e2888d1156d0cf11b404afcd338b8c70bc9d366232be70cbc9a26f"
+    },
+    {
+      "bytes": 1137,
+      "kind": "prompt",
+      "path": "prompts/inflection-phrase-inflection-handoff-pluralize-phrase.md",
+      "sha256": "56f62fe50bbc2689d86ee8a5105724ca86ea87dec0f1f79dc9f5a989e1064d22"
+    },
+    {
+      "bytes": 353,
+      "kind": "prompt",
+      "path": "prompts/inflection-phrase-inflection-handoff-singularize-phrase.md",
+      "sha256": "c7e28502378a5e996f9aeef207785932b653af90558cf310e6519cb9356c9e32"
+    },
+    {
+      "bytes": 587,
+      "kind": "prompt",
+      "path": "prompts/moreit-exact-accumulation-rule-always-iterable-atom-policy.md",
+      "sha256": "750a650e1468522b691d09bf8d3751f993931e663f8163000b16bcfa51de3318"
+    },
+    {
+      "bytes": 1178,
+      "kind": "prompt",
+      "path": "prompts/moreit-exact-accumulation-rule-dotproduct-exact-accumulation.md",
+      "sha256": "5f41f3cfed0c23ad9e7f2f14f7a077b35a9bd267950b6eb42dbda8fbd2e4d0ed"
+    },
+    {
+      "bytes": 556,
+      "kind": "prompt",
+      "path": "prompts/moreit-exact-accumulation-rule-matmul-exact-accumulation.md",
+      "sha256": "7f7de9e0282fd9be879d99fc11cc868bf82c8cb7e87745f21a397ceb8a79b504"
+    },
+    {
+      "bytes": 693,
+      "kind": "prompt",
+      "path": "prompts/moreit-exact-accumulation-rule-split-into-sizes-policy.md",
+      "sha256": "fc6cc616dc31d2eb874904b53a953bbdc7f9f46d932c7a832504301aa89cc216"
+    },
+    {
+      "bytes": 344,
+      "kind": "prompt",
+      "path": "prompts/moreit-extremum-index-handoff-argmax-deferred-step.md",
+      "sha256": "fe42883408b2b102aae4d1bd640496ddef4371a66d2284e1b7e624193fe51c29"
+    },
+    {
+      "bytes": 1024,
+      "kind": "prompt",
+      "path": "prompts/moreit-extremum-index-handoff-argmin-extremum-policy.md",
+      "sha256": "6ab92effcfa128706f4be1715c4424d43dc2aeebbfd03b6668c4604a9f137159"
+    },
+    {
+      "bytes": 540,
+      "kind": "prompt",
+      "path": "prompts/moreit-extremum-index-handoff-take-count-policy.md",
+      "sha256": "0214de30931dd05def8695a41b8b2f85bf9e1eb5ad670313b3bfc6470194141a"
+    },
+    {
+      "bytes": 644,
+      "kind": "prompt",
+      "path": "prompts/moreit-extremum-index-handoff-transpose-ragged-policy.md",
+      "sha256": "024e1d2551b8e03e0f14e8d62dc1b21e1f095c2adee28caf1853afc631feddaa"
+    },
+    {
+      "bytes": 478,
+      "kind": "prompt",
+      "path": "prompts/moreit-group-balance-correction-chunked-even-corrected-balance.md",
+      "sha256": "3a21e85b23e37df990d0b02c45bbf3593f77f36ae006e62c85c72c6e359d6059"
+    },
+    {
+      "bytes": 764,
+      "kind": "prompt",
+      "path": "prompts/moreit-group-balance-correction-distribute-corrected-balance.md",
+      "sha256": "cf0bafec25b391929ec1d6fa7327b246dfc459272149398210277013ebb157b0"
+    },
+    {
+      "bytes": 958,
+      "kind": "prompt",
+      "path": "prompts/moreit-group-balance-correction-divide-group-balance.md",
+      "sha256": "5666970f205b119441c165c1dded41c5a60e14fdab425aa0f3b45042955b31ba"
+    },
+    {
+      "bytes": 672,
+      "kind": "prompt",
+      "path": "prompts/moreit-group-balance-correction-intersperse-separator-policy.md",
+      "sha256": "a66bcfe20aacee02cd3d1480855f98d669ddca29e094209e28a301b6f9bac28b"
+    },
+    {
+      "bytes": 439,
+      "kind": "prompt",
+      "path": "prompts/moreit-plain-tasks-control-is-monotonic.md",
+      "sha256": "a59bc99fe87d1e34e5efe57d84482265d0bd61f3d452a8b9400540d1bfae4ba5"
+    },
+    {
+      "bytes": 625,
+      "kind": "prompt",
+      "path": "prompts/moreit-plain-tasks-control-longest-common-suffix.md",
+      "sha256": "795db582312f3cd878fc2a20afe95a9ecb3618690e2f0a96bd351575b47bbe67"
+    },
+    {
+      "bytes": 517,
+      "kind": "prompt",
+      "path": "prompts/moreit-plain-tasks-control-nth-index.md",
+      "sha256": "79727781d15af9ddd8579a36588636035a32833efcc350bafde1b089e6d0ddc0"
+    },
+    {
+      "bytes": 389,
+      "kind": "prompt",
+      "path": "prompts/moreit-plain-tasks-control-run-lengths.md",
+      "sha256": "bd8f0bff387ff01919ef638046609d6e4065bb5c87b5ee75d37ee50cf3b572ed"
+    },
+    {
+      "bytes": 1032,
+      "kind": "prompt",
+      "path": "prompts/moreit-tail-padding-approach-grouper-tail-padding.md",
+      "sha256": "614a73aadeb79100a60e43bc3c52a7f21c8ec03263958214ff7d4248aeee3812"
+    },
+    {
+      "bytes": 665,
+      "kind": "prompt",
+      "path": "prompts/moreit-tail-padding-approach-nth-index-policy.md",
+      "sha256": "705cb24003b83068561c2415debb7c666639ebd94a12316f766398bf3dcb635b"
+    },
+    {
+      "bytes": 692,
+      "kind": "prompt",
+      "path": "prompts/moreit-tail-padding-approach-prefix-policy.md",
+      "sha256": "7a4b5139ca2a08eeed6a2b1dfe7951efaea240a67372069423f866e97837cd0c"
+    },
+    {
+      "bytes": 467,
+      "kind": "prompt",
+      "path": "prompts/moreit-tail-padding-approach-sliced-tail-padding.md",
+      "sha256": "e9152af68040b498f2fbcd96ded1e774bd17c9a36c0285e8242cdc91d812a5f2"
+    },
+    {
+      "bytes": 935,
+      "kind": "prompt",
+      "path": "prompts/radashi-alignment-policy-cluster-padded-groups.md",
+      "sha256": "bd10937278b4d086bca7efa1993b7eb70385cd2172320bf9860fcceb6bfa1e96"
+    },
+    {
+      "bytes": 661,
+      "kind": "prompt",
+      "path": "prompts/radashi-alignment-policy-similarity-normalized.md",
+      "sha256": "29dd115bb448e1cfcde268bda60eae99ddd643fb263d84dd917450422f960b8a"
+    },
+    {
+      "bytes": 467,
+      "kind": "prompt",
+      "path": "prompts/radashi-alignment-policy-unzip-updated-policy.md",
+      "sha256": "6b1daadf7862ab42c416477c241c847acd6ece69d700206a125c776db55a99fc"
+    },
+    {
+      "bytes": 224,
+      "kind": "prompt",
+      "path": "prompts/radashi-alignment-policy-zip-updated-policy.md",
+      "sha256": "2847c4762c3904dbda62bd7757ca762f0757bc26126c039533bebe814a3bc0a9"
+    },
+    {
+      "bytes": 1157,
+      "kind": "prompt",
+      "path": "prompts/radashi-case-word-boundary-policy-dash-word-boundaries.md",
+      "sha256": "c02430d974fa9a190bc437784fbf34d560c138931f564878351dc7d996a275a1"
+    },
+    {
+      "bytes": 623,
+      "kind": "prompt",
+      "path": "prompts/radashi-case-word-boundary-policy-in-range-inclusive-bounds.md",
+      "sha256": "bb387c4f9cefbd448135b50c5f95818c3380b56990e681ddfbc85ee867678bc4"
+    },
+    {
+      "bytes": 755,
+      "kind": "prompt",
+      "path": "prompts/radashi-case-word-boundary-policy-round-ties-away-from-zero.md",
+      "sha256": "f585c180f56f847b1bfa3029aeb4ce5c14116e3bb8b1b508d6b1924bc3afc069"
+    },
+    {
+      "bytes": 414,
+      "kind": "prompt",
+      "path": "prompts/radashi-case-word-boundary-policy-snake-word-boundaries.md",
+      "sha256": "20150274eaf0af2023f4945d4363b9568cb4b5359671a7df21424681333ca1e5"
+    },
+    {
+      "bytes": 955,
+      "kind": "prompt",
+      "path": "prompts/radashi-key-path-negative-control-keys-key-paths.md",
+      "sha256": "6abf14ef8492e29a1c524d701607931b81de628b77f25265b5dbb3c15bf37515"
+    },
+    {
+      "bytes": 618,
+      "kind": "prompt",
+      "path": "prompts/radashi-key-path-negative-control-lerp-clamped-amount.md",
+      "sha256": "7fefc3469c4ac191402ca7df83b8a8dd5b6d6ce0d167892b408ccd8e953de57c"
+    },
+    {
+      "bytes": 611,
+      "kind": "prompt",
+      "path": "prompts/radashi-key-path-negative-control-list-descending-range.md",
+      "sha256": "c5e3a57fd451e58e3fb79114fcbb1e586c376321b2dcb7164a60b63a29cdb60c"
+    },
+    {
+      "bytes": 702,
+      "kind": "prompt",
+      "path": "prompts/radashi-key-path-negative-control-zip-to-object-first-wins.md",
+      "sha256": "6b05e90f9d708827d2a2ae663c8437fed599c68a3771d31860fa6754ee516e86"
+    },
+    {
+      "bytes": 477,
+      "kind": "prompt",
+      "path": "prompts/radashi-list-reducer-input-policy-max-corrected-policy.md",
+      "sha256": "b328d629c46e65a666e76f8a6a95adf88a507bb90a95675c8a104ac0e3ab571c"
+    },
+    {
+      "bytes": 222,
+      "kind": "prompt",
+      "path": "prompts/radashi-list-reducer-input-policy-min-corrected-policy.md",
+      "sha256": "fc301a3fa65fcff828174fd4db0182bbbc890c20f90881192ee89d7b280faf79"
+    },
+    {
+      "bytes": 971,
+      "kind": "prompt",
+      "path": "prompts/radashi-list-reducer-input-policy-sum-input-policy.md",
+      "sha256": "647937cb44237861e1f91e936c2ebed44ea3f8c0c310fdae228102b99bf004cf"
+    },
+    {
+      "bytes": 688,
+      "kind": "prompt",
+      "path": "prompts/radashi-list-reducer-input-policy-template-placeholders.md",
+      "sha256": "d78afe46e6b4a200ed241735d4553266b60c934bc9860f41ea723432f86e85da"
+    },
+    {
+      "bytes": 675,
+      "kind": "prompt",
+      "path": "prompts/radashi-strict-numeric-parsing-invert-first-wins.md",
+      "sha256": "da82b818399ac38c83e6d8648f673e9614137911adb34cffbe9d01a4fdf02e46"
+    },
+    {
+      "bytes": 525,
+      "kind": "prompt",
+      "path": "prompts/radashi-strict-numeric-parsing-sift-keep-zero.md",
+      "sha256": "0f847e0cc4322e18f95ac3e914aa20ce8beb12f30958dd1d20542923856b61bc"
+    },
+    {
+      "bytes": 363,
+      "kind": "prompt",
+      "path": "prompts/radashi-strict-numeric-parsing-to-float-strict-parsing.md",
+      "sha256": "e1e5983ddb7da00d6285238c66193202f5d2cd0cc2146f89e9a6289cdb08d18c"
+    },
+    {
+      "bytes": 1222,
+      "kind": "prompt",
+      "path": "prompts/radashi-strict-numeric-parsing-to-int-strict-parsing.md",
+      "sha256": "a713ad3f0a527b5e07c7220314587b80126e488e82cad1412f1adfda3adaa15a"
+    },
+    {
+      "bytes": 735,
+      "kind": "prompt",
+      "path": "prompts/scule-label-policy-capital-case.md",
+      "sha256": "f39432859fae3a36696fa45f545964c7e9717c1f9d9c83dc9653985036ccfc74"
+    },
+    {
+      "bytes": 1144,
+      "kind": "prompt",
+      "path": "prompts/scule-label-policy-sentence-case.md",
+      "sha256": "71f5275f4d8c2ee720e0b732c6362ea53271db1b5af12582f7b59cfdf72fa2f9"
+    },
+    {
+      "bytes": 436,
+      "kind": "prompt",
+      "path": "prompts/scule-label-policy-title-case-labels.md",
+      "sha256": "0b6fc715a1ac7759821c418a8f70cb15dd9e6af3f042f62909b65a62ee77f9d3"
+    },
+    {
+      "bytes": 694,
+      "kind": "prompt",
+      "path": "prompts/scule-label-policy-upper-first-letter.md",
+      "sha256": "203e9dfea64123fe79a2f823ecba85a19f62b795ee7eeb2ea8448d3839538105"
+    },
+    {
+      "bytes": 328,
+      "kind": "prompt",
+      "path": "prompts/scule-placeholder-approach-camel-case-placeholders.md",
+      "sha256": "6cf37a4c4962239b949516a7a096b1579cee1758d920253d8526a8278ae4e9ef"
+    },
+    {
+      "bytes": 731,
+      "kind": "prompt",
+      "path": "prompts/scule-placeholder-approach-initials.md",
+      "sha256": "726fc57a5a5a6a9c7f47679f7e0f3cc2f510df97582a6ebaddf23d1e6e88e295"
+    },
+    {
+      "bytes": 1124,
+      "kind": "prompt",
+      "path": "prompts/scule-placeholder-approach-kebab-case-placeholders.md",
+      "sha256": "0cdc396f84bca2225cbb52d29d5bfff9343b17b2820ae58fb666b8ece0f18cf3"
+    },
+    {
+      "bytes": 670,
+      "kind": "prompt",
+      "path": "prompts/scule-placeholder-approach-lower-first-acronym.md",
+      "sha256": "65d378a52fc65f098ac0389403792ace7cb445cae3bc46e0896d0d2fafaee8b8"
+    },
+    {
+      "bytes": 426,
+      "kind": "prompt",
+      "path": "prompts/scule-standalone-tasks-flat-case-fold.md",
+      "sha256": "731b4412f6b0cade547ae48d9363bccef80203e94fe1b47878a0103d6ea1b1ac"
+    },
+    {
+      "bytes": 504,
+      "kind": "prompt",
+      "path": "prompts/scule-standalone-tasks-is-uppercase-strings.md",
+      "sha256": "8058396bc3eee8b28ea8d482746b6b211d7b1d3742e059032572ebffee5989d2"
+    },
+    {
+      "bytes": 421,
+      "kind": "prompt",
+      "path": "prompts/scule-standalone-tasks-snake-case-collapse.md",
+      "sha256": "a8cca8d69246faadcda3c3b8ac583463a569781b4c3e8827fac1f4de533dd4bc"
+    },
+    {
+      "bytes": 436,
+      "kind": "prompt",
+      "path": "prompts/scule-standalone-tasks-split-by-case-digits.md",
+      "sha256": "1a1bbc8a156b1e7fd780cbe7f4946599857f3e5385f7a3c6ad083f779c7cfadf"
+    },
+    {
+      "bytes": 1231,
+      "kind": "prompt",
+      "path": "prompts/scule-style-predicates-is-camel-case.md",
+      "sha256": "6902b700e4a768b99cb8aa67b4daad537c9aeb9f9e1ab7df866b4f126957e4c0"
+    },
+    {
+      "bytes": 415,
+      "kind": "prompt",
+      "path": "prompts/scule-style-predicates-is-pascal-case.md",
+      "sha256": "46a45d84a1a0ee29e5f89b92028bdd2eb1f00c54836c730cc725b85e09ef332c"
+    },
+    {
+      "bytes": 730,
+      "kind": "prompt",
+      "path": "prompts/scule-style-predicates-pascal-case-punctuation.md",
+      "sha256": "e1b611ed78645987d2f8d0f2d758916647b95bf13ec7e5eae8e8a6238014530a"
+    },
+    {
+      "bytes": 776,
+      "kind": "prompt",
+      "path": "prompts/scule-style-predicates-path-case.md",
+      "sha256": "2337c8716f6b2b109337da6d5c9bbf07c17d56d864e2d8bb3f8b093ef77093a5"
+    },
+    {
+      "bytes": 1230,
+      "kind": "prompt",
+      "path": "prompts/scule-word-boundary-convention-constant-case.md",
+      "sha256": "1492615151cc9ea08e15ef58fba492102e6989d80ecd7a0d2f79dad7e1a78782"
+    },
+    {
+      "bytes": 435,
+      "kind": "prompt",
+      "path": "prompts/scule-word-boundary-convention-dot-case.md",
+      "sha256": "2748217a14a782152d07a88ed9baadacbaef31d357fef416238a506fb2aa3fca"
+    },
+    {
+      "bytes": 751,
+      "kind": "prompt",
+      "path": "prompts/scule-word-boundary-convention-is-lowercase.md",
+      "sha256": "0ab959e72a654f218c4960190a05b9a27887c810d4dffeded93af827b3af3b73"
+    },
+    {
+      "bytes": 734,
+      "kind": "prompt",
+      "path": "prompts/scule-word-boundary-convention-swap-case.md",
+      "sha256": "227c1cee473b7ed6f318b1ae3bc4b7f52392ba458828d63a113604d245f4d217"
+    },
+    {
+      "bytes": 560,
+      "kind": "prompt",
+      "path": "prompts/ufo-base-strip-control-parse-auth.md",
+      "sha256": "818fc217a6f7e13b9a6d99917137e08c0dbb97aa38b2c76ef151af4b3dbdb9d2"
+    },
+    {
+      "bytes": 586,
+      "kind": "prompt",
+      "path": "prompts/ufo-base-strip-control-with-leading-slash.md",
+      "sha256": "0346e2128d6fe65b975122cb9fbd26f6edfa6eb6cb7cb883bf5781f65d1bb035"
+    },
+    {
+      "bytes": 1024,
+      "kind": "prompt",
+      "path": "prompts/ufo-base-strip-control-without-base.md",
+      "sha256": "720be3ac259ce13d4cdb04381001a244d7dce305addc42423a44e5dab7586384"
+    },
+    {
+      "bytes": 563,
+      "kind": "prompt",
+      "path": "prompts/ufo-base-strip-control-without-fragment.md",
+      "sha256": "1a364fd6c722916f6ffa264f8c73206a0e3eead2871f9c61c47acba28dabadcc"
+    },
+    {
+      "bytes": 566,
+      "kind": "prompt",
+      "path": "prompts/ufo-path-compare-segments-is-equal.md",
+      "sha256": "8d3f07d8f7d48558497da09f56ea18b8db8f5acb725911c79abffc2f807c73b8"
+    },
+    {
+      "bytes": 1049,
+      "kind": "prompt",
+      "path": "prompts/ufo-path-compare-segments-is-same-path.md",
+      "sha256": "4e3cb0e7b0b6aec2aaca2c7f47805ab63396c3830622506bf915186a4068ae63"
+    },
+    {
+      "bytes": 716,
+      "kind": "prompt",
+      "path": "prompts/ufo-path-compare-segments-parse-filename.md",
+      "sha256": "98ff3f5e3ff93ff125b0c4b2375908de699edbab5571d9bc30e1b0b2c98d9636"
+    },
+    {
+      "bytes": 825,
+      "kind": "prompt",
+      "path": "prompts/ufo-path-compare-segments-with-protocol.md",
+      "sha256": "69924dc05963fbbae1d9dce5b2b077acea01c1a9f4ba18d274c67e3d3669c453"
+    },
+    {
+      "bytes": 573,
+      "kind": "prompt",
+      "path": "prompts/ufo-path-terminal-policy-clean-double-slashes.md",
+      "sha256": "d233f757a552121f9b26de7b5c1a46e9f1e69f7bf7ceb6b9d1fa32337c0e1036"
+    },
+    {
+      "bytes": 560,
+      "kind": "prompt",
+      "path": "prompts/ufo-path-terminal-policy-with-fragment.md",
+      "sha256": "d54c2112c08b4f605239b72dfe26dba557f19713ff0f0a85ee88a9ef0b9dda3d"
+    },
+    {
+      "bytes": 810,
+      "kind": "prompt",
+      "path": "prompts/ufo-path-terminal-policy-with-trailing-slash.md",
+      "sha256": "1b75023cd7418d4c14e24cef8d3716742b233135fb9b03f1a857973986d76bcc"
+    },
+    {
+      "bytes": 301,
+      "kind": "prompt",
+      "path": "prompts/ufo-path-terminal-policy-without-trailing-slash.md",
+      "sha256": "1a4c641078c1a89d8d17fe732610ea027cefb5796b906b8ac84f26492d7c5d37"
+    },
+    {
+      "bytes": 1122,
+      "kind": "prompt",
+      "path": "prompts/ufo-query-serialization-policy-encode-query-item.md",
+      "sha256": "e7307a55a88bc683ef60a1830ccaa64c7b1ea6d06e20c5ddc33eb1bbe6691587"
+    },
+    {
+      "bytes": 862,
+      "kind": "prompt",
+      "path": "prompts/ufo-query-serialization-policy-stringify-query.md",
+      "sha256": "03d5553653d26ae4d0117caf1581ac070bad806e1433e061edca71bb090f1dfc"
+    },
+    {
+      "bytes": 460,
+      "kind": "prompt",
+      "path": "prompts/ufo-query-serialization-policy-with-query.md",
+      "sha256": "2b8a10aceb1eda650da97231d9053191944c0affadb35d81651fbf752886acd5"
+    },
+    {
+      "bytes": 695,
+      "kind": "prompt",
+      "path": "prompts/ufo-query-serialization-policy-without-host.md",
+      "sha256": "ef4263d395026490fc0ff2de6e7fcf8e8cac7a29de8312a3850ab576cebd2a45"
+    },
+    {
+      "bytes": 604,
+      "kind": "prompt",
+      "path": "prompts/ufo-segment-join-approach-encode-hash.md",
+      "sha256": "f18cf134743548c6e359fa699db38eebb11c377ceb82609e1099b1944d8a1a8c"
+    },
+    {
+      "bytes": 404,
+      "kind": "prompt",
+      "path": "prompts/ufo-segment-join-approach-join-relative-url.md",
+      "sha256": "348fd844230a0ae9d4f53d8655f1bb940f6e6cf7a89515139477d8f0baa9fe60"
+    },
+    {
+      "bytes": 1181,
+      "kind": "prompt",
+      "path": "prompts/ufo-segment-join-approach-join-url.md",
+      "sha256": "15c28c5d67ad02c82fe07315a3b2b0beb48426e9c06885e9921fa34c74a9d897"
+    },
+    {
+      "bytes": 729,
+      "kind": "prompt",
+      "path": "prompts/ufo-segment-join-approach-parse-host.md",
+      "sha256": "e06a51a2467b3a5f8a433349cf0a0e2cdf3afc4f853d2f0782541513fb3fd2ea"
+    },
+    {
+      "bytes": 398,
+      "kind": "author-attestation",
+      "path": "provenance/author-attestation.json",
+      "sha256": "82d9b97ae72f066c8cc389f9325ea0a66f485832ec177d543d825ad2f4119e5e"
+    },
+    {
+      "bytes": 1495,
+      "kind": "repository-provenance",
+      "path": "provenance/repositories/jpvanhal-inflection.json",
+      "sha256": "917aa810a5ee1fdbc7c7f1b508c07485e7e79cb691a0095a4625fde54bab938e"
+    },
+    {
+      "bytes": 1914,
+      "kind": "repository-provenance",
+      "path": "provenance/repositories/more-itertools-more-itertools.json",
+      "sha256": "e6422abf209fa4ee32cd677eaa6c79a09e0b936d7349dcaab80fd4265aad1f50"
+    },
+    {
+      "bytes": 2161,
+      "kind": "repository-provenance",
+      "path": "provenance/repositories/python-humanize-humanize.json",
+      "sha256": "50d086487d3015d5c5922b9272fb9e8d4795b5835dd2b2cad364b70247106238"
+    },
+    {
+      "bytes": 1728,
+      "kind": "repository-provenance",
+      "path": "provenance/repositories/radashi-org-radashi.json",
+      "sha256": "3bbcde02c1c69560dd30b7e763c89a3696c91df74c87994161f1e204dec14715"
+    },
+    {
+      "bytes": 1168,
+      "kind": "repository-provenance",
+      "path": "provenance/repositories/unjs-scule.json",
+      "sha256": "ae5bda94d6cfa07497ffba0efc6ad7c303ce1e0cb8c053ffb3a485cc1bc4abab"
+    },
+    {
+      "bytes": 1304,
+      "kind": "repository-provenance",
+      "path": "provenance/repositories/unjs-ufo.json",
+      "sha256": "206b1bf68d7ae4ec746b0e7b642acc04a52cd43c531ad2d1e5e42d7e3562f023"
+    },
+    {
+      "bytes": 283,
+      "kind": "repository-source",
+      "path": "repositories/jpvanhal-inflection/AGENTS.md",
+      "sha256": "6f5dab33715636e6b7b2185805ac3ed9ab5c0be83e05f7b65d80218ce88f7451"
+    },
+    {
+      "bytes": 11560,
+      "kind": "repository-source",
+      "path": "repositories/jpvanhal-inflection/inflection/__init__.py",
+      "sha256": "b6b089383f812e6986f917a3c689722c54b8a69f04ded2ac32b627cbcfdaf35e"
+    },
+    {
+      "bytes": 0,
+      "kind": "repository-source",
+      "path": "repositories/jpvanhal-inflection/inflection/py.typed",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 1062,
+      "kind": "repository-source",
+      "path": "repositories/jpvanhal-inflection/LICENSE",
+      "sha256": "9e9f9b4b2e7543ad1486f1328bf9ec50e5a5e2bb9caceb59652496dd61e64133"
+    },
+    {
+      "bytes": 148,
+      "kind": "repository-source",
+      "path": "repositories/jpvanhal-inflection/pyproject.toml",
+      "sha256": "8c514dfd4fbaa87053481802d096ec25a1a38bf4d8c131a3dc40e2a68563f537"
+    },
+    {
+      "bytes": 1531,
+      "kind": "repository-source",
+      "path": "repositories/jpvanhal-inflection/setup.cfg",
+      "sha256": "6bcf00e929ecd365bdce62ec4af2fe854bfe67988beab103c2c0abe853da4c6f"
+    },
+    {
+      "bytes": 116,
+      "kind": "repository-source",
+      "path": "repositories/jpvanhal-inflection/setup.py",
+      "sha256": "45dd7e6e530434ee479609c01209e30cb7c1293f03aab1558f853d5793434b3a"
+    },
+    {
+      "bytes": 353,
+      "kind": "repository-source",
+      "path": "repositories/jpvanhal-inflection/tests/base_health.py",
+      "sha256": "e854b157df3dbf9620b81e9dc5506c04680aa70e112bc91bc36dc86c2fcb12ee"
+    },
+    {
+      "bytes": 283,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/AGENTS.md",
+      "sha256": "6f5dab33715636e6b7b2185805ac3ed9ab5c0be83e05f7b65d80218ce88f7451"
+    },
+    {
+      "bytes": 1053,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/LICENSE",
+      "sha256": "09f1c8c9e941af3e584d59641ea9b87d83c0cb0fd007eb5ef391a7e2643c1a46"
+    },
+    {
+      "bytes": 149,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/more_itertools/__init__.py",
+      "sha256": "e45ec4ff3a6819c1015bf4ffdd613459862df23fa0268748ba205c389c6b3aff"
+    },
+    {
+      "bytes": 43,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/more_itertools/__init__.pyi",
+      "sha256": "e41dde4f338dd4106e38ba1bd6f09f97211bda549deaeb17410f82bfe85791e0"
+    },
+    {
+      "bytes": 163690,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/more_itertools/more.py",
+      "sha256": "98d3ca2aee5423b9512f8eb4be09b441309616218c542328b123f15527626e8b"
+    },
+    {
+      "bytes": 27119,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/more_itertools/more.pyi",
+      "sha256": "7e9120357dceebac18e5c9d3face5560328d52901c682c94de23fce08b7738e3"
+    },
+    {
+      "bytes": 0,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/more_itertools/py.typed",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 41811,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/more_itertools/recipes.py",
+      "sha256": "31afa4b813590c585a4036c82604669eb1bce96cdaba96cec94577bfc8dedf1c"
+    },
+    {
+      "bytes": 6226,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/more_itertools/recipes.pyi",
+      "sha256": "2cd47037e38bde790c7d002ac7e3cf7357c169eb5439b6ff67a99d78fcb38757"
+    },
+    {
+      "bytes": 1539,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/pyproject.toml",
+      "sha256": "1f8e46824b71c6b29b7ea0d973f89ebf218a22d403551720ec5d0b58737cfd33"
+    },
+    {
+      "bytes": 601,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/setup.cfg",
+      "sha256": "c58ce73ab8a5c66dba64f6e9569cb16a78170438cb8f674971fe0e0b9f26883c"
+    },
+    {
+      "bytes": 364,
+      "kind": "repository-source",
+      "path": "repositories/more-itertools-more-itertools/tests/base_health.py",
+      "sha256": "6f32183cde7f07ad22da65ba06001431cc30162fd4a6b41a9d20ab3c3afdcae8"
+    },
+    {
+      "bytes": 283,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/AGENTS.md",
+      "sha256": "6f5dab33715636e6b7b2185805ac3ed9ab5c0be83e05f7b65d80218ce88f7451"
+    },
+    {
+      "bytes": 1078,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/LICENCE",
+      "sha256": "8ba6c18112a431400ad3c743f70670079b302545d98884fc2f28a91c383a0380"
+    },
+    {
+      "bytes": 3528,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/pyproject.toml",
+      "sha256": "51e6534ce8cf8b397f2d0748466a90dcb99b2046ee94de8605c3424c8f26e2bc"
+    },
+    {
+      "bytes": 911,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/__init__.py",
+      "sha256": "d00d3181a59d96da8c1bc4fa8e15661895f06fecf66eb38dcb645e7e52702349"
+    },
+    {
+      "bytes": 23,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/_version.py",
+      "sha256": "f44bb8f1fb761bd3a6466977feb7ce4516e962d36e6ae1bb91154d839160286c"
+    },
+    {
+      "bytes": 2343,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/filesize.py",
+      "sha256": "2e8b51584654471f91ab5234ca08fdc352b0b1d41b8c751de5d68d32cf932bda"
+    },
+    {
+      "bytes": 5158,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/i18n.py",
+      "sha256": "fd1a193980bd2c99edaec0cc82704245300a4554a59b015164544d0688283eab"
+    },
+    {
+      "bytes": 889,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/lists.py",
+      "sha256": "adecb3b42482517bf058cc9d1c2eeba2b7588890d541839a8f181beba1e79791"
+    },
+    {
+      "bytes": 7117,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/ar/LC_MESSAGES/humanize.po",
+      "sha256": "4ca9f392cfae2f0b5a892e64eea1be03a90ac180e757b3ae2a9651ad6276d441"
+    },
+    {
+      "bytes": 7498,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/bn_BD/LC_MESSAGES/humanize.po",
+      "sha256": "6722a1d226a1154b926c5d71a5fb0eb4baa080afcd7c0754e11ea93f289c0251"
+    },
+    {
+      "bytes": 6496,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/ca_ES/LC_MESSAGES/humanize.po",
+      "sha256": "0388550e9504a0899751b98430c8f293c5be3fac6ec3264d02bf996f4b15c1ac"
+    },
+    {
+      "bytes": 6576,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/da_DK/LC_MESSAGES/humanize.po",
+      "sha256": "c52d206570c9c4fdcd237dbd5e96e9047798fc78b0581da811e56edf006a0b0d"
+    },
+    {
+      "bytes": 6683,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/de_DE/LC_MESSAGES/humanize.po",
+      "sha256": "1c8523caccacef3ccd25341d9f29fd6a0d205d89fd89cc62f72b51746ec01033"
+    },
+    {
+      "bytes": 8843,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/el_GR/LC_MESSAGES/humanize.po",
+      "sha256": "823f9393311a4976b6e4db1221aa175f8701466099fa3d893a720466784b3c07"
+    },
+    {
+      "bytes": 6548,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/eo/LC_MESSAGES/humanize.po",
+      "sha256": "5299e73d91c66d4400fb11ed0dabac84edd69dd06d42d2c5d89ff5c920582639"
+    },
+    {
+      "bytes": 6601,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/es_ES/LC_MESSAGES/humanize.po",
+      "sha256": "31abf4d6ee3b6f8b7d418b6c2dfb2e2ca7b719430b4a8351a3eca9b7bf6bc94d"
+    },
+    {
+      "bytes": 6522,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/eu/LC_MESSAGES/humanize.po",
+      "sha256": "f5507cfa54dfce3e35ab81154726b5911e65866624079d375aa0616b2b658539"
+    },
+    {
+      "bytes": 7131,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/fa_IR/LC_MESSAGES/humanize.po",
+      "sha256": "70ae9dc1146271a18d1461513fa2d6bb467a4b1e887235b9e23b64681520a093"
+    },
+    {
+      "bytes": 6704,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/fi_FI/LC_MESSAGES/humanize.po",
+      "sha256": "44745fbc10e1064b884264143d473e6d56850fd6f70e80f1da2c62a744ca483d"
+    },
+    {
+      "bytes": 6628,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/fr_FR/LC_MESSAGES/humanize.po",
+      "sha256": "d673a9b8321dc5d86999b7ca3dfe94a0c8be2f6013376a3103027be130654628"
+    },
+    {
+      "bytes": 6961,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/he_IL/LC_MESSAGES/humanize.po",
+      "sha256": "24967029d76784c4066f4b7caf0e81e45e9c5068f9e4ca9b8fd1ecabbfe1d1b0"
+    },
+    {
+      "bytes": 6662,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/hu_HU/LC_MESSAGES/humanize.po",
+      "sha256": "75e5f589c0ac3424531efee7dfa78a98533630aa77273ce27f75f4eb2a518b58"
+    },
+    {
+      "bytes": 6064,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/id_ID/LC_MESSAGES/humanize.po",
+      "sha256": "92638e32490300b40d1c073da945b5bff2bf5e83ec597a5bcafcd7db727008f6"
+    },
+    {
+      "bytes": 6595,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/it_IT/LC_MESSAGES/humanize.po",
+      "sha256": "2dda92a44e4931a3621220d284d066796f57d46a9a113469f8b1bdac7db05f94"
+    },
+    {
+      "bytes": 6114,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/ja_JP/LC_MESSAGES/humanize.po",
+      "sha256": "9c8c3152cc06dab6f0fe008e6f11e861bd91955f833e17af7610ca1826e42a85"
+    },
+    {
+      "bytes": 7026,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/ko_KR/LC_MESSAGES/humanize.po",
+      "sha256": "c595da958c3d166e859f7f31d6b6441d41507a6f0744c5f8e97b3371edc26992"
+    },
+    {
+      "bytes": 6652,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/nb/LC_MESSAGES/humanize.po",
+      "sha256": "1d983dec4fb9dd8af52a3d13dc27525e0975c441e6fb53bf361c28dc3b2f79c2"
+    },
+    {
+      "bytes": 6611,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/nl_NL/LC_MESSAGES/humanize.po",
+      "sha256": "67965943f773e8680ce571318dabb5d98ccbcd68f783479018c04beb4bc61b6d"
+    },
+    {
+      "bytes": 7298,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/pl_PL/LC_MESSAGES/humanize.po",
+      "sha256": "14748cdafc72afbfa29fe3b8050d17809d0f77383ad445c6badcb245cd4ff502"
+    },
+    {
+      "bytes": 6555,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/pt_BR/LC_MESSAGES/humanize.po",
+      "sha256": "a9cba97b328a1d45a94842a6450e61ba66c989fe8f2f424e9e343279108e4951"
+    },
+    {
+      "bytes": 6574,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/pt_PT/LC_MESSAGES/humanize.po",
+      "sha256": "8b6a793138ea715e4b33cf11f9a91f37de06edc3c3a4d0fabbbdcd1e4a57f124"
+    },
+    {
+      "bytes": 7913,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/ru_RU/LC_MESSAGES/humanize.po",
+      "sha256": "4a7be433edc8c92e9c7e3ddb83e3b2e364ab4c0dfa5f11bc76386e86ed33c311"
+    },
+    {
+      "bytes": 7187,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/sk_SK/LC_MESSAGES/humanize.po",
+      "sha256": "15cb42acef7088a9991bc516a2add5192ac07fd7cf78bac055d8b1be8c5e8ddb"
+    },
+    {
+      "bytes": 7625,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/sl_SI/LC_MESSAGES/humanize.po",
+      "sha256": "892b0c0d025eea5059beca13d47fe29fa68d82b7649e04551c91d4bcbfafdb3d"
+    },
+    {
+      "bytes": 6553,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/sv_SE/LC_MESSAGES/humanize.po",
+      "sha256": "7a5515ea970df5ec47117578c9a286519d4d5e9540318f3111008bae2d5f94f8"
+    },
+    {
+      "bytes": 6426,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/tlh/LC_MESSAGES/humanize.po",
+      "sha256": "30d28f68c6a19199e2b3155aa42152e2548be0119b3d10f4103a459b8b4ee945"
+    },
+    {
+      "bytes": 6815,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/tr_TR/LC_MESSAGES/humanize.po",
+      "sha256": "8ed57baa3bdeb5e46fa719924ff14c0ae55f6cc83fb84af98a5264783d33cc20"
+    },
+    {
+      "bytes": 7668,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/uk_UA/LC_MESSAGES/humanize.po",
+      "sha256": "590fbd5b78a9c920e8206b58821207246e048e89df58c92506d7ea322227ba88"
+    },
+    {
+      "bytes": 6927,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/vi_VN/LC_MESSAGES/humanize.po",
+      "sha256": "8b528b141646fe98bff29e97ff8bd1ce4e4b1b4c0f181ffdd442ebdd8de591fc"
+    },
+    {
+      "bytes": 6386,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/zh_CN/LC_MESSAGES/humanize.po",
+      "sha256": "e0c73f209fa5d5ff1c9592d2401cab6df55062bb3c886693ebfdc64881a8e076"
+    },
+    {
+      "bytes": 6520,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/locale/zh_HK/LC_MESSAGES/humanize.po",
+      "sha256": "8bda54edf35afa89ac429ad4a0ef4bcfcd6922d33a033725e668e7fa751dc89f"
+    },
+    {
+      "bytes": 16391,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/number.py",
+      "sha256": "d0b61a7d271265257a8c5894d2f97b16d8c17d2257319ed93f490bd62519910c"
+    },
+    {
+      "bytes": 0,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/py.typed",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "bytes": 20036,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/src/humanize/time.py",
+      "sha256": "c0a64b61616cca5b5d0822a02acc71a50b313de96d4ac39fded57bd036c825d6"
+    },
+    {
+      "bytes": 320,
+      "kind": "repository-source",
+      "path": "repositories/python-humanize-humanize/tests/base_health.py",
+      "sha256": "6b5d8a6233eafb756fa52431200d6809f38d2dad1f904e6ac85e3743c0d16c78"
+    },
+    {
+      "bytes": 204,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/AGENTS.md",
+      "sha256": "3d8e99a38de9596fb4de302c3b3209b306dd5bd3c8082a1edb26623f63e6beaf"
+    },
+    {
+      "bytes": 208,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/deno.json",
+      "sha256": "f46229b886bc4e2c317a4660de17d5645a4efe044bb754e355deb3c87d513747"
+    },
+    {
+      "bytes": 1096,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/LICENSE.md",
+      "sha256": "e3f18e7d6b946c8fd473197e364bbe6d97cc00f133319f24c40bd7d32bff1aae"
+    },
+    {
+      "bytes": 2507,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/package.json",
+      "sha256": "5d86614a00d6985c5cf5adab5e8e9fede66c09091807898f795b5e7c9863dcbe"
+    },
+    {
+      "bytes": 572,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/alphabetical.ts",
+      "sha256": "ba3f9eed82297b412c27ac9d96ba8909d64a80eaebbeee95713be5733ef53326"
+    },
+    {
+      "bytes": 542,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/boil.ts",
+      "sha256": "f6ddfce8f357f2faf7a8a8cd6cf811822f6bfa5374a6f29c0368fd4ff8a829dc"
+    },
+    {
+      "bytes": 1248,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/cartesianProduct.ts",
+      "sha256": "2810f0e47ed68c01746d0cff9eb8e42a8b21bfb41e00245d2558a1752d6b8d20"
+    },
+    {
+      "bytes": 1055,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/castArray.ts",
+      "sha256": "851cd33d11d4c1e6307991ea7d9f68d98f17df94708cdce8c75bf9a7a27e4ba4"
+    },
+    {
+      "bytes": 1311,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/castArrayIfExists.ts",
+      "sha256": "840809c676814c81c52db66bb17f8de5e7281759aa688cb70cdfef553c58c629"
+    },
+    {
+      "bytes": 1019,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/cluster.ts",
+      "sha256": "70cc24ea176da7ac58091a95eaf2ed12ddfcfa66e19692f7b6d89e9cc14b8394"
+    },
+    {
+      "bytes": 1104,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/concat.ts",
+      "sha256": "211f1e00fd501c4f723c78b81329af1adf3b9c46f0dcfb8dd4246947b18b0dfb"
+    },
+    {
+      "bytes": 703,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/counting.ts",
+      "sha256": "c7904862d2cd49f6d5fe59f27f59e5b98ff89f4207cc480a83aeeb5d8d4ff678"
+    },
+    {
+      "bytes": 889,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/diff.ts",
+      "sha256": "d525fbe549d7ab7cfa87449a529e8f0125d30ad59fe4ffba5240be62c3d11393"
+    },
+    {
+      "bytes": 521,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/first.ts",
+      "sha256": "bd7ac4ccd315694856d2b16bfe781732c8042ebf99b925e882f1fe825ccfbefc"
+    },
+    {
+      "bytes": 397,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/flat.ts",
+      "sha256": "e99c4f570965cf0728d72edc4227ca2eebd3b0b15586bd4bc19868b11ecfc80e"
+    },
+    {
+      "bytes": 514,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/fork.ts",
+      "sha256": "628328c896a6cd49f3bea3540662a929e79f5d5f2d62935e4018ef4c03ae474c"
+    },
+    {
+      "bytes": 882,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/group.ts",
+      "sha256": "078984199574173e80d4a4719e9839d294e014349d4d87fa26244ac30cb6bbb5"
+    },
+    {
+      "bytes": 630,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/intersects.ts",
+      "sha256": "6f15a2b71975421173a3e1885246f36a95376e3049a63f13ef53c93dc1129d9d"
+    },
+    {
+      "bytes": 845,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/isArrayEqual.ts",
+      "sha256": "02852433caed6635f023733e19cc10d0fade0497a5450105da813e4360a8f52e"
+    },
+    {
+      "bytes": 643,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/iterate.ts",
+      "sha256": "ebd256593a3cadc286660817a83605bc6573f43a8240bafcd5295d54596c5366"
+    },
+    {
+      "bytes": 529,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/last.ts",
+      "sha256": "b683de96496afc47414cae5c04846ed9a27d35d0cff45f9f169532de0d4b698a"
+    },
+    {
+      "bytes": 771,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/list.ts",
+      "sha256": "f3bb7dc35eca87b17f2aa4b3a4b8b03a91ec7aa196256c802c8aad2a235afe86"
+    },
+    {
+      "bytes": 744,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/mapify.ts",
+      "sha256": "c9426b4a7b8bbc22377d651efd5999c098e46b4623f0a8073b03ebdea6a46cd9"
+    },
+    {
+      "bytes": 906,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/merge.ts",
+      "sha256": "b1b023b279f312a324e5c282e52c1af02a1d824cd343ec4c82958e9b3ca22842"
+    },
+    {
+      "bytes": 842,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/objectify.ts",
+      "sha256": "1d130cd555b7c37698afc57940f25fe0da1a155bfaa8024b2b20332c5eb12034"
+    },
+    {
+      "bytes": 1859,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/pluck.ts",
+      "sha256": "a73445ebf9e23bf83228fa593df533a2ab006adccd7139a88ecc5ede0ca3c494"
+    },
+    {
+      "bytes": 827,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/remove.ts",
+      "sha256": "13e4b7660f25c07f1f3044f1b4a34b501bdc90d39249f42dffd0bea53ffe5029"
+    },
+    {
+      "bytes": 671,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/replace.ts",
+      "sha256": "8d336b395f3bd28bdacad930f6c1972ec4aee9c78ceb64d24af092d75779ee8d"
+    },
+    {
+      "bytes": 884,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/replaceOrAppend.ts",
+      "sha256": "7220953f6f4c88422813f221b0b858251b4121beaa3c4848cf56fbc51170be46"
+    },
+    {
+      "bytes": 1130,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/select.ts",
+      "sha256": "03cf8ba196c241c7e2b37d2dc12945b5a42c2681861c33191308f91e912c7d6c"
+    },
+    {
+      "bytes": 1167,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/selectFirst.ts",
+      "sha256": "9cd1c6bed091d09987371ff0fd5e187bf74e4a5055dbc3c372bf03319ffcbff0"
+    },
+    {
+      "bytes": 642,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/shift.ts",
+      "sha256": "100e70d333c895afa27a87f425cd6776cb127ad4702d94fbcead2daf340c67fe"
+    },
+    {
+      "bytes": 389,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/sift.ts",
+      "sha256": "674e9d975abfecbabf119ddb70dc29edf28b366a47d998fe79557883cd260090"
+    },
+    {
+      "bytes": 1295,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/sort.ts",
+      "sha256": "ea072739bde9e9a7cd463d8d938cc23a8d64d854f37847657f6855da7e12c07b"
+    },
+    {
+      "bytes": 1798,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/toggle.ts",
+      "sha256": "d6541d348171874c7843c7773e6235a2e108391769792d2baf080bee4cc98411"
+    },
+    {
+      "bytes": 733,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/unique.ts",
+      "sha256": "24ec34ebaf053b9b213e612b9ca53d736fd092574cfc02b1d2408ffc4e91a7f7"
+    },
+    {
+      "bytes": 839,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/unzip.ts",
+      "sha256": "a7877ab4c06d487f387fe3ddbb2bd5b5a56594acb5603ee162ac61f87f8d67be"
+    },
+    {
+      "bytes": 1076,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/zip.ts",
+      "sha256": "7796186912d997137750a1b754336c55338c41bfe133a445b334b26b881d5f33"
+    },
+    {
+      "bytes": 952,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/array/zipToObject.ts",
+      "sha256": "16ecf627b26a23c82b8db51814ea6eeac311b7833ce12c718d95eeb1e7ad07fb"
+    },
+    {
+      "bytes": 2032,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/all.ts",
+      "sha256": "f01224643439451d48f9261ccf1339e1cb51359bad789e5267de4313aaa0dccc"
+    },
+    {
+      "bytes": 1322,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/defer.ts",
+      "sha256": "fa6e6551e44930a376dc6090ea995bd83d10dd7d39f0ab3dd0b1d390070f4e25"
+    },
+    {
+      "bytes": 838,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/guard.ts",
+      "sha256": "652a44413c7d9c9f264342092aa58e199b2908f508c35b2dc0e7132bcd646d31"
+    },
+    {
+      "bytes": 760,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/map.ts",
+      "sha256": "dca0488803daf9de4afa9349d3c244edcb39473b4c8fd3805e3dbe53f52afd44"
+    },
+    {
+      "bytes": 3212,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/parallel.ts",
+      "sha256": "b3ed5f9db57f3103715dbbc274cb0d3d78bda15330bdf51f0cb5fcee7f26bfe4"
+    },
+    {
+      "bytes": 1592,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/queueByKey.ts",
+      "sha256": "da1d569ae005d550f57d7edbd35565b7763fe80ecea7d0e57ddf82d9604f22e0"
+    },
+    {
+      "bytes": 1211,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/reduce.ts",
+      "sha256": "566318482c6016d9e3ce51c98bf5205090a6cc42ca4e37ee80528ca98f3d101d"
+    },
+    {
+      "bytes": 1378,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/retry.ts",
+      "sha256": "1272405e021d9204ec9a6e44b24167404e950be13972c0fcf19b5fc30b8d74e5"
+    },
+    {
+      "bytes": 385,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/sleep.ts",
+      "sha256": "e1e5dee2ab24320ffdb9bb2c50fed19d3d0555b192d5e0e213dbe2765fdab8b8"
+    },
+    {
+      "bytes": 1358,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/timeout.ts",
+      "sha256": "3b03efd2a7d1b1346b0706d93d6032595aa95e00fd2a56e8df37f4a7ccdb6f89"
+    },
+    {
+      "bytes": 902,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/toResult.ts",
+      "sha256": "11e73c7bbf5b532d733a5992ad3dc47989f6601d7a0db27a3a4daaba0b409918"
+    },
+    {
+      "bytes": 1465,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/tryit.ts",
+      "sha256": "606038ef1c3dcb37c9e52dddcaa1db344b735a73726d19059854ec25f1fbf82b"
+    },
+    {
+      "bytes": 796,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/async/withResolvers.ts",
+      "sha256": "ba468c2c6967c716a77763753c2713b24fa862eb9e62e9ade3774fef191d89c6"
+    },
+    {
+      "bytes": 29212,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/bigint.ts",
+      "sha256": "58f13ba5a0212186ca59451e4482e3b858b596bd64f0b11ce264cf235da03635"
+    },
+    {
+      "bytes": 895,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/callable.ts",
+      "sha256": "254ff667aa4b6b0b3847898f7ad9521325772dc30c880a2b03e1e6e61c5c7cc3"
+    },
+    {
+      "bytes": 2664,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/chain.ts",
+      "sha256": "af06ffd6245209f7cddc03a3f9f5843a6a552ecbc594947e46dcdad9aefad5ec"
+    },
+    {
+      "bytes": 7912,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/compose.ts",
+      "sha256": "58f89345156b4b250561ca926b7fec0c93f0b1256a0b73b8ce72a90b02f0aa6c"
+    },
+    {
+      "bytes": 2186,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/debounce.ts",
+      "sha256": "1cbcd376cb438b788bfa0f5eb790fcda05d9a84cfe05a116627fd2b195392b8e"
+    },
+    {
+      "bytes": 619,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/flip.ts",
+      "sha256": "adce83b47715fd03a812886cbf55c55e8e2fd205c9dc3b8bc6772e23d32ff898"
+    },
+    {
+      "bytes": 1751,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/memo.ts",
+      "sha256": "c4718aea6195e7d2b4d9f34936fc1875af12b49fd62c23850af8d1be2fb38429"
+    },
+    {
+      "bytes": 1654,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/memoLastCall.ts",
+      "sha256": "b313774bacf0c82c391fb43b17db1408c70a42bd71f23c497cd55d8f20b5e902"
+    },
+    {
+      "bytes": 1712,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/once.ts",
+      "sha256": "d3d396d31ae304a7579a12b344df5342c14059bceecb5d2887cb30b4765be662"
+    },
+    {
+      "bytes": 1018,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/partial.ts",
+      "sha256": "71e7a6111fe0fe7ca368456617545032ec700a7d62ef4635efc63427dc9f32db"
+    },
+    {
+      "bytes": 643,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/partob.ts",
+      "sha256": "045eea898cf31a533ce36312233157c0a5c546963c181f57615ca325ed57b208"
+    },
+    {
+      "bytes": 3802,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/promiseChain.ts",
+      "sha256": "bebad79ba3670f12de12909bbf133c7a64205aaf66d7de9782c2205676cd67ed"
+    },
+    {
+      "bytes": 515,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/proxied.ts",
+      "sha256": "daf30f928673815046654566c5f97cefa2791a73adc2af673ae65a7223c8835c"
+    },
+    {
+      "bytes": 2407,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/curry/throttle.ts",
+      "sha256": "dc887b6f725a8d366aaf8ab7e8fb713d4a9e7a0f71e0e48a88fb69b652c40b88"
+    },
+    {
+      "bytes": 292,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/function/always.ts",
+      "sha256": "2987cced968b4c7cfd7267709a113b05a49f53a7bebb358bc0f8fd783d7087a4"
+    },
+    {
+      "bytes": 3344,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/function/castComparator.ts",
+      "sha256": "009b3d3dfe6ed57678dcf694652493674feea27aeb542b7230f9650ad7aaf3e7"
+    },
+    {
+      "bytes": 2778,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/function/castMapping.ts",
+      "sha256": "da28c58e6e75dd3482fb96fec8c611020ca33a1754cb029fe7ab2e4764983354"
+    },
+    {
+      "bytes": 400,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/function/identity.ts",
+      "sha256": "cafe0dcea0d7c6dec0e2a323d0ec4131b32b8b2fb86bf84cb10542ba7dae47a6"
+    },
+    {
+      "bytes": 236,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/function/noop.ts",
+      "sha256": "0206ca574267cf1b5c2ebf4ae3d6e570f7748d4ff782640ed13f4c6eca09c825"
+    },
+    {
+      "bytes": 5877,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/mod.ts",
+      "sha256": "cfb79298b8eeefb2578389f34f4bf6c49b4361fa3d2ccf711bad1d61e8ed18d0"
+    },
+    {
+      "bytes": 869,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/clamp.ts",
+      "sha256": "f962b5483ae9252f77b20dbb0f264027781857cd9ad61ea07ef86ac555b6bafa"
+    },
+    {
+      "bytes": 1378,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/inRange.ts",
+      "sha256": "a0f527664945e47d39ade2a02d7e6290dacae30f64915bea97e8bd75105a76d7"
+    },
+    {
+      "bytes": 354,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/lerp.ts",
+      "sha256": "5547b9c52560afc102008a5b314abb2a5568b31758f01b271e1ee967bd83cb72"
+    },
+    {
+      "bytes": 809,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/max.ts",
+      "sha256": "7ce9a59c2ea550ce729fe9b65aab8f2939640d790118730f60482807a9b66e35"
+    },
+    {
+      "bytes": 812,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/min.ts",
+      "sha256": "dc5aad8aa52a31425d340ce9b09ad755b6b80bb12289321d177c69a5c599abf1"
+    },
+    {
+      "bytes": 1025,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/parseDuration.ts",
+      "sha256": "237d47708a1b64bffc64c488d6b3a30a18550ffffc02305b8418e667a996772d"
+    },
+    {
+      "bytes": 703,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/parseQuantity.ts",
+      "sha256": "88d6db1200e69bb62b623299a2ca7e9d3533e3b5ef99d0118e231df5a595188a"
+    },
+    {
+      "bytes": 1067,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/range.ts",
+      "sha256": "6f3a65b0b8420d122ccfc05e14ca988162293640a51f9abac466551294fb9218"
+    },
+    {
+      "bytes": 1188,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/round.ts",
+      "sha256": "4c7a8a1ac9b6802bf7bdf89fd55acc3769d09149a8fba032528d8a1e4c242dfe"
+    },
+    {
+      "bytes": 809,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/sum.ts",
+      "sha256": "7bbc8b187d06c0d038fc68e17454c36a3e661718659bfcee005ce3f280c3dc91"
+    },
+    {
+      "bytes": 901,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/toFloat.ts",
+      "sha256": "0d8abe590b4bb0a926398f14d995f3850ecc327448cd6f30bab4d42f0e9fe696"
+    },
+    {
+      "bytes": 875,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/number/toInt.ts",
+      "sha256": "03d02ca2d6f5548a2a9603a0fa68161c8f1bca0bd3f70573c548bd43e1542dab"
+    },
+    {
+      "bytes": 5126,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/assign.ts",
+      "sha256": "6701cd4f65d72938fa9436f053f78ed9b966213e66243d0fb1e42e54bc8146f4"
+    },
+    {
+      "bytes": 931,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/clone.ts",
+      "sha256": "37c8aa60405b2509859c0876e106ecb181d79747747fe401fdbbee63b1349e2a"
+    },
+    {
+      "bytes": 5586,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/cloneDeep.ts",
+      "sha256": "06494bdbe70a8232b9df21a8b89abedb4a79e3d395ff8e13441d925db771d148"
+    },
+    {
+      "bytes": 606,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/construct.ts",
+      "sha256": "2f69ec5fabd5c3a09a6c7c4f7b8bb5c207df996721808ba0a10e52b033607f1e"
+    },
+    {
+      "bytes": 1993,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/crush.ts",
+      "sha256": "aabb565bd761e9f82c0331b08f7e68e66a1560652412f51c4798149905a2f38d"
+    },
+    {
+      "bytes": 1851,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/filterKey.ts",
+      "sha256": "8c8abdfd87edf8342e3b2f3b84b2e35af05c33486a642bdb32e6fb668882bf80"
+    },
+    {
+      "bytes": 915,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/get.ts",
+      "sha256": "d052e251fc799210556a8ac61e6a8280d84c7840cdc3a5768223fde857905242"
+    },
+    {
+      "bytes": 752,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/getOrInsert.ts",
+      "sha256": "55b3a5c1b21fe36c9f477ddf80fddef5a196483f39ef665b0a69dd5696e8644c"
+    },
+    {
+      "bytes": 879,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/getOrInsertComputed.ts",
+      "sha256": "d59b31c5a7a618cc4c687038c70641d64d3650219569b072eed393df46f228ee"
+    },
+    {
+      "bytes": 707,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/invert.ts",
+      "sha256": "4297ace08fcb30fd93a37d9bc1344f815a5e49399b2267affb818bf7ffecc825"
+    },
+    {
+      "bytes": 624,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/isDangerousKey.ts",
+      "sha256": "2b0a25b12d53bf4a41804f6ecbc537175d0d1cc261d9f9c15dd3204c75337b16"
+    },
+    {
+      "bytes": 971,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/keys.ts",
+      "sha256": "01518f9ba67d172fd7428e44811ce8ad4db6a2691cf728369e6b6a9f75d1f145"
+    },
+    {
+      "bytes": 791,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/listify.ts",
+      "sha256": "dec5aa5b3c3c7909d933bdd91542e4e7920006a12b60565b667339a2756bbf02"
+    },
+    {
+      "bytes": 544,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/lowerize.ts",
+      "sha256": "7ec4aa7d7e1795d6aabd69505675824aef94f13eda1ac0e66510a1b1067c72a3"
+    },
+    {
+      "bytes": 842,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/mapEntries.ts",
+      "sha256": "f9223832929fa8cf4727e3697f9c044ba628fca412dc762094821eba4f17367d"
+    },
+    {
+      "bytes": 719,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/mapKeys.ts",
+      "sha256": "b87b8939ec759c32375a10751b5f4b34d46ae0b2c4c05abdf502852872abb64c"
+    },
+    {
+      "bytes": 592,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/mapValues.ts",
+      "sha256": "185215f7f324cb58c70505a05fc4065b86dd98363cd51437e899bb41853000e8"
+    },
+    {
+      "bytes": 2977,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/mergeOptions.ts",
+      "sha256": "d8e4b9ec6d9e29cd72b946493962a1b6348dad7fdb571625ae2fdd4771cfdd16"
+    },
+    {
+      "bytes": 851,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/omit.ts",
+      "sha256": "e7410420cdf74e1dde092976c77e66d93a8d0a2ab8558d66dbcb70eb0443addd"
+    },
+    {
+      "bytes": 1247,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/pick.ts",
+      "sha256": "645e789123b99158f6d3065c7d50074833003c8ee9d3bd7cd1e6c0b371eb54d9"
+    },
+    {
+      "bytes": 1108,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/set.ts",
+      "sha256": "75f42043fa2a878e1af5fc5acbd36eb8e1c14ac551319b6ed03eb10cd1321aeb"
+    },
+    {
+      "bytes": 909,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/shake.ts",
+      "sha256": "b4b2830db559b86646c89939660ecc576970c3e8908a328427a2cc53a9f85c4d"
+    },
+    {
+      "bytes": 6909,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/traverse.ts",
+      "sha256": "58a5b94bb848b67a7445d38430f3a674079c3c3ec138e39073a02247ee5f71f1"
+    },
+    {
+      "bytes": 544,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/object/upperize.ts",
+      "sha256": "afb4cc973775e8aec899a3e4305b25efe44a18d5e23ba43f9ec16e576dcac716"
+    },
+    {
+      "bytes": 1566,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/oop/AggregateError.ts",
+      "sha256": "9fe55ec931c00d932f16ff7dac945b6ba2517738743f2faaaf2869d786177f07"
+    },
+    {
+      "bytes": 2129,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/oop/DurationParser.ts",
+      "sha256": "0d821e32b0aaad9c806e3d4ac9646a6ccaa5a882f92d716d7271c39854f0ad08"
+    },
+    {
+      "bytes": 2205,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/oop/QuantityParser.ts",
+      "sha256": "c9d032b1a8e81c1a69260cb9e3cefb5bd2714e44822fc58f5d288b338b6c96e2"
+    },
+    {
+      "bytes": 3960,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/oop/Semaphore.ts",
+      "sha256": "568d747abcbdcec171f3eb8d14a431955603b25d38b5e28fc7d81356548d7bcf"
+    },
+    {
+      "bytes": 150,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/oop/TimeoutError.ts",
+      "sha256": "3085a2cc6b834318ec3013b6cb0b62951d84e469c934e75565c120f8d354c112"
+    },
+    {
+      "bytes": 391,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/random/absoluteJitter.ts",
+      "sha256": "b1891a84908b5925a60ff55172e916bf09cbd920ec7cc3551b214d26f5cac336"
+    },
+    {
+      "bytes": 628,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/random/draw.ts",
+      "sha256": "8544a802cac0b2505a4cf6095a4cabce69549cad414f46df8e54af20fd72a31f"
+    },
+    {
+      "bytes": 424,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/random/proportionalJitter.ts",
+      "sha256": "58ecebf1f3aba628b21f5ce165f87b2c98399c2f21ebc8d77978b4f4a44753ac"
+    },
+    {
+      "bytes": 347,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/random/random.ts",
+      "sha256": "4fd32fcfa4d914a48757f14e43f81cbf8b887d8f0369cf854126bfb012574333"
+    },
+    {
+      "bytes": 1438,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/random/shuffle.ts",
+      "sha256": "ef865b0797fb6a1956d4c0a925483be063ececb1715ecae91a72c9c3979826d1"
+    },
+    {
+      "bytes": 527,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/random/uid.ts",
+      "sha256": "679cd732c3ae54e7105c50a9e03c4b4db62e4586c5ca1fea8e161180b483554e"
+    },
+    {
+      "bytes": 2927,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/series/series.ts",
+      "sha256": "a3d8dc4d222fc3a39e76b805e2ad7009909a8a137f6e2d73790734685a299553"
+    },
+    {
+      "bytes": 729,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/camel.ts",
+      "sha256": "1be8157d825fe66b7403afa061661e56ccc72ab035edd5f43e0e93f891b9d49a"
+    },
+    {
+      "bytes": 469,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/capitalize.ts",
+      "sha256": "c9b28f076bd6383895e7c5934b30ae2b0e3ba1f2d190a00be4fb472042c042e3"
+    },
+    {
+      "bytes": 700,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/dash.ts",
+      "sha256": "9b0708063411a47cd6149e97b04ed064f2932c17a79ed8dd661b920f5acc274f"
+    },
+    {
+      "bytes": 1125,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/deburr.ts",
+      "sha256": "de6abb3cbd3068a6ff12e3331e31b9c69ce6a5023700e28bc2389455e73d8030"
+    },
+    {
+      "bytes": 2310,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/dedent.ts",
+      "sha256": "db47a9a59197040100baaab2d6950459da69c04d8e54b5277dea356e3b449423"
+    },
+    {
+      "bytes": 530,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/escapeHTML.ts",
+      "sha256": "baf0bf3de6b562017768496f43fdba16d0b3c560550101a14150990d2de2a09e"
+    },
+    {
+      "bytes": 720,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/pascal.ts",
+      "sha256": "9d68b168715d5f68ab4e4366ec8a40061b250c885f5b2f5a4f9b8ff166cc4959"
+    },
+    {
+      "bytes": 2255,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/similarity.ts",
+      "sha256": "87e470af2a35247886788bf5f180cd0ce2a52a617932b9bfb99916cf95997a36"
+    },
+    {
+      "bytes": 901,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/snake.ts",
+      "sha256": "d98de350a4388f8191d0f3d635939f6d4fcce7bbaa20a8825bc31714cc2b9545"
+    },
+    {
+      "bytes": 741,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/template.ts",
+      "sha256": "453f6ac143b236ee38474f5ac44b05c1373d6ddf34085c7523a7ff35fd8ff9fa"
+    },
+    {
+      "bytes": 619,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/title.ts",
+      "sha256": "9bb2d8aaef72547211699cace448301eefa5e5b8c6c9b6c5d394beca1e1874d3"
+    },
+    {
+      "bytes": 764,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/string/trim.ts",
+      "sha256": "4e223dd1c8a4df70327207ff85d02a5271cde69c92eca28e21e21da16c545b48"
+    },
+    {
+      "bytes": 1348,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/assert.ts",
+      "sha256": "2b06f66fcbe9220f75253ac0c4a44bd4f153c2ee757d20551f4ed3007f4e9919"
+    },
+    {
+      "bytes": 662,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/getErrorMessage.ts",
+      "sha256": "3a9b46159970d49c601c32c1bf918f8ed3618809d92fa613b18d032cdbcfc0c9"
+    },
+    {
+      "bytes": 843,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isArray.ts",
+      "sha256": "7879051d1d42bca0900b1c35a9de6b65a7a7dcabd7e7d9f483c8618fbd7e36a7"
+    },
+    {
+      "bytes": 875,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isAsyncIterable.ts",
+      "sha256": "b5363c166c8611e76cdd46851224f9abe7c4d02d55e06f902d3d72fbed01e827"
+    },
+    {
+      "bytes": 384,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isBigInt.ts",
+      "sha256": "2fe7401fe3d076398ed00bf46a7d92d57169dc34a0e4bf3fdbd0ea313294d341"
+    },
+    {
+      "bytes": 100,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isBoolean.ts",
+      "sha256": "7e8bab3d551f25eea28e21fb6be94f012551896f5b8b78e9d6cb04ab18996ab3"
+    },
+    {
+      "bytes": 1051,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isClass.ts",
+      "sha256": "2954043c873d636af4991ff05b01552d3b8ecfa7ef37b7c76fa3c157fd70d47a"
+    },
+    {
+      "bytes": 552,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isDate.ts",
+      "sha256": "c76a4a82ee0742a067dd3abfd26b66a114e970d6e0b5dc35299b3ca53a578693"
+    },
+    {
+      "bytes": 1961,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isEmpty.ts",
+      "sha256": "93e83ee6b5b94899125b8c16d33e1650eb136edf2743971a52e4b63769dd5cb0"
+    },
+    {
+      "bytes": 1316,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isEqual.ts",
+      "sha256": "cf3a45464dcab8a7340957f23ee20a69682ea94e0109f8c1929eec71e691d00a"
+    },
+    {
+      "bytes": 561,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isError.ts",
+      "sha256": "67ce3aeffb83fe5c1335c6e0d8af4c347723b0970ae464052e8ce7a024210ed7"
+    },
+    {
+      "bytes": 373,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isFloat.ts",
+      "sha256": "97bdb56e9415418bc69dfeef3be7a06a3aff91fa1e2cc6ff36a9efd176995b75"
+    },
+    {
+      "bytes": 497,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isFunction.ts",
+      "sha256": "276d6772002f22b2d956577c2621e80e647c488f65eaa299dfac423545e58d01"
+    },
+    {
+      "bytes": 325,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isInt.ts",
+      "sha256": "229400a261f381191e62395a33ebee00b0700e7379a4cd3cdcb6101281b65897"
+    },
+    {
+      "bytes": 521,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isIntString.ts",
+      "sha256": "3279e345dc152ebc7d5dee88e3b383043782650083746a7850bc623535b23fd5"
+    },
+    {
+      "bytes": 156,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isIterable.ts",
+      "sha256": "aedc2e8b2634eb14286c2c61b8bae8400844e9102b714da5870ddc473fa8603a"
+    },
+    {
+      "bytes": 1147,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isMap.ts",
+      "sha256": "86178722e801985fea69b23a6a1b73f343012cff3da0e6381fed54a8fad25d04"
+    },
+    {
+      "bytes": 464,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isMapEqual.ts",
+      "sha256": "0494195b8aa0c8a5d5482b2fd393fb103f3c801990f3f48011e84e64c0343a6f"
+    },
+    {
+      "bytes": 413,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isNullish.ts",
+      "sha256": "48270cdb592aa80ef12e710bd2246700166391312db810081b18a611c1905c95"
+    },
+    {
+      "bytes": 366,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isNumber.ts",
+      "sha256": "41be30dd4d049e9b0afec863032c4a5b45640e45b777025a2abbf2ce7eaed114"
+    },
+    {
+      "bytes": 1181,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isObject.ts",
+      "sha256": "b626fe84f41ac26c81163c9b4e24ae176d5894254ad9ad9dddadd87c7e78f2f3"
+    },
+    {
+      "bytes": 815,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isPlainObject.ts",
+      "sha256": "5c116306053b7c8827d7a0e38e3570e99f79ada24e4bb633e06ccbc8c2939006"
+    },
+    {
+      "bytes": 587,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isPrimitive.ts",
+      "sha256": "b9286b3eccc13d33e3d53c01f3f4a4f3987243130165bdc61f8f23c15388f7de"
+    },
+    {
+      "bytes": 446,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isPromise.ts",
+      "sha256": "d740f83394202b6d95c3649c07a9211e0d25f601576bfa3637f4b86ad88c1b65"
+    },
+    {
+      "bytes": 547,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isRegExp.ts",
+      "sha256": "8399f226dbf6ea1392b8249548f5a312ff08a4f402218cf2f3afd7c1892d551b"
+    },
+    {
+      "bytes": 839,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isResult.ts",
+      "sha256": "701dae7e8b7d8d322b6173b25c2c0992f97d73830e6d652a12f6238f620453da"
+    },
+    {
+      "bytes": 463,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isResultErr.ts",
+      "sha256": "229c02c9695ae7973cffe5121fc148b774afccb124560b83d57be9767d6c3313"
+    },
+    {
+      "bytes": 444,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isResultOk.ts",
+      "sha256": "7ad375169ebfb6fddf612c75ad143fde030c82863288296b0ca7da8c86221ddc"
+    },
+    {
+      "bytes": 1070,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isSet.ts",
+      "sha256": "a9d98f9f5e37635c0765aba967e43a53ae4ea75cf3f987e424cde140fce13f73"
+    },
+    {
+      "bytes": 391,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isSetEqual.ts",
+      "sha256": "6c2a1fe74a563e0b316ddb75a0e4b50e3e7fa4268fa2fe8315b4689d3bca2366"
+    },
+    {
+      "bytes": 312,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isString.ts",
+      "sha256": "65e5444afe82950b47d82f04e2a3d9563e80a488092888701b967ab8973c262e"
+    },
+    {
+      "bytes": 322,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isSymbol.ts",
+      "sha256": "4640806023adbe7e12f3b341caaf20dd151b16c5399dbe0d85e90b8f7f63c904"
+    },
+    {
+      "bytes": 396,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isTagged.ts",
+      "sha256": "65c6be305d3b6a4a5a1bd1f742575d2dd38f0944f056544898b204df4d3e11ad"
+    },
+    {
+      "bytes": 336,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isUndefined.ts",
+      "sha256": "57aca6acfa52b38ad87b87690293f46ecca6f2116625622e7262386867a363aa"
+    },
+    {
+      "bytes": 619,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isWeakMap.ts",
+      "sha256": "fb94003dc9c13a11d0cde1a45c5bb94718732beb2a937e0d76bd4674c1da9236"
+    },
+    {
+      "bytes": 606,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/typed/isWeakSet.ts",
+      "sha256": "361401ab1c161c79e0b3d4c9cf9713f6225ade80aa23b91a7a373cdb76bcb23c"
+    },
+    {
+      "bytes": 10917,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/src/types.ts",
+      "sha256": "64a4bd835c0715e638f9aac1400d1d0affdbd34a855ea2a59623394c044992d7"
+    },
+    {
+      "bytes": 328,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/tests/base-health.test.ts",
+      "sha256": "6473e2e4234755c9c925db51b245678664cdf561ce7ad569b17c135796bf4630"
+    },
+    {
+      "bytes": 514,
+      "kind": "repository-source",
+      "path": "repositories/radashi-org-radashi/tsconfig.json",
+      "sha256": "09f025abd66bc6fb63ecc2aaa8ed766033ef3c0852559782795ef9059cf436c3"
+    },
+    {
+      "bytes": 204,
+      "kind": "repository-source",
+      "path": "repositories/unjs-scule/AGENTS.md",
+      "sha256": "3d8e99a38de9596fb4de302c3b3209b306dd5bd3c8082a1edb26623f63e6beaf"
+    },
+    {
+      "bytes": 1078,
+      "kind": "repository-source",
+      "path": "repositories/unjs-scule/LICENSE",
+      "sha256": "46231df5a7733c3f52f11b71f3df61813007745b62b09031acfb45fb42d75082"
+    },
+    {
+      "bytes": 1186,
+      "kind": "repository-source",
+      "path": "repositories/unjs-scule/package.json",
+      "sha256": "8bb6ae6c5fe343ee5cbd540231e0072e17e1d0551dd7c27a4645288c6b9c31aa"
+    },
+    {
+      "bytes": 5939,
+      "kind": "repository-source",
+      "path": "repositories/unjs-scule/src/index.ts",
+      "sha256": "67c45e07f3f215279c2ed4f599196149312f351d82675dbe87d8fffe1f0a73a9"
+    },
+    {
+      "bytes": 5043,
+      "kind": "repository-source",
+      "path": "repositories/unjs-scule/src/types.ts",
+      "sha256": "5c034038d39b47f487ad2b9cac24153325590e9ca4a14be922b130c112c1073b"
+    },
+    {
+      "bytes": 397,
+      "kind": "repository-source",
+      "path": "repositories/unjs-scule/tests/base-health.test.ts",
+      "sha256": "2cac10d76c82f5c30dec9d512f67a4fdb9d6a5f5ee009d7f1e487cd5356a71b9"
+    },
+    {
+      "bytes": 215,
+      "kind": "repository-source",
+      "path": "repositories/unjs-scule/tsconfig.json",
+      "sha256": "cef8c91e4c5b63cf2b85939fa72b72f2fb7f1c55b2504205250f164ea6c0d810"
+    },
+    {
+      "bytes": 204,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/AGENTS.md",
+      "sha256": "3d8e99a38de9596fb4de302c3b3209b306dd5bd3c8082a1edb26623f63e6beaf"
+    },
+    {
+      "bytes": 1078,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/LICENSE",
+      "sha256": "46231df5a7733c3f52f11b71f3df61813007745b62b09031acfb45fb42d75082"
+    },
+    {
+      "bytes": 1250,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/package.json",
+      "sha256": "4ef029b2bde70c3007f3520d3d4ba14b754e4e8c4defa8d58a8e53434ebdf028"
+    },
+    {
+      "bytes": 4475,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/src/encoding.ts",
+      "sha256": "8700a80814edd5ecfa19bc19d61b8ad0be0dfc60dfde5ddd86ab399fda5503dc"
+    },
+    {
+      "bytes": 126,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/src/index.ts",
+      "sha256": "42486fac22b82f8b6be79c8941e3b1827dde1a8103e9772f6ccddf2d7fdd50d3"
+    },
+    {
+      "bytes": 5988,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/src/parse.ts",
+      "sha256": "c8b4224297787a599669cc7e41242113a927c1f5fd9b2d1c835440f247d716ea"
+    },
+    {
+      "bytes": 3003,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/src/punycode.ts",
+      "sha256": "e389c56c10d46e33804ca595f0ece4adce3f4f16526c1f7556aeecdb53509c7b"
+    },
+    {
+      "bytes": 3352,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/src/query.ts",
+      "sha256": "be4106f9d10b9ac90da3893c0046956375d7c67ff1430ddc8a77de899e19db49"
+    },
+    {
+      "bytes": 3367,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/src/url.ts",
+      "sha256": "ddf9f468f1f1c169ea6fd6bc72b746c9fc4d928ee59bb08968f894452e64feca"
+    },
+    {
+      "bytes": 18078,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/src/utils.ts",
+      "sha256": "bced262a057669ad04a2f4f6cb47439dbe3851f7c9db0f9b965ac7a004047933"
+    },
+    {
+      "bytes": 407,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/tests/base-health.test.ts",
+      "sha256": "1954020c318f7e3ebe3d9d01f02ba1d02fbd0d8593752be2835b9661ddcc32d3"
+    },
+    {
+      "bytes": 137,
+      "kind": "repository-source",
+      "path": "repositories/unjs-ufo/tsconfig.json",
+      "sha256": "51e23340e47b98a0cc4c48560e48f546d6f3c41235538317fb244145a22e6755"
+    }
+  ],
+  "schemaVersion": 1
+}

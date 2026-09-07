@@ -1,0 +1,45 @@
+diff --git a/src/humanize/number.py b/src/humanize/number.py
+index 5154895fe41524fabd4252eb6e269676de9bfa6d..d195207897570d9e35dadb7f08be29a7cf8d8b23 100644
+--- a/src/humanize/number.py
++++ b/src/humanize/number.py
+@@ -364,6 +364,8 @@ def fractional(value: NumberOrString) -> str:
+     """
+     import math
+ 
++    if isinstance(value, bool):
++        return str(value)
+     try:
+         number = float(value)
+         if not math.isfinite(number):
+@@ -372,19 +374,23 @@ def fractional(value: NumberOrString) -> str:
+         return str(value)
+     from fractions import Fraction
+ 
+-    whole_number = int(number)
+-    frac = Fraction(number - whole_number).limit_denominator(1000)
++    if number == 0:
++        return "0"
++    sign = "-" if number < 0 else ""
++    magnitude = abs(number)
++    whole_number = int(magnitude)
++    frac = Fraction(magnitude - whole_number).limit_denominator(1000)
++    if frac.denominator == 1:
++        # the fractional part vanished or rounded up to a whole unit
++        whole_number += frac.numerator
++        return f"{sign}{whole_number}"
+     numerator = frac.numerator
+     denominator = frac.denominator
+-    if whole_number and not numerator and denominator == 1:
+-        # this means that an integer was passed in
+-        # (or variants of that integer like 1.0000)
+-        return f"{whole_number:.0f}"
+ 
+     if not whole_number:
+-        return f"{numerator:.0f}/{denominator:.0f}"
++        return f"{sign}{numerator}/{denominator}"
+ 
+-    return f"{whole_number:.0f} {numerator:.0f}/{denominator:.0f}"
++    return f"{sign}{whole_number} {numerator}/{denominator}"
+ 
+ 
+ def scientific(value: NumberOrString, precision: int = 2) -> str:

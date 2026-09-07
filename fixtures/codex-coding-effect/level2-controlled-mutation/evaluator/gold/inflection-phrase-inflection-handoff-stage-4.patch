@@ -1,0 +1,84 @@
+diff --git a/inflection/__init__.py b/inflection/__init__.py
+index ffac5ce22e60816f18267d742455e4936b6d1c1a..f639f77e9319ca090e35ddf63e691a894767cd0b 100644
+--- a/inflection/__init__.py
++++ b/inflection/__init__.py
+@@ -144,6 +144,32 @@ def _irregular(singular: str, plural: str) -> None:
+         ))
+ 
+ 
++
++_PHRASE_PREPOSITIONS: typing.FrozenSet[str] = frozenset(
++    ['of', 'in', 'at', 'on', 'for', 'to'])
++
++
++def _inflect_phrase(phrase: str, inflect: typing.Callable[[str], str]) -> str:
++    """
++    Inflect the head part of a phrase with ``inflect`` and rejoin the parts.
++    """
++    parts = re.split(r"(\s+|-)", phrase.strip())
++    if not parts[0]:
++        return ''
++    words = parts[0::2]
++    joiners = ['-' if joiner == '-' else ' ' for joiner in parts[1::2]]
++    head = len(words) - 1
++    for index in range(1, len(words)):
++        if words[index].lower() in _PHRASE_PREPOSITIONS:
++            head = index - 1
++            break
++    words[head] = inflect(words[head])
++    result = words[0]
++    for joiner, word in zip(joiners, words[1:]):
++        result += joiner + word
++    return result
++
++
+ def camelize(string: str, uppercase_first_letter: bool = True) -> str:
+     """
+     Convert strings to CamelCase.
+@@ -309,6 +335,22 @@ def pluralize(word: str) -> str:
+         return word
+ 
+ 
++
++def pluralize_phrase(phrase: str) -> str:
++    """
++    Return the plural form of a multi-word phrase by inflecting its head.
++
++    Examples::
++
++        >>> pluralize_phrase("bag of rice")
++        'bags of rice'
++        >>> pluralize_phrase("passer-by")
++        'passers-by'
++
++    """
++    return _inflect_phrase(phrase, pluralize)
++
++
+ def singularize(word: str) -> str:
+     """
+     Return the singular form of a word, the reverse of :func:`pluralize`.
+@@ -337,6 +379,23 @@ def singularize(word: str) -> str:
+     return word
+ 
+ 
++
++def singularize_phrase(phrase: str) -> str:
++    """
++    Return the singular form of a multi-word phrase by inflecting its head,
++    the reverse of :func:`pluralize_phrase`.
++
++    Examples::
++
++        >>> singularize_phrase("bags of rice")
++        'bag of rice'
++        >>> singularize_phrase("passers-by")
++        'passer-by'
++
++    """
++    return _inflect_phrase(phrase, singularize)
++
++
+ def tableize(word: str) -> str:
+     """
+     Create the name of a table like Rails does for models to table names. This

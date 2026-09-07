@@ -1,0 +1,410 @@
+{
+  "schemaVersion": 2,
+  "datasetId": "codex-level2-controlled-mutation-v1",
+  "assetLockSha256": "f23c5af29ef48a9e19a90df4a7f373831a37989e44c26faf8922e814fc625a4c",
+  "assetRootSha256": "f3af3fcab87d766bd503bf71b80795ce0f381675a6c04feb4b6af19162a746a0",
+  "manifestSha256": "1a758fe92e538a4cfbbc9d4f3dc5884d4fbd378ed9963232d7b1ded7b2ad505d",
+  "leakageAuditSha256": "c919da431231d6647b21e5c91c22f8505635bfdffcd361ee529cfe3d5415696f",
+  "readinessCoreSha256": "8bd840defe2f56683fac747892644ab0e3afaa6e24fca8d8f1040495584da065",
+  "inputBundleSha256": "4319146c109d1a13933ded8dfc851f618b51a837dc202b88ea34f21084cbef71",
+  "scope": "dataset-only-no-coding-outcomes",
+  "reviewerTaskName": "/root/level2_final_independent_review_v1",
+  "reviewer": "GoodMemory Level-2 Final Independent Reviewer",
+  "reviewedAt": "2026-09-03T16:16:17Z",
+  "c4AbResultsInspected": false,
+  "codingOutcomeArtifactsInspected": false,
+  "publicCodingEffectProof": false,
+  "status": "accepted",
+  "episodeReviews": [
+    {
+      "episodeId": "humanize-amount-rounding-handoff",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real reimplementation of decimal rounding (Decimal-based half-away-from-zero on repr, trailing-zero trimming, boolean/whitespace/sign handling) for intcomma (stage 1) and intword (stage 4), not trivia. Stage-1 policy text spells out every rule needed for its own failToPass cases (e.g. intcomma(2.5,0)->'3' half-away-from-zero not banker's rounding; intcomma(-0.001,2)->'0' no signed zero; intcomma('1000.0')->'1,000' trimming applies with or without ndigits) and I confirmed the mechanical base-fails/gold-fixes harness check on all 4 stages. Stage-2 (fractional) and stage-3 (scientific) irrelevant-control prompts are fully self-contained with their own complete policies and are semantically unrelated to the amount-rounding policy (fraction reduction vs exponent notation), so recalling the stage-1 policy would not help or mislead on them; verified several case values against each stated policy by hand. Stage-4's prompt does not restate the numeric policy, but explicitly points back at intcomma ('the same accepted amount-rounding policy that intcomma now follows'); prehistory only records that a policy exists and that intword is the deferred target, not the algorithm itself, so recall is useful context (which function, that consistency is required) while the actual half-away-from-zero/trim/sign logic still has to be engineered from scratch for intword's own printf-style format string, which the stage-4 gold patch does independently of intcomma's helpers. Confirmed via runner.ts source read that the shared evaluator has no repository- or episode-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "humanize-integer-coercion-correction",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Genuine coding work throughout: custom nearest-integer rounding (half away from zero) reimplemented per function, sign/magnitude branching, and a full new engineering() notation function with floor-division exponent bucketing and mantissa carry logic. Stage-1 (ordinal) policy text explains every failToPass case by hand-check (e.g. ordinal(2.5)->'2.5' since non-zero fraction stays unchanged under the original rule; ordinal(-22)->'-22nd' magnitude-based suffix with sign in front). Stage-2 (apnumber, required) explicitly states only the corrected rounding rule in its own prompt and says 'every other rule stands as accepted' without restating them, so cases like apnumber(true)->'True' and apnumber(-3)->'-three' genuinely require recalling stage-1's bool/sign conventions from memory, while the rounding-then-word-lookup wiring is new work -- this is memoryUsefulNotAnswer, not memory-as-answer. Stage-3 (engineering, irrelevant-control) is a self-contained new function with its own complete policy, verified against several cases including the tricky negative-exponent floor-division case (0.05 -> '50.00 x 10\u207b\u00b3') and the explicit contrast that engineering always writes a zero exponent (unlike sibling scientific), confirming it is a genuinely different, non-misleading concern from integer coercion. Stage-4 (naturaldelta, required) needs recall of both the base policy and its stage-2 correction: naturaldelta(2.5)->'3 seconds' only makes sense under the corrected round-not-pass-through rule, which is a good direct probe that stale (pre-correction) memory would fail. cases.json's use of a per-case functionName override to also assert passToPass on the sibling `scientific` function in stage-3 is a normal dataset feature, not a runner hack. runner.ts confirmed to have no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "humanize-list-join-update",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real logic: strip/dedup/drop-empty item preparation plus a conjunction-join helper with a 2-item vs 3+-item branch, reused and extended across three functions. Stage-1 (natural_list) policy text was hand-checked against every failToPass case (dedup on stripped text, Oxford comma for 3+, empty-drop, whitespace strip) and matched exactly. Stage-2 (intabbr, irrelevant-control) is a self-contained numeric-abbreviation policy with no relation to list joining; verified the tricky rounding-carry case (999950 -> '1M') and the beyond-trillion case (1200000000000000 -> '1200T') against the stated rule, both correct and clearly not misleading if list-join memory were (wrongly) applied here. Stage-3 (precisedelta, required) explicitly restates the specific supersession (comma -> semicolon for 3+, Oxford comma gone) so memory mainly supplies 'this is the currently accepted rule, not the stage-1 one'; verified 3- and 4-unit failToPass cases and the unaffected 2-unit passToPass case against precisedelta's own existing multi-branch implementation. Stage-4 (natural_or_list, required) needs the full stage-1 dedup/strip policy plus the stage-3 semicolon supersession simultaneously with no restatement of either; every failToPass case (e.g. 4 items -> 'red; green; blue or cyan') matches the *updated* policy, and the passToPass check on the sibling natural_list confirms that function was correctly left on the old comma convention since it was never itself revised -- a good test that stale memory (pre-update rule) would fail this stage. This is memoryUsefulNotAnswer: memory says which policy version and which rules still apply, but the join/dedup implementation for each new function is genuine work. runner.ts confirmed generic, no repository-specific exceptions.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "humanize-metric-prefix-control",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "irrelevant-control",
+      "rationale": "Real logic in every stage: SI-prefix exponent/space selection, Decimal-based percent rounding with trimming, clamp floor/ceil validation with a ValueError guard, and H:MM:SS clock construction with day-folding. Stage-1 (metric) policy hand-verified against all cases including the new no-space set for '%'/'\u2030' (metric(50,'%')->'50.0%') and bool/string coercion. Stages 2-4 are each fully self-contained with their own complete rule set (percent rounding/trim, clamp validation, clocktime truncation) and I verified representative failToPass cases against each stage's own stated policy in isolation, with no dependency on the metric SI-prefix policy; prehistory explicitly states intent ('nothing from the prefix policy should bleed into them'), matching the dataset's own design goal for this irrelevant-memory-negative-control episode. One minor incidental overlap: natural_percent's own stated 'percent sign attached with no space' happens to agree with metric's no-space rule for '%', but natural_percent's prompt states this rule itself and the numeric rounding/trim logic (the bulk of the task) is unrelated to metric, so recalling metric's memory would be neither necessary nor misleading here -- not a defect. runner.ts confirmed generic across all stages.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryIrrelevantAndNonMisleading": true
+      }
+    },
+    {
+      "episodeId": "humanize-size-unit-selection",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real algorithmic work: a step-through-table unit selector with a post-format carry check to avoid the described near-boundary rounding bug, reimplemented for a second suffix table in stage 4. I traced the stage-1 gold algorithm by hand against every failToPass case, including the exact boundary bug the prompt narrates (naturalsize(999960) would read '1000.0' after formatting under the old log-based code and wrongly show the smaller suffix; the new code detects the formatted text reads >= base and carries to 'MB'), plus the GNU/binary/custom-format variants -- all matched. Stage-2 (apordinal) and stage-3 (naturaltime) are self-contained, unrelated domains (word-form ordinals; time tense/rounding thresholds) with their own complete stated policies, verified against several cases each, with no plausible interference with the size-unit-selection concern. Stage-4 (naturalbitrate, required) explicitly says to 'follow the accepted size-unit selection policy' without restating the carry algorithm, and critically the prehistory text itself only records that a failure occurred and a fix was recorded, not what the fix mechanically is -- the specific step/format/carry-while-reads-at-least-base detail lives only in stage-1's own prompt text, so solving stage-4 correctly (confirmed via the same boundary-triggering hidden cases, e.g. naturalbitrate(999960)->'1.0 Mbit/s') requires either recalling that stage-1 prompt content or re-deriving it by inspecting the by-then-updated naturalsize implementation -- genuine transfer, not a copy-pasted answer. runner.ts confirmed generic across all stages.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "inflection-case-mirroring-approach",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real algorithm: longest-common-prefix detection between the lowercased input and the rule-table result, with distinct first-letter vs remaining-letter case-mirroring rules. I hand-traced all 5 stage-1 failToPass cases against the stated algorithm, including the tricky mixed-case ones (pluralize('cOW')->'kINE' and pluralize('buffaLO')->'buffaLOES'), and all matched exactly, confirming the policy text fully determines the hidden outputs. Stage-2 (parameterize) and stage-3 (dasherize) are self-contained character-substitution policies with no case-restoration concept at all -- parameterize always lowercases its result and dasherize preserves case verbatim (confirmed via passToPass 'Keep_Case'->'Keep-Case') -- so they are genuinely unrelated to the case-mirroring approach and not misleading; I hand-verified representative cases against each stage's own stated rules, including dasherize's run-collapse edge case ('x_-_y'->'x-y'). Stage-4 (singularize, required) does not restate the mirror algorithm, only says to reuse the validated approach; the prehistory itself also only names the approach without stating its mechanics, so I re-derived stage-4's 6 failToPass cases from scratch against the algorithm and all matched, including priority-ordering nuances (prefix match overriding the first-letter special case in 'mICE'->'mOUSE'). This is memoryUsefulNotAnswer: memory establishes that the SAME helper/approach must be reused rather than reinvented, but wiring it correctly into singularize's own SINGULARS table and uncountables path is still real, verifiable work. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "inflection-constant-path-helpers",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "none",
+      "rationale": "Four small but genuine new functions (double-colon path splitting for demodulize/deconstantize, and composition of the repo's existing underscore/singularize/camelize helpers for foreign_key/classify), not trivia. Hand-verified every failToPass case against each stage's own fully-stated rule, including the subtle contrast that demodulize returns a path with no '::' unchanged while deconstantize returns empty in the same situation (both explicitly stated, not a hidden gotcha), and deconstantize's leading-'::'-preserved case ('::Net::HTTP'->'::Net'). foreign_key and classify compose only pre-existing repository functions (underscore, singularize, camelize), never a function introduced earlier in this same episode, so the four stages have no hidden cross-stage dependency and are each independently solvable from their own prompt plus the (already-present) repository -- consistent with this being a no-history-negative-control episode. The prehistory itself is a meta-statement ('four separate, self-contained tasks') with no extractable rule or policy content that a memory system could misapply, matching memoryAbsentAndTaskSelfContained. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryAbsentAndTaskSelfContained": true
+      }
+    },
+    {
+      "episodeId": "inflection-identifier-boundary",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real regex-based word-boundary splitting logic with independent rules for capital runs, digit isolation, apostrophe deletion, and generic-punctuation boundaries. I hand-traced the exact regex pipeline against all 6 stage-1 failToPass cases, including subtle ordering interactions (digit isolation firing independently of the capital-transition rules in 'Version2Beta'->'version-2-beta', and apostrophe deletion happening before the generic-boundary split in \"Don'tPanic\"->'dont-panic'); all matched. Stage-2 (transliterate) and stage-3 (possessive) are self-contained, unrelated domains (unicode ligature substitution; apostrophe-suffix formation) with no word-splitting logic at all -- verified representative cases against each stage's own stated table/rules (e.g. 'stra\u00dfe'->'strasse', 'DOG'->'DOG'S') -- so recalling the boundary convention would not help or mislead there. Stage-4 (underscore, required) does not restate the convention, only says to follow 'the same convention established for the kebab-case converter'; the prehistory is similarly silent on the actual rules. Critically, several hidden cases are constructed to diverge from underscore's OLD regex behavior specifically to test that the NEW convention (not stale logic) was applied: 'Ipv6Address'->'ipv_6_address' and 'MP3Player'->'mp_3_player' isolate the digit with boundaries on both sides regardless of adjacent letter case, which the old underscore implementation would not have done. I confirmed both hand-traces match the new convention exactly, which is strong evidence memory is required and genuinely exercised, not just nominally referenced. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "inflection-number-rendering-update",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real coercion/validation logic (bool/fraction/string-pattern rules with TypeError/ValueError distinctions) composed with comma-grouped formatting and pluralize/singularize. Stage-1 (ordinalize) policy hand-verified against all cases including the ValueError-vs-TypeError distinction (fractional float vs bool) and sign/whitespace handling. Stage-2 (tableize, irrelevant-control) is a self-contained namespace/whitespace/case policy, unrelated to numeric coercion or formatting; verified 4 cases against its own stated rule. Stage-3 (count_noun, required) explicitly restates only the specific supersession (comma grouping replaces plain digits) while leaving the base coercion rules (bool/fraction rejection, string parsing) unstated, and the prehistory itself never states either the original or updated rule content -- I verified count_noun(0,'quiz')->'0 quizzes' (zero stays plural) and the uncountable-noun-left-as-given case against the combined ruleset. Stage-4 (ordinal_noun, required) says to use the policy 'as it currently stands', and its hidden cases are specifically constructed to require the updated comma-grouping rule (ordinal_noun(1000000,'visitors')->'1,000,000th visitor') while the sibling ordinalize function's own passToPass cases confirm it correctly stays on the old plain-digit rendering since it was never itself revised -- a strong, well-targeted test that stale memory would fail. This is memoryUsefulNotAnswer throughout: memory signals that a policy exists and was later partially superseded, but the mechanical rules and their composition into two new functions is real, verifiable work. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "inflection-phrase-inflection-handoff",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real algorithm: split a phrase at whitespace/hyphen boundaries, locate the head part via case-insensitive whole-part preposition matching with a last-part fallback, inflect only the head, and rejoin preserving original joiners and untouched parts. Hand-verified all 6 stage-1 failToPass cases, including the hyphenated 'mother-in-law'->'mothers-in-law' and the no-preposition fallback-to-last-part case ('attorney general'->'attorney generals'). Stage-2 (camelize) and stage-3 (humanize) are self-contained single-word/identifier transforms with no phrase-level head-detection concept at all; verified cases including camelize's 'entire first word lowercased, not just first letter' rule and humanize's new camel-split-plus-'_ids'-strip behavior, confirming both are unrelated to and non-misled by the phrase-head policy. Stage-4 (singularize_phrase, required) only says to follow 'the same accepted rules' with no restatement, and the prehistory again only names that a policy exists ('a precise head-part policy') without stating its mechanics; I re-derived all 6 hidden cases from the stage-1 policy text applied to singularize instead of pluralize, including the case-preserving-verbatim-for-non-head-parts check (' Boxes at Home '->'Box at Home' keeps 'Home' capitalized), and all matched exactly. This is memoryUsefulNotAnswer: recalling that the same head-detection rules and helper approach must be reused is necessary and non-trivial to re-derive correctly, but it is not literally handed over. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "moreit-exact-accumulation-rule",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real numeric-correctness work: int-vs-float branching (plain sum for all-int products, math.fsum for any float) plus strict length-mismatch ValueError instead of silent zip truncation. Stage-1 (dotproduct) failToPass cases directly instantiate the three described failure modes, including the catastrophic-cancellation case (1e16, 1.5, -1e16 with 1s) where fsum correctly yields exactly 1.5 while naive sum would not, and the mismatched-length ValueError cases; I confirmed fsum's exactness on these constructed inputs by reasoning through IEEE-754 cancellation. Stage-2 (split_into) and stage-3 (always_iterable) are self-contained iterator/type-dispatch policies with no floating-point summation involved at all -- verified representative cases (split_into's new 'leftover forms one final group, no empty tails' behavior; always_iterable's new 'mapping is an atom, empty text yields nothing' behavior, both explicit departures from the old function that are fully specified in each stage's own prompt) -- clearly unrelated to and non-misled by the accumulation rules. Stage-4 (matmul, required) explicitly says it 'suffers from the same failure' without restating the mechanics, and the prehistory only says a failure was recorded and rules exist, not what they are; every hidden case reconstructs the identical cancellation/mismatch scenarios transplanted into matrix rows and columns, and matches the exact-accumulation rules when traced by hand, while wiring _exact_sumprod into matmul's existing transpose/product/batched pipeline is itself new, non-trivial integration work. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "moreit-extremum-index-handoff",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real logic: a None-skipping, casefold-comparing, last-wins extremum scan replacing a plain min/max-with-itemgetter call, with a genuine behavior change from first-wins to last-wins on ties (confirmed via the changed docstring example, argmin([3,2,1,0,4,2,1,0]) now returns 7 not 3). I hand-verified all 5 stage-1 failToPass cases including the tie-breaking and case-folding rules. Stage-2 (take) and stage-3 (transpose) are self-contained, unrelated domains (slice-count semantics; ragged-row validation for matrix transposition) with no extremum-search concept at all; verified cases against each stage's own stated rule, including transpose's eager-materialization-before-raising behavior. Stage-4 (argmax, required) only says to apply 'the mirror image' of argmin's policy with no restatement, and the prehistory is equally non-specific; every hidden case matches the policy applied to max instead of min, including a well-constructed differentiator (argmax(['B','a'])->0) that only works if case-folding is genuinely applied rather than skipped -- raw ordinal comparison would wrongly pick index 1. This confirms real, verifiable memory-dependent work, not a restated answer. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "moreit-group-balance-correction",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real group-balancing algorithms: contiguous slicing for divide, round-based dealing for distribute, and an independent contiguous-run recomputation for chunked_even, each with its own surplus-placement logic. Stage-1 (divide) cases hand-verified, including the new 'only non-empty groups returned' behavior (a real change from the old empty-trailing-groups docstring). Stage-2 (distribute, required) explicitly restates only the specific correction (surplus to the last groups, not earliest); I traced distribute(3,[1..8]) by hand through the gold code's offset-based surplus placement and got [[1,4],[2,5,7],[3,6,8]], matching the hidden case exactly and confirming the correction is genuinely exercised, not just referenced. Stage-3 (intersperse, irrelevant-control) is a self-contained separator/spacing policy with no group-size-balancing concept; verified list-splice vs scalar-filler cases against its own stated rule, unrelated to and non-misled by the group-balance policy. Stage-4 (chunked_even, required) says to apply the policy 'including the user's correction'; its hidden cases directly mirror the function's own docstring example with the group-size order deliberately reversed from the pre-patch version ([2,2,3] vs the old [3,2,2]), an unambiguous test that the corrected rule (not the stale original) is applied, while the TypeError/ValueError validation rules -- never themselves corrected -- are also required and correctly still enforced. The prehistory only names that a policy exists and was later corrected, without stating either the original or corrected mechanics, so this is memoryUsefulNotAnswer, not memory-as-answer. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "moreit-plain-tasks-control",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "none",
+      "rationale": "Four genuine, independent algorithms: reverse-indexed longest-common-suffix comparison, nth-occurrence tracking with early exit, dual-direction (non-decreasing or non-increasing) monotonicity via materializing the iterable once, and groupby-based run-length counting that correctly separates non-adjacent equal-value runs. I hand-verified every failToPass case against each stage's own fully-stated rule, including edge cases (single-iterable and no-iterables for longest_common_suffix; the n<1 and too-few-occurrences ValueError paths for nth_index; the non-adjacent-run distinction in run_lengths([1,1,2,1])). Each new function composes only pre-existing repository helpers (is_sorted, groupby, ilen, iter_index's neighbourhood) rather than anything introduced by another stage of this episode, so the four stages have no hidden cross-dependency, matching the no-history-negative-control design. The prehistory is a meta-statement ('each task stands alone... nothing from one task is needed for another') with no extractable rule content, matching memoryAbsentAndTaskSelfContained. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryAbsentAndTaskSelfContained": true
+      }
+    },
+    {
+      "episodeId": "moreit-tail-padding-approach",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real generator logic: an islice-based fixed-size grouping loop with front-padding for a short final group (a genuine, testable behavior change confirmed by the reversed docstring example, 'x','x','G' front-padded instead of the old trailing 'G','x','x'), plus mode dispatch and up-front size validation. All 5 stage-1 failToPass cases hand-verified against the stated policy. Stage-2 (nth) and stage-3 (longest_common_prefix) are self-contained, unrelated domains (negative-index random access with a deque lookback; case-folded prefix matching with explicit None-never-matches and bool-never-matches-int rules) with no group-size or padding concept; I verified representative cases including the None- and bool-mismatch edge cases against each stage's own stated rule, confirming no interference with the tail-padding approach. Stage-4 (sliced, required) says to reuse the approach 'exactly the way it handles grouper's final group, including how the size argument is validated and what the strict flag does', with no restatement; every hidden case matches the front-padding direction and up-front size validation transplanted from grouper, while sliced sensibly keeps its own pre-existing plain ValueError (not grouper's UnequalIterablesError) for strict mode, confirmed by the matching passToPass case -- a correct, non-literal adaptation rather than a copied answer. The prehistory only names that an approach was validated and must be reused, without stating its mechanics. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "radashi-alignment-policy",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Stage 1 establishes an alignment policy (fixed-width groups padded with null, width floored to at least one, nullish list = empty) on cluster; cases match (cluster([1,2],0)->[[1],[2]] confirms the width-floor rule). Stage 2 (Levenshtein similarity normalization) is an unrelated, self-contained irrelevant-control. Stage 3 (required, mid-episode) restates the one superseded rule (padding dropped, output truncates to shortest input) and applies it to unzip; cases confirm the new truncation behavior. Stage 4 (required, final) applies the alignment policy 'as most recently updated' to zip with no restatement; because the original zip.ts merely delegated to unzip, and the mechanical harness confirmed stage 4's own gold patch alone (against the unpatched base, where unzip is still buggy) makes the hidden tests pass, zip.ts must independently embody the correct, currently-standing logic rather than simply forwarding to an already-fixed sibling -- genuine, self-contained coding work, not a free ride. No repository-specific runner exception; runner.ts only branches on ecosystem.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "radashi-case-word-boundary-policy",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Stage 1 establishes a genuinely intricate word-boundary tokenizer (separator-run collapse, digit runs as their own words, acronym-boundary placed before the last capital when followed by a lowercase letter, apostrophe removal) on dash; hand-traced dash('parseHTTPResponse')->'parse-http-response' and dash('XMLParser')->'xml-parser' against the stated rule and both match. Stages 2 (inRange inclusive bounds) and 3 (round ties-away-from-zero) are unrelated, self-contained irrelevant-controls. Stage 4 (required, final) applies 'the accepted word-boundary policy' to snake with no restatement of the tokenizer rules, adding a new splitOnNumber flag not present in dash -- genuine adaptation, not a copy, and the digit/acronym rules are non-obvious enough that an agent without the established convention would plausibly implement a simpler, different splitter. No repository-specific runner exception.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "radashi-key-path-negative-control",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "irrelevant-control",
+      "rationale": "Stage 1 establishes a key-path policy (dotted segments, bracketed array indexes, quoted-bracket keys containing dots/brackets, empty containers as leaves) on keys; cases (e.g. keys({'a.b':1,'c':2})->['[\"a.b\"]','c']) match. Stages 2 (lerp clamped interpolation), 3 (zipToObject first-wins key assignment) and 4 (list descending-range policy, final) are each fully self-contained and cover domains (interpolation, key/value zipping, numeric range generation) with no conceptual overlap to deep-object key-path notation, so recalling the key-path policy would not help or mislead any of them. All four stages implement real, non-trivial logic; cases were spot-checked against each stated rule and matched. No repository-specific runner exception.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryIrrelevantAndNonMisleading": true
+      }
+    },
+    {
+      "episodeId": "radashi-list-reducer-input-policy",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Stage 1 establishes a list-reducer input policy (nullish/boolean skipped, bare-decimal strings count, one-level nested-array flattening, neutral result when nothing counts) on sum; cases match. Stage 2 (required, mid-episode) fully restates the one corrected rule (strings never count as numbers now) and applies it to max; max(['9'])->null and max([[7],2])->7 confirm both the correction and the still-standing nested-flatten/neutral-null rules, which are not restated in stage 2's own prompt. Stage 3 (template placeholder policy) is an unrelated, self-contained irrelevant-control. Stage 4 (required, final) applies 'the accepted... policy, as corrected' to min with no restatement at all; min(['1',2])->2 specifically requires recalling that the correction (strings never count) still applies, since the original rule would have wrongly picked '1' -- a clean, meaningful memory-dependence signal, and real reducer-rewrite coding work. No repository-specific runner exception.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "radashi-strict-numeric-parsing",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Stage 1 is a concrete failure-avoidance lesson (prefix parsing silently accepted hex prefixes, comma-grouped thousands, trailing garbage, and truncated exponent notation, corrupting imported data) with a precise replacement (whole-string strict-decimal regex); verified toInt('0x1A')->0, toInt('1,000')->0, toInt('5.')->0 and toInt('1e3')->1000 all match the stated rule exactly, including the previously-broken exponent case now working correctly. Stages 2 (sift keep-zero/false policy) and 3 (invert first-wins policy) are unrelated, self-contained irrelevant-controls. Stage 4 (required, final) asks toFloat to accept/reject 'exactly the way the rule recorded for toInt does' without restating the regex; toFloat('.5')->0 and toFloat('1_000')->0 require recalling the exact strict-decimal grammar (leading digit required, underscores rejected) purely from memory, which is a strong, precise test of memory fidelity, and the reimplementation itself is genuine coding work. No repository-specific runner exception.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "scule-label-policy",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real Unicode-aware tokenization: case-boundary and separator splitting, noise-character stripping, apostrophe preservation, and a plural-acronym merge step, composed with per-word casing. I hand-verified stage-1 failToPass cases at the policy level, including apostrophe retention ('don't_panic'->'Don't panic') and noise-character dropping ('velvet (rope)!'->'Velvet rope'); the plural-acronym case (syncURLs->'Sync URLs') is explicitly covered by the stated rule even though I did not re-derive the pre-existing splitByCase helper's internal regex. Stage-2 (upperFirst) is a self-contained, unrelated primitive (first-cased-letter detection, with a genuine Unicode edge case for \u00df's multi-character uppercase form) that sentenceCase happens to reuse as a building block but does not depend on the label-splitting policy to solve correctly. Stage-3 (capitalCase, required) explicitly restates only the acronym-rendering correction, leaving the tokenization rules (splitting, apostrophes, noise, plural-acronym merging) to memory; hidden cases directly test the correction (renderSVGIcon -> 'Render Svg Icon', not 'SVG'). Stage-4 (titleCase, required) restates nothing and requires combining the updated general policy with titleCase's own separate, pre-existing small-word-exception behavior; the passToPass case 'the_art_of_glow'->'the Art of Glow' confirms the first-word exception is preserved distinctly, while failToPass cases confirm the updated (not stale) acronym rule is applied. This is memoryUsefulNotAnswer throughout -- the prehistory only says a policy exists and one rule may later be revised, never stating mechanics. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "scule-placeholder-approach",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real parsing logic: a brace-scanning tokenizer that preserves placeholder contents verbatim while normally case-splitting surrounding text, with explicit handling of empty placeholders, unmatched braces, and no nesting. I hand-traced all 6 stage-1 failToPass cases against the gold splitWithPlaceholders algorithm, including the empty-placeholder-drop case ('lantern{}Glow'->'lantern-glow'), the unmatched-open-brace case ('lantern{Glow'->'lantern-glow'), and the separator-preserved-inside-placeholder case ('mango{a-b.c}Juice'->'mango-{a-b.c}-juice'); all matched exactly. Stage-2 (lowerFirst) and stage-3 (initials) are self-contained, unrelated policies (leading-acronym-run casing using a digit-vs-letter case-comparison trick; word-initial extraction with digit-word skipping) with no brace/placeholder concept at all; I verified nontrivial cases (lowerFirst('GPU2Engine')->'gpu2Engine', initials('42nd avenue west')->'AW') against each stage's own stated rule, confirming no interference with or need for the placeholder approach. Stage-4 (camelCase, required) says to extend camelCase 'using the validated placeholder approach ... exactly the way that approach fixed kebabCase', with no restatement; critically, the actual gold patch fixes pascalCase rather than camelCase's own body, because camelCase delegates to lowerFirst(pascalCase(...)) in this codebase -- solving this stage correctly requires recognizing that composition, not just copying kebabCase's fix verbatim into a nonexistent camelCase-specific code path. I hand-traced all 6 hidden cases through this composition (including a placeholder at the very start, '{Glow}lanternRadius'->'{Glow}LanternRadius') and all matched, confirming genuine, non-trivial engineering work beyond restating memory. The prehistory only says an approach was validated and must be reused, without stating its mechanics. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "scule-standalone-tasks",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "none",
+      "rationale": "Four genuine bug-fixes/extensions to the case-conversion helpers: separator-run collapsing via filter(Boolean) (confirmed the old kebabCase-delegating snakeCase would have produced 'orbit__velocity', a real double-underscore bug), a whole-string cased-letter scan for isUppercase generalizing its previous single-character contract, Unicode NFD decomposition plus combining-mark and noise-character stripping for flatCase, and a new previousDigit state variable added to splitByCase's character-by-character case-edge state machine. I hand-verified every failToPass case, including the Unicode accent-stripping cases (flatCase('\u00c5ngstr\u00f6m unit')->'angstromunit') and the digit-isolation cases (splitByCase('Mango2Juice')->['Mango','2','Juice']). Checked for hidden cross-stage dependencies given multiple stages touch the same file: flatCase's and snakeCase's test suites deliberately contain no digit inputs, so neither depends on stage-4's splitByCase digit-boundary fix, and I confirmed the new whole-string isUppercase is backward-compatible with splitByCase's existing single-character call pattern (same true/false/undefined results for 'A','a','5'), so stage-1 and stage-4 are unaffected by whether stage-2 is applied. All four stages are therefore genuinely independent, matching the no-history-negative-control design, and the prehistory is a meta-statement with no extractable policy content. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryAbsentAndTaskSelfContained": true
+      }
+    },
+    {
+      "episodeId": "scule-style-predicates",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real validation logic combining three independent regex constraints (ASCII-only body with single-leading-underscore tolerance, a max-2-consecutive-uppercase-letters run limit, and a digit-run-must-be-followed-by-uppercase-or-end rule). I hand-verified all 6 stage-1 failToPass cases, including the upper-run limit ('quartzPebbleHTML'->false) and digit-boundary rule ('quartz2pebble'->false). Stage-2 (pathCase) and stage-3 (pascalCase punctuation-separator) are self-contained word-joining/conversion policies, not validation predicates; despite pascalCase's name being adjacent to isPascalCase, I confirmed no rule overlap -- pascalCase's punctuation-as-separator rule has nothing to do with the identifier-style validation rule set, verified against representative cases including the normalize-option case. Stage-4 (isPascalCase, required) says to reuse 'the same rule set... with the one difference that session already spelled out', restating neither the difference nor the rule set itself; the prehistory is equally silent on mechanics. Every hidden case tests both the transplanted difference (first letter must be uppercase, confirmed by 'quartzPebble'->false, the exact case accepted by isCamelCase) and the full shared rule set reapplied to a new function (upper-run limit and digit-boundary both re-triggered, e.g. 'QuartzHTMLPebble'->false), which is a substantial, non-trivial reconstruction, not a restated answer. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "scule-word-boundary-convention",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real, sophisticated tokenization: separator-splitting plus noise-stripping, a digit-run/letter-boundary regex insertion, and a lone-uppercase-letter-glued-onto-the-next-capitalized-word merge rule. I fully hand-traced the hardest stage-1 case, constantCase('IPv6Gateway')->'IPV6_GATEWAY', through the base splitByCase state machine (yielding 'I','Pv6','Gateway'), the digit-letter-boundary regex (no change, since the digit is at a part boundary), and the lone-uppercase-glue merge ('I'+'Pv6'->'IPv6'), confirming the stated policy text fully and non-obviously determines this output; the other 5 failToPass cases (including the apostrophe-noise case \"can't-stop\"->'CANT_STOP') were also verified. Stage-2 (swapCase) and stage-3 (isLowercase) are self-contained, unrelated per-character/whole-string case operations with genuine Unicode edge cases (swapCase preserves '\u00df' since its uppercase form is 2 characters; isLowercase correctly handles '\u00fcber'), with no word-splitting concept at all, so they are non-misleading. Stage-4 (dotCase, required) says to split and clean words 'exactly the way the convention set for constantCase' with no restatement; I retraced 'IPv6Gateway'->'ipv6.gateway' through the identical splitByConvention algorithm and it matched, confirming the full four-part convention (not a simplified guess) is genuinely required and non-trivial to reconstruct from the vague prehistory alone. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "ufo-base-strip-control",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "irrelevant-control",
+      "rationale": "Real URL-manipulation logic in every stage. Stage-1 (withoutBase) hand-verified against all 5 failToPass cases, including two genuine behavior changes from the old implementation: case-insensitive base matching ('/Foo/bar' with base '/foo' now strips, which the old case-sensitive startsWith would have rejected) and '#' now accepted as a valid segment-boundary character alongside '/' and '?' ('/foo#f'->'/#f', which the old boundary check would have rejected since it only allowed '/' or '?'). Stages 2-4 (withLeadingSlash, parseAuth, withoutFragment) are each self-contained with their own complete policy and operate on entirely different URL concerns (prefixing a slash; splitting username:password at the first colon with at-sign trimming; hash/dangling-query removal) with no base-matching or stripping logic at all; verified representative cases against each stage's own rule and confirmed none would be helped or hurt by recalling the base-strip policy. The prehistory explicitly states the later tasks 'stand on their own', matching the design intent, and this matches the manifest's irrelevant-control final stage. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryIrrelevantAndNonMisleading": true
+      }
+    },
+    {
+      "episodeId": "ufo-path-compare-segments",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real logic: split-on-literal-slash-first-then-decode-per-segment comparison, replacing a whole-string decode that conflated an encoded slash with a real path separator. Stage-1's key failToPass case, isSamePath('/a%2Fb','/a/b')->false, is a direct regression test of the exact narrated bug (under the old whole-string decode, '/a%2Fb' would decode to '/a/b' before comparison and wrongly match); I traced the segment-splitting by hand and confirmed it correctly yields differing segment counts. I also verified the hex-case-insensitivity case ('/a%2fb' vs '/a%2Fb' -> true) and the unified leading/trailing/dot-segment handling via filter(Boolean-like) logic. Stage-2 (withProtocol) and stage-3 (parseFilename) are self-contained, unrelated URL operations (scheme normalization; single-segment extraction with extension validation) with no path-to-path comparison logic; verified representative cases against each stage's own rule. Stage-4 (isEqual, required) explicitly warns to 'never repeat the approach that was rejected' without restating the segment-wise mechanics; its hidden cases include the identical '/a%2Fb' vs '/a/b' -> false regression test, now combined with three configurable strictness options (trailingSlash, leadingSlash, encoding) that isSamePath itself never had to handle -- genuine additional engineering beyond the base rule. The prehistory is unusually specific about the failure mode (whole-string decode broke on encoded slashes) but still omits implementation details, so this is memoryUsefulNotAnswer, not memory-as-answer. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "ufo-path-terminal-policy",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real URL-segment manipulation logic in every stage, with several genuine, testable behavior changes from the old implementations. Stage-1 (withTrailingSlash) hand-verified against all 5 failToPass cases, including the new 'final segment with a dot is a filename, never gets a trailing slash' rule ('/assets/logo.svg' stays unchanged) and the fact that the respectQueryAndFragment argument is now voided entirely (old code had two different behaviors depending on that flag; new code always uses the query/fragment-aware placement). Stage-2 (cleanDoubleSlashes) and stage-3 (withFragment) are self-contained, unrelated policies (internal duplicate-slash collapsing that carefully isolates protocol/query/fragment before collapsing; verbatim non-percent-encoded fragment setting where an empty argument now removes the fragment, a real behavior change from the old code which returned the input unchanged) with no terminal-slash-placement logic; verified representative cases against each stage's own rule with no overlap. Stage-4 (withoutTrailingSlash, required) says to follow 'the same rules the policy set for adding one' with no restatement; its hidden cases require correctly transplanting multiple distinct bypass rules (protocol-relative and fragment-only inputs returned completely unchanged even when they superficially contain a trailing-slash-like character) and the query/fragment-aware slash placement to the inverse (removal) operation, which I traced case by case and confirmed all matched. The prehistory only says a policy exists and must be followed by later slash helpers, without stating mechanics. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "ufo-query-serialization-policy",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real serialization logic: key/value trimming, internal-whitespace collapsing, JSON serialization with recursively sorted object keys, and array-entry dedup/null-dropping. Stage-1 (encodeQueryItem) cases hand-verified, including the original bracketed-repeated-pair array format ('tags'->['x','y'] gives 'tags[]=x&tags[]=y'). Stage-2 (stringifyQuery, required, a genuine user correction) explicitly rejects that bracket format and restates the array-specific replacement (single comma-joined pair, in-entry commas percent-encoded) but does not restate the key-trim, value-whitespace-collapse, or object-key-sort rules, all of which stage-2's own hidden cases still exercise (' k '->'k', and the identical object-sort case from stage-1); I confirmed the corrected format is genuinely used (not the stale bracket format) via 'tags=x,y'. Stage-3 (withoutHost) is a self-contained host/path-stripping policy that passively preserves the query string verbatim but exercises none of the serialization rules itself -- genuinely unrelated. Stage-4 (withQuery, required) says to apply the corrected policy 'changing the query helpers in src/query.ts as needed'; I confirmed via the actual repository source that withQuery delegates to stringifyQuery internally, so the gold patch (like the earlier composition-based scule episode) touches only query.ts, not withQuery's own body -- solving this requires recognizing that composition, not guessing. The hidden case withQuery('/p?tags=a&tags=b',{c:'1'})->'/p?tags=a,b&c=1' specifically confirms that even pre-existing query data on the input gets re-serialized under the corrected policy, not just newly merged data -- a strong, well-targeted test. The prehistory only says a policy exists and its array rule is subject to review, without stating either version's mechanics. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    },
+    {
+      "episodeId": "ufo-segment-join-approach",
+      "author": "GoodMemory Level-2 dataset author",
+      "memoryExpectationMode": "required",
+      "rationale": "Real segment-preparation logic: whitespace trim, backslash normalization, slash-run collapsing that exempts a protocol's double slash, seam-aware leading-dot-slash/leading-slash stripping, and query/fragment tail detach-and-replace semantics with protocol-triggered restart. I hand-verified all 6 stage-1 failToPass cases, including the precise tail-replaces-not-concatenates rule ('/a#f' + 'b?y=2' -> '/a/b?y=2', confirming the segment's own '?y=2' tail replaces the accumulated '#f' rather than both surviving) and the protocol-restart rule. Stage-2 (parseHost) and stage-3 (encodeHash) are self-contained, unrelated policies (bracketed-IPv6-aware host/port extraction; percent-encoding that skips already-encoded pairs and preserves a single leading hash) with no multi-segment joining concept; verified representative cases against each stage's own rule with no overlap. Stage-4 (joinRelativeURL, required) says to reuse 'the same preparation and the same tail handling' with no restatement, and per the gold patch the prepareJoinSegment helper is reused essentially verbatim from stage-1 -- but wiring it correctly upstream of joinRelativeURL's existing, non-trivial dot/parent-segment resolution loop without breaking that loop's own leading-slash and leading-./-preservation behavior (confirmed via passToPass cases like './a','b' -> './a/b') is genuine, substantial integration work, not a restated answer. The prehistory only names that an approach was validated and must be reused, without stating its mechanics. runner.ts confirmed generic, no repository-specific branching.",
+      "checks": {
+        "codingNotTrivia": true,
+        "hiddenTestsFair": true,
+        "negativeControlCredible": true,
+        "noRepositorySpecificRunnerException": true,
+        "memoryUsefulNotAnswer": true
+      }
+    }
+  ]
+}
