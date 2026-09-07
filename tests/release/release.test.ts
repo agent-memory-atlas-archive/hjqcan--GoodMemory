@@ -2726,7 +2726,20 @@ describe("release metadata and docs", () => {
       "docs/archive/quality-gates/GoodMemory-Phase-20-Quality-Gate.md",
     );
     expect(currentStatus).toContain(
-      "stable `goodmemory@0.7.5` release source",
+      "The published installation baseline and current package metadata remain",
+    );
+    expect(currentStatus).toContain(
+      "`goodmemory@0.7.5` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`)",
+    );
+    expect(currentStatus).toContain(
+      "Current `main` also contains unpublished v0.8 development",
+    );
+    expect(currentStatus).toContain("is not a publishable v0.8 candidate");
+    expect(currentStatus).toContain(
+      "plans/GoodMemory-v0.8-Unpublished-Development-Plan.md",
+    );
+    expect(currentStatus).not.toContain(
+      "The current repository is the stable `goodmemory@0.7.5` release source",
     );
     expect(currentStatus).toContain(
       "frozen published baseline is `goodmemory@0.7.4`",
