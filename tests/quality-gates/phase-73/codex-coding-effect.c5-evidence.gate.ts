@@ -69,6 +69,7 @@ import {
 import {
   auditC5LiveLeakageSurfaces,
 } from "../../../scripts/codex-coding-effect/c5-live-leakage";
+import type { C5TrajectoryOriginReceipt } from "../../../scripts/codex-coding-effect/c5-live-leakage";
 import { loadCodexCodingEffectDataset } from "../../../scripts/codex-coding-effect/dataset";
 import { loadC5PilotReadiness } from "../../../scripts/codex-coding-effect/c5-readiness";
 import {
@@ -224,6 +225,9 @@ describe("Codex coding-effect C5 evidence closure", () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-comparator-outage-"));
     try {
       const fixture = await createRawFixture(root, { baselineArm: "flat-summary" });
+      const before = await readLeakageTarget(fixture, 3);
+      const withheldOrigin = (before.audit.trajectoryOrigins as Array<Record<string, unknown>>)
+        .find((origin) => origin.id === "stage-2:flat-summary:codex-jsonl-output")!;
       await makeFlatSummaryStageNotStarted(fixture);
       const projection = join(root, "projection");
       const manifest = await projectC5RunEvidence({
@@ -251,6 +255,16 @@ describe("Codex coding-effect C5 evidence closure", () => {
         hookCanaryFailureCount: 1,
         zeroInjectionCount: 12,
       });
+      const target = await readLeakageTarget(fixture, 3);
+      const origins = target.audit.trajectoryOrigins as Array<Record<string, unknown>>;
+      origins.push(withheldOrigin);
+      origins.sort((first, second) => String(first.id).localeCompare(String(second.id)));
+      target.audit.trajectoryOriginAuditSha256 = sha256(JSON.stringify(origins));
+      bindAuditHash(target.audit);
+      await replaceLeakageEvidence(fixture, target, target.audit);
+      await expect(projectC5RunEvidence({
+        outputDirectory: join(root, "not-started-stdout-origin"), rawRunDirectory: fixture.raw,
+      })).rejects.toThrow(/invalid trajectory origin receipt/u);
     } finally {
       await rm(root, { force: true, recursive: true });
     }
@@ -496,6 +510,386 @@ describe("Codex coding-effect C5 evidence closure", () => {
       await rm(root, { force: true, recursive: true });
     }
   });
+
+  it("projects an interrupted empty agent patch with its SHA-256 binding", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-empty-patch-"));
+    try {
+      const fixture = await createRawFixture(root);
+      await addInterruptedAttempt(fixture, {
+        artifactBytes: "",
+        artifactName: "agent.patch",
+      });
+      const projection = join(root, "projection");
+      const manifest = await projectC5RunEvidence({
+        outputDirectory: projection,
+        rawRunDirectory: fixture.raw,
+      });
+      const verification = await verifyC5EvidenceProjection({
+        projectionDirectory: projection,
+      });
+
+      expect(manifest.files).toHaveLength(395);
+      expect(verification.decision).toBe("accepted");
+      expect(verification.counts.stageExecutions).toBe(72);
+      expect(verification.counts.pairs).toBe(36);
+      const path = manifest.files.find((file) =>
+        file.path.endsWith("attempt.sanitized.json")
+      )!.path;
+      const attempt = JSON.parse(await readFile(join(projection, path), "utf8")) as {
+        artifacts: Array<{ bytesBase64: string; path: string; sha256: string }>;
+      };
+      expect(attempt.artifacts[0]).toMatchObject({
+        bytesBase64: "",
+        sha256: sha256(""),
+      });
+      expect(attempt.artifacts[0]!.path).toEndWith("/agent.patch");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects malformed interrupted artifact bytes after outer receipts are rebound", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-empty-patch-mutations-"));
+    try {
+      const fixture = await createRawFixture(root);
+      await addInterruptedAttempt(fixture, {
+        artifactBytes: "",
+        artifactName: "agent.patch",
+      });
+      const ledgerPath = join(fixture.raw, "run-attempts.jsonl");
+      const row = JSON.parse(await readFile(ledgerPath, "utf8")) as {
+        attemptEvidencePath: string;
+        attemptEvidenceSha256: string;
+      };
+      const evidencePath = join(fixture.raw, row.attemptEvidencePath);
+      const original = await readFile(evidencePath, "utf8");
+      const mutations = [
+        { bytesBase64: null, sha256: sha256("") },
+        { bytesBase64: 0, sha256: sha256("") },
+        { bytesBase64: "", sha256: sha256("different") },
+        { bytesBase64: "!!!", sha256: sha256("") },
+        { bytesBase64: "eA==\n", sha256: sha256("x") },
+      ];
+      for (const [index, mutation] of mutations.entries()) {
+        const evidence = JSON.parse(original) as {
+          artifacts: Array<Record<string, unknown>>;
+        };
+        Object.assign(evidence.artifacts[0]!, mutation);
+        await writeJson(evidencePath, evidence);
+        row.attemptEvidenceSha256 = sha256(await readFile(evidencePath, "utf8"));
+        await writeText(ledgerPath, `${JSON.stringify(row)}\n`);
+
+        await expect(projectC5RunEvidence({
+          outputDirectory: join(root, `projection-${index}`),
+          rawRunDirectory: fixture.raw,
+        })).rejects.toThrow(/C5 interrupted artifact/u);
+      }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("projects returned Codex failures without exception hashes and retains incomparability", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-returned-failure-"));
+    try {
+      const fixture = await createRawFixture(root);
+      await makeReturnedCodexFailures(fixture);
+      const projection = join(root, "projection");
+      await projectC5RunEvidence({
+        outputDirectory: projection,
+        rawRunDirectory: fixture.raw,
+      });
+      const verification = await verifyC5EvidenceProjection({
+        projectionDirectory: projection,
+      });
+      const report = JSON.parse(await readFile(join(projection, "report.json"), "utf8"));
+
+      expect(verification.decision).toBe("accepted");
+      expect(verification.checks.noInfrastructureFailure).toBe(false);
+      expect(verification.publicClaimEligible).toBe(false);
+      expect(verification.counts.stageExecutions).toBe(72);
+      expect(verification.counts.pairs).toBe(36);
+      expect(report.attempts.infrastructureFailureCount).toBe(5);
+      expect(report.pairs.comparableCount).toBe(31);
+      expect(report.pairs.incomparableCount).toBe(5);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects unbound returned Codex failures after outer receipts are rebound", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-returned-failure-mutations-"));
+    try {
+      const fixture = await createRawFixture(root);
+      const [target] = await makeReturnedCodexFailures(fixture);
+      const original = await readFile(target!.path, "utf8");
+      const mutations: Array<(evidence: ReturnedCodexStageEvidence) => void> = [
+        (evidence) => { evidence.failureReasonSha256 = ""; },
+        (evidence) => { delete evidence.failureReasonSha256; },
+        (evidence) => { evidence.execution.infrastructureFailureStage = "host-canary"; },
+        (evidence) => { evidence.execution.codexStatus = "not-started"; },
+        (evidence) => { evidence.codex.exitCode = 0; },
+        (evidence) => { evidence.events[1]!.details.exitCode = 0; },
+        (evidence) => { evidence.events.splice(1, 1); },
+        (evidence) => { evidence.events[0]!.details.executableSha256 = "f".repeat(64); },
+      ];
+      for (const [index, mutate] of mutations.entries()) {
+        const evidence = JSON.parse(original) as ReturnedCodexStageEvidence;
+        mutate(evidence);
+        await writeJson(target!.path, evidence);
+        await rebindStageEvidenceAndReport(fixture, target!.stage.id, target!.path, {
+          execution: evidence.execution,
+        });
+        await expect(projectC5RunEvidence({
+          outputDirectory: join(root, `projection-${index}`),
+          rawRunDirectory: fixture.raw,
+        })).rejects.toThrow(index === 1
+          ? /stage-execution\.sanitized\.json has an unsupported or missing field/u
+          : /C5 (?:stage|returned Codex)/u);
+      }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("discloses claimed timeout stdout origins without asserting inventory completeness", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-timeout-origins-"));
+    try {
+      const fixture = await createRawFixture(root, { baselineArm: "flat-summary" });
+      const targets = await makeTimeoutOriginFixture(fixture);
+      const reportBefore = await readFile(join(fixture.raw, "report.json"), "utf8");
+      const projection = join(root, "projection");
+      await projectC5RunEvidence({ outputDirectory: projection, rawRunDirectory: fixture.raw });
+      const verification = await verifyC5EvidenceProjection({ projectionDirectory: projection });
+
+      expect(verification.decision).toBe("accepted");
+      expect(verification.timeoutStdoutOrigins).toEqual({
+        claimedStageRunIds: targets.slice(0, 2).map((target) => target.stage.id).sort(),
+        eligibleStageRunIds: targets.map((target) => target.stage.id).sort(),
+        existenceAndCompletenessVerified: false,
+        liveMatchExemptionAllowed: false,
+        originClass: "claimed-timeout-stdout",
+        receiptCount: 3,
+      });
+      expect(verification.checks.noInfrastructureFailure).toBe(false);
+      expect(verification.publicClaimEligible).toBe(false);
+      expect(verification.externalAuthenticityVerified).toBe(false);
+      expect(await readFile(join(projection, "report.json"), "utf8")).toBe(reportBefore);
+      expect(await readFile(join(fixture.raw, "report.json"), "utf8")).toBe(reportBefore);
+      for (const target of targets) {
+        const evidence = JSON.parse(await readFile(target.path, "utf8"));
+        expect(evidence.codex)
+          .toMatchObject({ eventCount: 0, exitCode: 0, status: "timed-out", usage: null });
+        if (evidence.execution.arm === "flat-summary") {
+          expect(evidence.execution.comparatorInjection.hookEvaluationPassed).toBe(false);
+          const pairs = (await readFile(join(fixture.raw, "pairs.jsonl"), "utf8"))
+            .trim().split("\n").map((row) => JSON.parse(row) as C5LongitudinalPairResult);
+          expect(pairs.find((pair) => pair.clusterId === fixture.plan.clusters[1]!.id &&
+            pair.stageId === target.stage.stageId)!.incomparabilityReasons)
+            .toContain("flat-summary-hook-canary-failed");
+        } else {
+          expect(evidence.canaryEvidenceSha256).toBeNull();
+          expect(evidence.execution.memoryObservation).toBeNull();
+        }
+      }
+      const target = await readLeakageTarget(fixture, 3);
+      const leakageInput = fixture.leakageInputs.get(
+        `${fixture.plan.clusters[0]!.episodeId}/${target.stage.stageId}`,
+      )!;
+      const id = `${targets[0]!.stage.stageId}:codex-jsonl-output`;
+      const emptyOrigin = auditC5LiveLeakageSurfaces({
+        artifacts: leakageInput.artifacts,
+        liveSurfaces: fixtureLiveSurfaces(""),
+        staticSurfaces: leakageInput.staticSurfaces,
+        trajectoryOrigins: [{ content: "", id }],
+      }).trajectoryOrigins[0]!;
+      expect(emptyOrigin.sha256).toBe(sha256(""));
+      const origins = target.audit.trajectoryOrigins as Array<{ id: string }>;
+      origins[origins.findIndex((origin) => origin.id === id)] = emptyOrigin;
+      target.audit.trajectoryOriginAuditSha256 = sha256(JSON.stringify(origins));
+      bindAuditHash(target.audit);
+      await replaceLeakageEvidence(fixture, target, target.audit);
+      await expect(projectC5RunEvidence({
+        outputDirectory: join(root, "claimed-empty-stdout"), rawRunDirectory: fixture.raw,
+      })).rejects.toThrow(/trajectory origin receipt.*non-empty stdout/u);
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("rejects timeout and spawn failure normalization after outer receipts are rebound", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-timeout-normalization-"));
+    try {
+      const fixture = await createRawFixture(root);
+      const targets = (await makeReturnedCodexFailures(fixture)).slice(1, 3);
+      const mutations: Array<(evidence: ReturnedCodexStageEvidence) => void> = [
+        (evidence) => { evidence.codex.eventCount = 1; },
+        (evidence) => {
+          const usage = { cachedInputTokens: 0, inputTokens: 1, outputTokens: 1 };
+          evidence.codex.usage = usage;
+          evidence.execution.codexUsage = usage;
+        },
+        (evidence) => { evidence.execution.threadId = "fabricated-thread"; },
+      ];
+      for (const [targetIndex, target] of targets.entries()) {
+        const original = await readFile(target.path, "utf8");
+        for (const [index, mutate] of mutations.entries()) {
+          const evidence = JSON.parse(original) as ReturnedCodexStageEvidence;
+          mutate(evidence);
+          await writeJson(target.path, evidence);
+          await rebindStageEvidenceAndReport(fixture, target.stage.id, target.path, {
+            execution: evidence.execution,
+          });
+          await expect(projectC5RunEvidence({
+            outputDirectory: join(root, `projection-${targetIndex}-${index}`),
+            rawRunDirectory: fixture.raw,
+          })).rejects.toThrow(/C5 stage .*normalized/u);
+        }
+        await writeText(target.path, original);
+        await rebindStageEvidenceAndReport(fixture, target.stage.id, target.path, {
+          execution: (JSON.parse(original) as ReturnedCodexStageEvidence).execution,
+        });
+      }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  }, 600_000);
+
+  it("never lets a claimed timeout stdout origin newly explain a live match", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-timeout-live-"));
+    try {
+      const fixture = await createRawFixture(root, { baselineArm: "flat-summary" });
+      await makeTimeoutOriginFixture(fixture);
+      const target = await readLeakageTarget(fixture, 3);
+      const leakageInput = fixture.leakageInputs.get(
+        `${fixture.plan.clusters[0]!.episodeId}/${target.stage.stageId}`,
+      )!;
+      const originId = `${target.stage.priorStageIds.at(-1)}:codex-jsonl-output`;
+      const replacement = auditC5LiveLeakageSurfaces({
+        artifacts: leakageInput.artifacts,
+        liveSurfaces: fixtureLiveSurfaces(""),
+        staticSurfaces: leakageInput.staticSurfaces,
+        trajectoryOrigins: [{
+          content: leakageInput.artifacts.find((artifact) => artifact.id === "hidden-test-source")!.content,
+          id: originId,
+        }],
+      }).trajectoryOrigins[0]!;
+      const audit = target.audit;
+      const origins = audit.trajectoryOrigins as C5TrajectoryOriginReceipt[];
+      origins[origins.findIndex((origin) => origin.id === originId)] = replacement;
+      audit.trajectoryOriginAuditSha256 = sha256(JSON.stringify(origins));
+      bindAuditHash(audit);
+      await replaceLeakageEvidence(fixture, target, audit);
+      // Origin matrices may match hidden fragments without affecting any live
+      // surface. This must remain admissible, as in the captured full run.
+      const safeProjection = join(root, "origin-only-projection");
+      await projectC5RunEvidence({ outputDirectory: safeProjection, rawRunDirectory: fixture.raw });
+      expect((await verifyC5EvidenceProjection({ projectionDirectory: safeProjection })).decision)
+        .toBe("accepted");
+
+      const originCell = replacement.matrixAuditReceipt.cells.find((cell) =>
+        cell.artifactId === "hidden-test-source" &&
+        cell.surfaceId === "effective-codex-input-after-seeding"
+      )!;
+      const mandatoryMatches = new Set(origins.filter((origin) => origin.id !== originId)
+        .flatMap((origin) => origin.matrixAuditReceipt.cells.filter((cell) =>
+          cell.artifactId === originCell.artifactId && cell.surfaceId === originCell.surfaceId
+        ).flatMap((cell) => cell.matchedFragmentSha256)));
+      const digest = originCell.matchedFragmentSha256.find((match) => !mandatoryMatches.has(match))!;
+      expect(digest).toBeDefined();
+      expect(mandatoryMatches.has(digest)).toBe(false);
+      const matrix = audit.fullMatrixAuditReceipt as Record<string, unknown>;
+      const fullCell = (matrix.cells as Array<Record<string, unknown>>).find((cell) =>
+        cell.artifactId === originCell.artifactId && cell.surfaceId === originCell.surfaceId
+      )!;
+      const liveCell = (audit.liveCells as Array<Record<string, unknown>>).find((cell) =>
+        cell.artifactId === originCell.artifactId && cell.surfaceId === originCell.surfaceId
+      )!;
+      const match = { exactOverlapCount: 1, matchedFragmentSha256: [digest], normalizedOverlapCount: 0, status: "rejected" };
+      Object.assign(fullCell, match);
+      Object.assign(liveCell, match, {
+        originAttestedMatchSha256: [digest], provenanceStatus: "accepted", unexplainedMatchSha256: [],
+      });
+      matrix.overlapCount = 1;
+      matrix.status = "rejected";
+      bindMatrixAuditHash(matrix);
+      audit.fullMatrixAuditSha256 = matrix.auditSha256;
+      audit.liveOverlapCount = 1;
+      audit.trajectoryOriginOverlapCount = 1;
+      bindAuditHash(audit);
+      await replaceLeakageEvidence(fixture, target, audit);
+      await expect(projectC5RunEvidence({
+        outputDirectory: join(root, "new-live-exemption"), rawRunDirectory: fixture.raw,
+      })).rejects.toThrow(/claimed timeout stdout origin newly explains a live match/u);
+      // The exact set rule permits a match that a mandatory origin already
+      // attests. The optional claim must not receive the credit for explaining it.
+      const mandatoryId = `${target.stage.priorStageIds[0]}:codex-jsonl-output`;
+      origins[origins.findIndex((origin) => origin.id === mandatoryId)] = {
+        ...replacement, id: mandatoryId,
+      };
+      audit.trajectoryOriginAuditSha256 = sha256(JSON.stringify(origins));
+      bindAuditHash(audit);
+      await replaceLeakageEvidence(fixture, target, audit);
+      const sharedProjection = join(root, "mandatory-and-optional-live-match");
+      await projectC5RunEvidence({ outputDirectory: sharedProjection, rawRunDirectory: fixture.raw });
+      expect((await verifyC5EvidenceProjection({ projectionDirectory: sharedProjection })).decision)
+        .toBe("accepted");
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  });
+
+  it("retains exact mandatory membership and rejects malformed claimed timeout origins", async () => {
+    const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-timeout-membership-"));
+    try {
+      const fixture = await createRawFixture(root, { baselineArm: "flat-summary" });
+      await makeTimeoutOriginFixture(fixture);
+      const target = await readLeakageTarget(fixture, 3);
+      const optionalId = `${target.stage.priorStageIds.at(-1)}:codex-jsonl-output`;
+      const mutations: Array<(origins: Array<Record<string, unknown>>) => void> = [
+        ...[":effective-prompt", ":agent-patch", ":flat-summary:codex-jsonl-output"].map((suffix) =>
+          (origins: Array<Record<string, unknown>>) => {
+            origins.splice(origins.findIndex((origin) => String(origin.id).endsWith(suffix)), 1);
+          }),
+        (origins) => { origins.push({ ...origins.find((origin) => origin.id === optionalId)! }); },
+        ...["stage-999:codex-jsonl-output", `${target.stage.stageId}:codex-jsonl-output`,
+          "stage-1:no-memory:codex-jsonl-output", `other-cluster/${optionalId}`,
+          "stage-01:codex-jsonl-output"].map((id) => (origins: Array<Record<string, unknown>>) => {
+          origins.find((origin) => origin.id === optionalId)!.id = id;
+        }),
+        (origins) => { origins.find((origin) => origin.id === optionalId)!.sha256 = "f".repeat(64); },
+        (origins) => {
+          const matrix = origins.find((origin) => origin.id === optionalId)!.matrixAuditReceipt as Record<string, unknown>;
+          const cell = (matrix.cells as Array<Record<string, unknown>>)[0]!;
+          cell.candidateFragmentCount = Number(cell.candidateFragmentCount) + 1;
+          bindMatrixAuditHash(matrix);
+        },
+      ];
+      for (const [index, mutate] of mutations.entries()) {
+        const audit = structuredClone(target.audit);
+        mutate(audit.trajectoryOrigins as Array<Record<string, unknown>>);
+        audit.trajectoryOriginAuditSha256 = sha256(JSON.stringify(audit.trajectoryOrigins));
+        bindAuditHash(audit);
+        await replaceLeakageEvidence(fixture, target, audit);
+        await expect(projectC5RunEvidence({
+          outputDirectory: join(root, `mutation-${index}`), rawRunDirectory: fixture.raw,
+        })).rejects.toThrow(/trajectory origin|not bound|frozen artifact|non-content/u);
+      }
+      await replaceLeakageEvidence(fixture, target, target.audit);
+      const run = fixture.plan.episodeArmRuns.find((candidate) =>
+        candidate.clusterId === target.clusterId && candidate.arm === "goodmemory-installed"
+      )!;
+      // Other zero-event paths do not inherit the returned-timeout permission.
+      for (const status of ["spawn-failed", "event-parse-failed"] as const) {
+        await makeReturnedCodexFailures(fixture, [{ run, stage: run.stages[1]!, status }]);
+        await expect(projectC5RunEvidence({
+          outputDirectory: join(root, `ineligible-${status}`), rawRunDirectory: fixture.raw,
+        })).rejects.toThrow(/invalid trajectory origin receipt/u);
+      }
+    } finally {
+      await rm(root, { force: true, recursive: true });
+    }
+  }, 600_000);
 
   it("rejects required recall outside the isolated pre-stage export", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-c5-recall-binding-"));
@@ -1740,6 +2134,177 @@ async function makeFlatSummaryStageNotStarted(fixture: RawFixture): Promise<{
   return { run, stage };
 }
 
+interface ReturnedCodexStageEvidence extends Record<string, unknown> {
+  codex: Record<string, unknown>;
+  events: Array<{ details: Record<string, unknown>; event: string }>;
+  execution: Record<string, unknown>;
+  failureReasonSha256?: unknown;
+}
+
+// Mirrors runCodexProcess returning a failed result without throwing: the
+// native adapter records status/exit receipts but has no exception to hash.
+type ReturnedCodexFailureStatus = "non-zero-exit" | "timed-out" | "spawn-failed" |
+  "event-parse-failed" | "missing-final-message";
+
+async function makeReturnedCodexFailures(fixture: RawFixture, requested?: Array<{
+  exitCode?: number;
+  run: C5PilotEpisodeArmRun;
+  stage: C5PilotStageRun;
+  status: ReturnedCodexFailureStatus;
+}>): Promise<Array<{
+  path: string;
+  stage: C5PilotStageRun;
+}>> {
+  const statuses = [
+    "non-zero-exit", "timed-out", "spawn-failed",
+    "event-parse-failed", "missing-final-message",
+  ] as const;
+  const runs = fixture.plan.episodeArmRuns.filter((run) => run.arm === "no-memory");
+  const pairsPath = join(fixture.raw, "pairs.jsonl");
+  const pairs = (await readFile(pairsPath, "utf8")).trim().split("\n")
+    .map((row) => JSON.parse(row) as C5LongitudinalPairResult);
+  const targets = [];
+  const cases = requested ?? statuses.map((status, index) => ({
+    run: runs[index]!, stage: runs[index]!.stages[0]!, status,
+  }));
+  for (const entry of cases) {
+    const { run, stage, status } = entry;
+    const path = join(fixture.raw, "trajectories", clusterDigest(run.clusterId),
+      run.arm, stage.stageId, "stage-execution.sanitized.json");
+    const evidence = JSON.parse(await readFile(path, "utf8")) as ReturnedCodexStageEvidence;
+    const noParsedEvents = status === "timed-out" || status === "spawn-failed" ||
+      status === "event-parse-failed";
+    const exitCode = ("exitCode" in entry ? entry.exitCode : undefined) ??
+      (status === "non-zero-exit" ? 1 : status === "timed-out"
+      ? 143 : status === "spawn-failed" ? null : 0);
+    const processStatus = status === "timed-out" || status === "spawn-failed"
+      ? status : "exited";
+    Object.assign(evidence.execution, {
+      codexStatus: status,
+      infrastructureFailureStage: "codex-execution",
+      ...(noParsedEvents ? { codexUsage: null, threadId: null } : {}),
+    });
+    Object.assign(evidence.codex, {
+      eventCount: noParsedEvents ? 0 : 2,
+      exitCode,
+      status,
+      timedOut: status === "timed-out",
+      usage: evidence.execution.codexUsage,
+    });
+    Object.assign(evidence.events[1]!.details, {
+      exitCode,
+      status: processStatus,
+      timedOut: status === "timed-out",
+    });
+    if (status === "non-zero-exit" || status === "event-parse-failed") {
+      evidence.events.splice(2, 0, {
+        ...evidence.events[1]!,
+        event: status === "non-zero-exit" ? "codex_process_failure" : "codex_event_parse_failed",
+        details: status === "non-zero-exit"
+          ? { failureEventCount: 1, failureEventsSha256: sha256("process failure") }
+          : { errorSha256: sha256("event parse failure") },
+      });
+    }
+    evidence.failureReasonSha256 = null;
+    if (run.arm === "flat-summary") {
+      // The producer evaluates comparator hooks only after completed Codex
+      // processes, so every returned failure keeps this evaluation false.
+      const injection = evidence.execution.comparatorInjection;
+      if (typeof injection !== "object" || injection === null) {
+        throw new Error("flat-summary failure fixture requires comparator injection");
+      }
+      Object.assign(injection, { hookEvaluationPassed: false });
+    }
+    if (noParsedEvents && run.arm === "goodmemory-installed") {
+      // The frozen producer collects the installed canary only for completed
+      // Codex processes. Use stage 2, after stage 1's committed writeback, so
+      // later-stage lineage continues to refer to that real prior writeback.
+      if (stage !== run.stages[1]) throw new Error("installed failure fixture requires stage 2");
+      evidence.canaryEvidenceSha256 = null;
+      evidence.execution.memoryObservation = null;
+      evidence.execution.memoryChannelStatus = "failed";
+      await rm(join(dirname(path), "host-canary"), { force: true, recursive: true });
+    }
+    await writeJson(path, evidence);
+    await rebindStageEvidenceAndReport(fixture, stage.id, path, {
+      execution: evidence.execution,
+    });
+
+    const evaluationPath = join(fixture.raw, "pairs", clusterDigest(run.clusterId),
+      stage.stageId, `${run.arm}-evaluation.json`);
+    const evaluation = JSON.parse(await readFile(evaluationPath, "utf8")) as Record<string, unknown>;
+    const timeout = status === "timed-out";
+    evaluation.score = {
+      disposition: timeout ? "finalized" : "infrastructure-failure",
+      executionFailureStage: timeout ? null : status === "non-zero-exit"
+        ? "codex-execution" : status === "spawn-failed" ? "codex-launch" : "codex-events",
+      resolved: false,
+      taskFailureReasons: timeout ? ["codex-timeout"] : [],
+    };
+    await writeJson(evaluationPath, evaluation);
+    const pair = pairs.find((candidate) => candidate.clusterId === run.clusterId &&
+      candidate.stageId === stage.stageId)!;
+    Object.assign(pair.evaluations.find((entry) => entry.arm === run.arm)!, {
+      disposition: timeout ? "finalized" : "infrastructure-failure",
+      evaluationEvidenceSha256: sha256(await readFile(evaluationPath, "utf8")),
+      resolved: false,
+      taskFailureReasons: timeout ? ["codex-timeout"] : [],
+    });
+    pair.comparable = false;
+    pair.incomparabilityReasons = [
+      `${run.arm}-infrastructure-codex-execution`,
+      ...(timeout ? [] : [`${run.arm}-evaluator-infrastructure-failure`]),
+      ...(run.arm === "flat-summary" ? ["flat-summary-hook-canary-failed"] : []),
+    ];
+    if (noParsedEvents && run.arm === "goodmemory-installed") {
+      const audit: Record<string, unknown> = {
+        failureReasonSha256: sha256("installed timeout has no completed-stage live surfaces"),
+        schemaVersion: 5, status: "rejected", variant: "infrastructure-rejected",
+      };
+      bindAuditHash(audit);
+      await writeJson(join(fixture.raw, "pairs", clusterDigest(run.clusterId),
+        stage.stageId, "live-leakage-audit.json"), audit);
+      pair.leakageAuditSha256 = String(audit.auditSha256);
+      pair.incomparabilityReasons.push("live-leakage-audit-rejected");
+      if (stage.memoryExpectation === "required") {
+        pair.incomparabilityReasons.push("goodmemory-required-memory-channel-failed");
+      }
+    }
+    pair.outcome = "incomparable";
+    targets.push({ path, stage });
+  }
+  await writeText(pairsPath, `${pairs.map((row) => JSON.stringify(row)).join("\n")}\n`);
+  await rebindStageEvidenceAndReport(fixture, targets[0]!.stage.id, targets[0]!.path);
+  return targets;
+}
+
+async function makeTimeoutOriginFixture(fixture: RawFixture) {
+  const cases = (["goodmemory-installed", "flat-summary", "goodmemory-installed"] as const)
+    .map((arm, index) => {
+      const run = fixture.plan.episodeArmRuns.find((candidate) =>
+        candidate.clusterId === fixture.plan.clusters[index]!.id && candidate.arm === arm
+      )!;
+      return { exitCode: 0, run, stage: run.stages[arm === "flat-summary" ? 0 : 1]!, status: "timed-out" as const };
+    });
+  const targets = await makeReturnedCodexFailures(fixture, cases);
+  // The first two timeout processes retain nonempty stdout; the third has
+  // empty stdout, so the producer emits no stdout origin in its later audits.
+  const empty = cases[2]!;
+  for (const stage of empty.run.stages.slice(2)) {
+    const path = join(fixture.raw, "pairs", clusterDigest(empty.run.clusterId),
+      stage.stageId, "live-leakage-audit.json");
+    const audit = JSON.parse(await readFile(path, "utf8")) as Record<string, unknown>;
+    audit.trajectoryOrigins = (audit.trajectoryOrigins as Array<{ id: string }>)
+      .filter((origin) => origin.id !== `${empty.stage.stageId}:codex-jsonl-output`);
+    audit.trajectoryOriginAuditSha256 = sha256(JSON.stringify(audit.trajectoryOrigins));
+    bindAuditHash(audit);
+    await replaceLeakageEvidence(fixture, {
+      clusterId: empty.run.clusterId, path, stage,
+    }, audit);
+  }
+  return targets;
+}
+
 async function makeFirstInstalledStageFail(fixture: {
   plan: C5PilotPlan;
   raw: string;
@@ -1848,7 +2413,11 @@ async function makeFirstInstalledStageFail(fixture: {
 async function addInterruptedAttempt(fixture: {
   plan: C5PilotPlan;
   raw: string;
-}, options: { empty?: boolean } = {}): Promise<void> {
+}, options: {
+  artifactBytes?: string;
+  artifactName?: string;
+  empty?: boolean;
+} = {}): Promise<void> {
   const cluster = fixture.plan.clusters.at(-1)!;
   const attemptId = `${clusterDigest(cluster.id)}-attempt-1`;
   const attemptEvidencePath =
@@ -1858,13 +2427,14 @@ async function addInterruptedAttempt(fixture: {
     "utf8",
   )).trim().split("\n").map((line) => JSON.parse(line) as Record<string, unknown>);
   const stage = stages.find((row) => row.clusterId === cluster.id)!;
-  const artifactBytes = '{"partial":true}\n';
+  const artifactBytes = options.artifactBytes ?? '{"partial":true}\n';
+  const artifactName = options.artifactName ?? "stage-execution.sanitized.json";
   const evidence = {
     artifacts: options.empty
       ? []
       : [{
           bytesBase64: Buffer.from(artifactBytes).toString("base64"),
-          path: `trajectories/${clusterDigest(cluster.id)}/goodmemory-installed/stage-1/stage-execution.sanitized.json`,
+          path: `trajectories/${clusterDigest(cluster.id)}/goodmemory-installed/stage-1/${artifactName}`,
           sha256: sha256(artifactBytes),
         }],
     attemptId,

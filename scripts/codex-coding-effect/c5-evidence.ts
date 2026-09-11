@@ -191,6 +191,20 @@ export interface C5EvidenceProjectionManifest {
   sourceRunIdentitySha256: string;
 }
 
+interface C5TimeoutStdoutOriginDisclosure {
+  claimedStageRunIds: string[];
+  eligibleStageRunIds: string[];
+  existenceAndCompletenessVerified: false;
+  liveMatchExemptionAllowed: false;
+  originClass: "claimed-timeout-stdout";
+  receiptCount: number;
+}
+
+interface VerifiedLeakageOriginCounts {
+  claimedTimeoutStdoutStageRunIds: string[];
+  opaqueReceiptCount: number;
+}
+
 export interface C5EvidenceVerification {
   checks: {
     actualFileHashesVerified: boolean;
@@ -220,6 +234,7 @@ export interface C5EvidenceVerification {
   reasons: string[];
   runId: string | null;
   schemaVersion: 1;
+  timeoutStdoutOrigins: C5TimeoutStdoutOriginDisclosure | null;
   verificationScope:
     "frozen-capture-claims-and-projection-internal-consistency";
 }
@@ -253,6 +268,7 @@ interface VerifiedProjection {
   memoryChannelFailureCount: number;
   stageExecutionCount: number;
   taskAliasAuditCount: number;
+  timeoutStdoutOrigins: C5TimeoutStdoutOriginDisclosure;
 }
 
 interface ArtifactReader {
@@ -394,6 +410,7 @@ export async function verifyC5EvidenceProjection(input: {
       reasons: [],
       runId: verified.runId,
       schemaVersion: 1,
+      timeoutStdoutOrigins: verified.timeoutStdoutOrigins,
       verificationScope:
         "frozen-capture-claims-and-projection-internal-consistency",
     };
@@ -418,6 +435,7 @@ export async function verifyC5EvidenceProjection(input: {
       reasons: [errorMessage(error)],
       runId: null,
       schemaVersion: 1,
+      timeoutStdoutOrigins: null,
       verificationScope:
         "frozen-capture-claims-and-projection-internal-consistency",
     };
@@ -788,6 +806,8 @@ function verifyEvidenceGraph(input: {
   let hostPreflightCount = 0;
   let opaqueProcessOnlyTrajectoryOriginCount = 0;
   let taskAliasAuditCount = 0;
+  const eligibleTimeoutStdoutStageRunIds = new Set<string>();
+  const claimedTimeoutStdoutStageRunIds: string[] = [];
 
   for (const cluster of input.plan.clusters) {
     const runs = runsForCluster(input.plan, cluster);
@@ -844,13 +864,19 @@ function verifyEvidenceGraph(input: {
           writebackRequired,
         });
         priorWrittenMemoryIds.push(...writtenMemoryIds);
+        // Include eligible stages even if no later complete audit claims an
+        // origin for them. Absence of a receipt cannot prove absent stdout.
+        if (run.arm !== "no-memory" &&
+            isClaimedTimeoutStdoutEligible(input.reader.json(stagePath))) {
+          eligibleTimeoutStdoutStageRunIds.add(stage.id);
+        }
       }
     }
 
     for (const stage of runs[0]!.stages) {
       const pairKey = `${cluster.id}/${stage.stageId}`;
       const pair = requiredMapValue(pairMap, pairKey, "C5 pair");
-      opaqueProcessOnlyTrajectoryOriginCount += verifyPairEvidence({
+      const origins = verifyPairEvidence({
         baselineArm,
         cluster,
         executions: runs.map((run) => requiredMapValue(
@@ -864,6 +890,8 @@ function verifyEvidenceGraph(input: {
         root,
         stage,
       });
+      opaqueProcessOnlyTrajectoryOriginCount += origins.opaqueReceiptCount;
+      claimedTimeoutStdoutStageRunIds.push(...origins.claimedTimeoutStdoutStageRunIds);
     }
   }
   if (hostIdentityHashes.size !== 1) {
@@ -901,6 +929,14 @@ function verifyEvidenceGraph(input: {
     runId,
     stageExecutionCount: stages.length,
     taskAliasAuditCount,
+    timeoutStdoutOrigins: {
+      claimedStageRunIds: [...new Set(claimedTimeoutStdoutStageRunIds)].sort(),
+      eligibleStageRunIds: [...eligibleTimeoutStdoutStageRunIds].sort(),
+      existenceAndCompletenessVerified: false,
+      liveMatchExemptionAllowed: false,
+      originClass: "claimed-timeout-stdout",
+      receiptCount: claimedTimeoutStdoutStageRunIds.length,
+    },
   };
 }
 
@@ -1933,7 +1969,7 @@ function verifyInterruptedAttempts(input: {
         "C5 interrupted artifact",
       );
       const path = requiredString(artifact.path, "C5 interrupted artifact path");
-      const bytesBase64 = requiredString(
+      const bytesBase64 = requiredStringAllowEmpty(
         artifact.bytesBase64,
         "C5 interrupted artifact bytes",
       );
@@ -2334,10 +2370,17 @@ function verifyStageEvidence(input: {
     "visibleBaseHealth",
   ], input.stagePath);
   const failed = input.execution.infrastructureFailureStage !== null;
+  // runCodexProcess returns process failures without throwing. The native
+  // adapter hashes only caught exceptions or explicit canary failures; these
+  // returned failures instead bind their status through process-event receipts.
+  const returnedFailureWithoutException =
+    input.execution.infrastructureFailureStage === "codex-execution" &&
+    evidence.failureReasonSha256 === null;
   if (
     evidence.schemaVersion !== 1 ||
     (failed
-      ? !SHA256_PATTERN.test(String(evidence.failureReasonSha256))
+      ? !SHA256_PATTERN.test(String(evidence.failureReasonSha256)) &&
+        !returnedFailureWithoutException
       : evidence.failureReasonSha256 !== null) ||
     evidence.permissionIsolationSha256 !== input.permissionSha256
   ) {
@@ -2369,6 +2412,14 @@ function verifyStageEvidence(input: {
   verifyCodexStageSummary(evidence.codex, input.execution);
   if (failed) {
     verifyFailedStageEvents(evidence.events, input.execution);
+    if (returnedFailureWithoutException) {
+      verifyReturnedCodexFailure({
+        codex: asRecord(evidence.codex, "C5 returned Codex failure summary"),
+        codexExecutableSha256: input.codexExecutableSha256,
+        events: evidence.events,
+        stageRunId: input.stage.id,
+      });
+    }
   } else {
     verifyStageEvents(
       evidence.events,
@@ -2566,6 +2617,11 @@ function verifyCodexStageSummary(
     "timedOut",
     "usage",
   ], "C5 stage Codex summary");
+  if ((codex.status === "timed-out" || codex.status === "spawn-failed") &&
+      (codex.eventCount !== 0 || codex.usage !== null ||
+        execution.codexUsage !== null || execution.threadId !== null)) {
+    throw new Error("C5 stage timeout or spawn failure retains normalized events or identity");
+  }
   if (
     codex.durationMs !== execution.codexDurationMs ||
     codex.status !== execution.codexStatus ||
@@ -2610,6 +2666,89 @@ function verifyFailedStageEvents(
       throw new Error("C5 failed stage event identity is inconsistent");
     }
     asRecord(event.details, "C5 failed stage event details");
+  }
+}
+
+function verifyReturnedCodexFailure(input: {
+  codex: Record<string, unknown>;
+  codexExecutableSha256: string;
+  events: unknown;
+  stageRunId: string;
+}): void {
+  const label = `C5 returned Codex failure ${input.stageRunId}`;
+  const { status, exitCode, timedOut } = input.codex;
+  if (
+    ![
+      "non-zero-exit", "timed-out", "spawn-failed",
+      "event-parse-failed", "missing-final-message",
+    ].includes(String(status)) ||
+    timedOut !== (status === "timed-out") ||
+    (status === "non-zero-exit" &&
+      (!Number.isInteger(exitCode) || exitCode === 0)) ||
+    (status === "spawn-failed" && exitCode !== null) ||
+    ((status === "event-parse-failed" || status === "missing-final-message") &&
+      exitCode !== 0)
+  ) {
+    throw new Error(`${label} has no bound failed process status`);
+  }
+  const events = asArray(input.events, `${label} events`)
+    .map((value) => asRecord(value, `${label} event`));
+  const auxiliary = status === "event-parse-failed"
+    ? "codex_event_parse_failed"
+    : status === "non-zero-exit"
+    ? events[2]?.event
+    : undefined;
+  if (status === "non-zero-exit" && auxiliary !== "codex_event_parse_failed" &&
+      auxiliary !== "codex_process_failure") {
+    throw new Error(`${label} has no bound nonzero-exit diagnostic`);
+  }
+  const expectedEvents = [
+    "codex_process_started", "codex_process_exited",
+    ...(auxiliary === undefined ? [] : [auxiliary]), "patch_captured",
+  ];
+  if (JSON.stringify(events.map((event) => event.event)) !== JSON.stringify(expectedEvents)) {
+    throw new Error(`${label} is missing its ordered process receipts`);
+  }
+  const start = asRecord(events[0]!.details, `${label} start`);
+  assertExactKeys(start, ["argumentCount", "executableSha256"], `${label} start`);
+  if (!isPositiveInteger(start.argumentCount) ||
+      start.executableSha256 !== input.codexExecutableSha256) {
+    throw new Error(`${label} has an invalid executable binding`);
+  }
+  const exit = asRecord(events[1]!.details, `${label} exit`);
+  assertExactKeys(exit, ["durationMs", "exitCode", "status", "timedOut"], `${label} exit`);
+  const processStatus = status === "timed-out" || status === "spawn-failed"
+    ? status : "exited";
+  if (exit.durationMs !== input.codex.durationMs || exit.exitCode !== exitCode ||
+      exit.timedOut !== timedOut || exit.status !== processStatus) {
+    throw new Error(`${label} exit receipt disagrees with its summary`);
+  }
+  if (auxiliary !== undefined) {
+    const diagnostic = asRecord(events[2]!.details, `${label} diagnostic`);
+    if (auxiliary === "codex_event_parse_failed") {
+      assertExactKeys(diagnostic, ["errorSha256"], `${label} parse diagnostic`);
+      assertSha256(diagnostic.errorSha256, `${label} parse error hash`);
+      if (input.codex.eventCount !== 0 || input.codex.usage !== null) {
+        throw new Error(`${label} parse failure retains normalized events`);
+      }
+    } else {
+      assertExactKeys(diagnostic, ["failureEventCount", "failureEventsSha256"], `${label} process diagnostic`);
+      if (!isNonNegativeInteger(diagnostic.failureEventCount)) {
+        throw new Error(`${label} has an invalid failure-event count`);
+      }
+      assertSha256(diagnostic.failureEventsSha256, `${label} failure events hash`);
+    }
+  }
+  const patch = asRecord(events.at(-1)!.details, `${label} patch receipt`);
+  assertExactKeys(patch, [
+    "changedFileCount", "forbiddenFileCount", "hasPatch", "sha256", "untrackedFileCount",
+  ], `${label} patch receipt`);
+  if (!isNonNegativeInteger(patch.changedFileCount) ||
+      !isNonNegativeInteger(patch.forbiddenFileCount) ||
+      !isNonNegativeInteger(patch.untrackedFileCount) ||
+      typeof patch.hasPatch !== "boolean" ||
+      (patch.hasPatch ? !SHA256_PATTERN.test(String(patch.sha256)) : patch.sha256 !== null)) {
+    throw new Error(`${label} has an invalid patch receipt`);
   }
 }
 
@@ -3458,7 +3597,7 @@ function verifyPairEvidence(input: {
   reader: ArtifactReader;
   root: string;
   stage: C5PilotStageRun;
-}): number {
+}): VerifiedLeakageOriginCounts {
   const pairRoot =
     `pairs/${clusterDigest(input.cluster.id)}/${input.stage.stageId}`;
   const leakagePath = `${pairRoot}/live-leakage-audit.json`;
@@ -3468,7 +3607,7 @@ function verifyPairEvidence(input: {
     `${input.cluster.episodeId}/${input.stage.stageId}`,
     "C5 frozen leakage input",
   );
-  const opaqueProcessOnlyTrajectoryOriginCount = verifyLeakageAudit({
+  const origins = verifyLeakageAudit({
     audit: leakage,
     baselineArm: input.baselineArm,
     episodeId: input.cluster.episodeId,
@@ -3535,7 +3674,7 @@ function verifyPairEvidence(input: {
       });
     }
   }
-  return opaqueProcessOnlyTrajectoryOriginCount;
+  return origins;
 }
 
 function expectedIncomparabilityReasons(input: {
@@ -3599,10 +3738,10 @@ function verifyLeakageAudit(input: {
   reader: ArtifactReader;
   root: string;
   stage: C5PilotStageRun;
-}): number {
+}): VerifiedLeakageOriginCounts {
   if (input.audit.variant === "infrastructure-rejected") {
     verifyRejectedLeakageAudit(input.audit, input.label);
-    return 0;
+    return { claimedTimeoutStdoutStageRunIds: [], opaqueReceiptCount: 0 };
   }
   return verifyCompleteLeakageAudit(input);
 }
@@ -3642,7 +3781,7 @@ function verifyCompleteLeakageAudit(input: {
   reader: ArtifactReader;
   root: string;
   stage: C5PilotStageRun;
-}): number {
+}): VerifiedLeakageOriginCounts {
   const { audit, label } = input;
   assertExactKeys(audit, [
     "auditSha256",
@@ -3795,6 +3934,11 @@ function verifyCompleteLeakageAudit(input: {
     const partition = [...originMatches, ...unexplainedMatches].sort();
     const attested = trajectoryOrigins.matchesByArtifact.get(artifactId) ??
       new Set<string>();
+    const optional = trajectoryOrigins.timeoutMatchesByArtifact.get(artifactId) ??
+      new Set<string>();
+    if (matches.some((digest) => optional.has(digest) && !attested.has(digest))) {
+      throw new Error(`${label} claimed timeout stdout origin newly explains a live match`);
+    }
     const expectedOriginMatches = matches.filter((digest) => attested.has(digest));
     const expectedUnexplainedMatches = matches.filter((digest) =>
       !attested.has(digest)
@@ -3860,7 +4004,10 @@ function verifyCompleteLeakageAudit(input: {
   ) {
     throw new Error(`${label} leakage result is inconsistent`);
   }
-  return trajectoryOrigins.opaqueReceiptCount;
+  return {
+    claimedTimeoutStdoutStageRunIds: trajectoryOrigins.claimedTimeoutStdoutStageRunIds,
+    opaqueReceiptCount: trajectoryOrigins.opaqueReceiptCount,
+  };
 }
 
 function verifyLiveSurfaceReceipts(input: {
@@ -4219,6 +4366,19 @@ function verifyInternalAuditHash(
   }
 }
 
+// Called only after the stage's identity, summary, ordered returned-process
+// receipts, executable and patch bindings have been verified. This is a
+// narrowly classified claim, not evidence of stdout existence/completeness.
+function isClaimedTimeoutStdoutEligible(evidence: Record<string, unknown>): boolean {
+  const codex = asRecord(evidence.codex, "C5 timeout stdout Codex summary");
+  const execution = asRecord(evidence.execution, "C5 timeout stdout execution");
+  return evidence.failureReasonSha256 === null &&
+    execution.infrastructureFailureStage === "codex-execution" &&
+    execution.codexStatus === "timed-out" && codex.status === "timed-out" &&
+    codex.timedOut === true && codex.eventCount === 0 && codex.usage === null &&
+    execution.codexUsage === null && execution.threadId === null;
+}
+
 function verifyTrajectoryOrigins(input: {
   audit: Record<string, unknown>;
   baselineArm: C5BaselineArm;
@@ -4234,9 +4394,11 @@ function verifyTrajectoryOrigins(input: {
   stage: C5PilotStageRun;
 }): {
   auditSha256: string;
+  claimedTimeoutStdoutStageRunIds: string[];
   matchesByArtifact: Map<string, Set<string>>;
   opaqueReceiptCount: number;
   receiptCount: number;
+  timeoutMatchesByArtifact: Map<string, Set<string>>;
 } {
   const expected = new Map<string,
     | {
@@ -4246,6 +4408,7 @@ function verifyTrajectoryOrigins(input: {
       }
     | { kind: "process-only-codex-jsonl-output" }
   >();
+  const optionalTimeoutOrigins = new Map<string, string>();
   // Prior-stage origins come from the installed arm and, for the flat-summary
   // comparator, from the comparator's own prior stages (its summary is built
   // from them), keyed with the runner's ":flat-summary" suffix.
@@ -4302,6 +4465,10 @@ function verifyTrajectoryOrigins(input: {
         expected.set(`${id}:codex-jsonl-output`, {
           kind: "process-only-codex-jsonl-output",
         });
+      } else if (isClaimedTimeoutStdoutEligible(priorEvidence)) {
+        const execution = asRecord(priorEvidence.execution, `${input.label} prior execution`);
+        optionalTimeoutOrigins.set(`${id}:codex-jsonl-output`,
+          requiredString(execution.stageRunId, `${input.label} prior stage run ID`));
       }
     }
   }
@@ -4311,6 +4478,8 @@ function verifyTrajectoryOrigins(input: {
   );
   const origins: Array<{ id: string; matrixAuditReceipt: unknown; sha256: string }> = [];
   const matchesByArtifact = new Map<string, Set<string>>();
+  const timeoutMatchesByArtifact = new Map<string, Set<string>>();
+  const claimedTimeoutStdoutStageRunIds: string[] = [];
   const artifacts = new Map(input.leakageInput.artifacts.map((artifact) => [
     artifact.id,
     artifact,
@@ -4329,7 +4498,12 @@ function verifyTrajectoryOrigins(input: {
       origin.sha256,
       `${input.label} trajectory origin hash`,
     );
-    const expectedReceipt = expected.get(id);
+    const optionalStageRunId = optionalTimeoutOrigins.get(id);
+    if (optionalStageRunId !== undefined && digest === sha256("")) {
+      throw new Error(`${input.label} trajectory origin receipt must bind non-empty stdout`);
+    }
+    const expectedReceipt = expected.get(id) ?? (optionalStageRunId === undefined
+      ? undefined : { kind: "process-only-codex-jsonl-output" as const });
     if (
       ids.has(id) ||
       expectedReceipt === undefined ||
@@ -4381,10 +4555,13 @@ function verifyTrajectoryOrigins(input: {
         label: `${input.label} trajectory origin ${id}`,
         matches: cell.matches,
       });
-      const matches = matchesByArtifact.get(cell.artifactId) ?? new Set<string>();
+      const matchMap = optionalStageRunId === undefined
+        ? matchesByArtifact : timeoutMatchesByArtifact;
+      const matches = matchMap.get(cell.artifactId) ?? new Set<string>();
       for (const match of cell.matches) matches.add(match);
-      matchesByArtifact.set(cell.artifactId, matches);
+      matchMap.set(cell.artifactId, matches);
     }
+    if (optionalStageRunId !== undefined) claimedTimeoutStdoutStageRunIds.push(optionalStageRunId);
     ids.add(id);
     origins.push({
       id,
@@ -4393,7 +4570,7 @@ function verifyTrajectoryOrigins(input: {
     });
   }
   if (
-    origins.length !== expected.size ||
+    [...expected.keys()].some((id) => !ids.has(id)) ||
     origins.some((origin, index) =>
       index > 0 && origins[index - 1]!.id.localeCompare(origin.id) >= 0
     )
@@ -4402,9 +4579,11 @@ function verifyTrajectoryOrigins(input: {
   }
   return {
     auditSha256: sha256(JSON.stringify(origins)),
+    claimedTimeoutStdoutStageRunIds,
     matchesByArtifact,
     opaqueReceiptCount,
     receiptCount: origins.length,
+    timeoutMatchesByArtifact,
   };
 }
 

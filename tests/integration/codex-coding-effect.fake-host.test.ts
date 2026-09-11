@@ -179,6 +179,30 @@ describe("Codex coding-effect fake host", () => {
     });
   });
 
+  it("retains empty and nonempty timeout stdout with zero parsed events and exit code zero", async () => {
+    await withWorkspace(async (workspace) => {
+      for (const stdout of ["", `${JSON.stringify({ type: "thread.started", thread_id: "partial" })}\n`]) {
+        const result = await runCodexProcess({
+          args: [
+            "-c",
+            'trap "exit 0" TERM; printf "%s" "$1"; while :; do sleep 1; done',
+            "timeout-fixture",
+            stdout,
+          ],
+          cwd: workspace,
+          executable: "/bin/sh",
+          timeoutMs: 250,
+        });
+        expect(result.status).toBe("timed-out");
+        expect(result.timedOut).toBe(true);
+        expect(result.exitCode).toBe(0);
+        expect(result.stdout).toBe(stdout);
+        expect(result.events).toEqual([]);
+        expect(result.normalized).toBeNull();
+      }
+    });
+  });
+
   it("classifies malformed JSONL without dropping the host attempt", async () => {
     await withWorkspace(async (workspace) => {
       const result = await runCodexProcess(request(workspace, "malformed"));
