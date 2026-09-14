@@ -107,6 +107,25 @@ async function writeCapsule(root: string): Promise<void> {
   );
 }
 
+async function loadHistoricalV07Profile(): Promise<ReleaseProfile> {
+  const root = await mkdtemp(join(tmpdir(), "goodmemory-v07-profile-"));
+  try {
+    await writeFile(join(root, "package.json"), JSON.stringify({
+      name: "goodmemory",
+      version: "0.7.5",
+      engines: { bun: ">=1.3.14", node: ">=20.0.0" },
+      goodmemoryRelease: {
+        status: "stable",
+        npmDistTag: "latest",
+        installCommandsApplyAfterPublish: true,
+      },
+    }));
+    return await loadV07ReleaseProfile(root);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+}
+
 function fakeRunner(profile: ReleaseProfile): ReleaseCommandRunner {
   return async ({ args, command }) => {
     if (command === "git" && args[0] === "status") {
@@ -145,7 +164,7 @@ function fakeRunner(profile: ReleaseProfile): ReleaseCommandRunner {
 describe("release profile and historical parity", () => {
   it("derives the release identity from package.json and freezes old proof as a capsule", async () => {
     const repoRoot = new URL("../..", import.meta.url).pathname;
-    const profile = await loadV07ReleaseProfile(repoRoot);
+    const profile = await loadHistoricalV07Profile();
     const capsulePath = profile.evidenceInputs[0]?.path;
     expect(capsulePath).toBe(
       "scripts/release/capsules/v0.7.4-readiness.json",
@@ -393,9 +412,7 @@ describe("release runner", () => {
     const outputDir = join(root, "output");
     try {
       await writeCapsule(root);
-      const sourceProfile = await loadV07ReleaseProfile(
-        new URL("../..", import.meta.url).pathname,
-      );
+      const sourceProfile = await loadHistoricalV07Profile();
       let packCount = 0;
       const tarballBytes = Buffer.from("one exact tarball");
       const tarballPath = join(outputDir, sourceProfile.package.tarballName);
@@ -473,9 +490,7 @@ describe("release runner", () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-release-required-"));
     try {
       await writeCapsule(root);
-      const loadedProfile = await loadV07ReleaseProfile(
-        new URL("../..", import.meta.url).pathname,
-      );
+      const loadedProfile = await loadHistoricalV07Profile();
       const profile = loadedProfile;
       const artifactRef = createReleaseArtifactRef({
         bytes: Buffer.from("artifact"),
@@ -526,9 +541,7 @@ describe("release runner", () => {
         id: "tree-capsule",
         path: treePath,
       });
-      const loadedProfile = await loadV07ReleaseProfile(
-        new URL("../..", import.meta.url).pathname,
-      );
+      const loadedProfile = await loadHistoricalV07Profile();
       const profile: ReleaseProfile = {
         ...loadedProfile,
         checks: [],
@@ -588,9 +601,7 @@ describe("same-tarball preparation", () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-release-pack-"));
     const outputDir = join(root, "output");
     try {
-      const profile = await loadV07ReleaseProfile(
-        new URL("../..", import.meta.url).pathname,
-      );
+      const profile = await loadHistoricalV07Profile();
       const artifactPath = join(outputDir, profile.package.tarballName);
       const calls: Array<{ args: readonly string[]; command: string }> = [];
       const runCommand: ReleaseCommandRunner = async ({ args, command }) => {

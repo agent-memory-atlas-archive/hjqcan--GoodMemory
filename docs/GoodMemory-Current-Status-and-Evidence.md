@@ -4,11 +4,25 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
 
 ## Current OSS Surface
 
-- The published installation baseline and current package metadata remain
-  `goodmemory@0.7.5` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`).
-  Current `main` also contains unpublished v0.8 development; it is not identical
-  to the released 0.7.5 source and is not a publishable v0.8 candidate. Follow
-  `plans/GoodMemory-v0.8-Unpublished-Development-Plan.md` for its remaining gates.
+- The current repository targets the stable release
+  `goodmemory@0.8.0` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`).
+  Publication is a separate, externally verified step: installation commands
+  apply after npm publication, and the exact local manifest, tarball, evidence
+  archive, and plugin ZIP must match the published assets. The last verified
+  registry baseline before this preparation was 0.7.5. Follow
+  `plans/GoodMemory-v0.8-Unpublished-Development-Plan.md` for the release gates.
+- Phase 73 Level-2 is closed as an internal negative result on 2026-09-14 UTC:
+  720 scheduled stage rows / 360 pairs are accounted for; the final C5 gate and
+  four-input independent review accept the sanitized projection. On the
+  preregistered positions-2+ headline, 147/270 pairs are comparable, with
+  GoodMemory 122/147 versus flat-summary 134/147, 6 rescues / 18 regressions
+  and -8.1633 percentage points. The +3-point and positive-lower-bound rule is
+  not met. This is not proof of a causal negative or of memory's ineffectiveness.
+  The single-run directory-relocation policy preserves original raw hashes;
+  strict host identity still rejects. Historical source stability and external
+  authenticity remain unproven, and all public-claim flags remain false.
+  Exact evidence bindings and the incident disposition are in the Phase 73
+  board's 2026-09-14 closure entry. Bulk validation remains on `/Volumes/data`.
 - The frozen published baseline is `goodmemory@0.7.4`, commit
   `05d39fcfb8bb6efe6b8065ec3ea8372c15b9c1b8`, tree
   `4f902b215c60f5bb6543e9b7c3ce501895b45725`. The tracked
@@ -309,7 +323,8 @@ cutover, and rollback contracts.
   the same server in exact-scope read-only mode. See
   `docs/GoodMemory-Inspector-and-Admin-API.md` and
   `reports/quality-gates/phase-71/run-20260711-admin-inspector/`.
-- Phase 73 remains active as a separate Codex-only product-effect lane. C0-C2
+- Phase 73's internal release lane is closed; its public C6-C7 research lane
+  remains unaccepted and paused. C0-C2
   are closed. C3's tracked projection is internally accepted as
   source-reproducible frozen-prehistory protocol/host evidence. C4's prior v8
   acceptance is superseded; the canonical v9
@@ -1661,7 +1676,7 @@ cutover, and rollback contracts.
   `c6-repository-statistics.ts` is only a tested primitive until it
   is wired to the complete attempt loader, frozen report, independent replay,
   and C7 gate.
-- The `0.7.5` source line has no current or versioned historical benchmark
+- The `0.8.0` source line has no current or versioned historical benchmark
   claim. The retained v0.7.3 LoCoMo tracked-current projection is not end-to-end
   runner evidence and cannot authorize promotion. The v0.6.0 LoCoMo, BEAM, and
   MemoryAgentBench artifacts fail the same empty allowlist. All
@@ -1696,7 +1711,7 @@ cutover, and rollback contracts.
 - automatic adapter/event `user_correction` path is proposal-first and records selective evidence plus proposal/promotion receipts instead of writing an intermediate active feedback memory; public `feedback()` remains the explicit durable procedural feedback entrypoint.
 - Provider-backed retrieval is explicit; rules-only remains the default accepted mode, and provider failures surface as `provider_error`.
 - Dashboard, cloud sync, and team workspace remain a Phase 48 no-go decision.
-- The current v0.7.5 benchmark surface contains no current or versioned
+- The current v0.8.0 benchmark surface contains no current or versioned
   historical claim. LoCoMo v0.7.3, the v0.6.0 LoCoMo/BEAM/MemoryAgentBench
   measurements, and ImplicitMemBench are paused internal diagnostics.
   LongMemEval is withdrawn pending a clean opaque-session-id rerun. The runtime

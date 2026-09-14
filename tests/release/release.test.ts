@@ -26,7 +26,7 @@ const ROOT_PACKAGE_PATH = join(import.meta.dir, "../../");
 const CURRENT_PACKAGE = loadPackageMetadataSync(ROOT_PACKAGE_PATH);
 const CURRENT_PACKAGE_VERSION = CURRENT_PACKAGE.version;
 const CURRENT_TARBALL_NAME = buildPackageTarballName(CURRENT_PACKAGE);
-const PUBLISHED_INSTALL_VERSION = "0.7.5";
+const PUBLISHED_INSTALL_VERSION = "0.8.0";
 const PUBLISHED_TARBALL_NAME = `goodmemory-${PUBLISHED_INSTALL_VERSION}.tgz`;
 
 function extractMarkedSection(markdown: string, marker: string): string {
@@ -781,7 +781,7 @@ describe("release metadata and docs", () => {
     };
 
     expect(pkg.version).toBe(CURRENT_PACKAGE_VERSION);
-    expect(pkg.version).toBe("0.7.5");
+    expect(pkg.version).toBe("0.8.0");
     expect(pkg.private).toBeUndefined();
     expect(pkg.description).toBe(
       "Memory layer for chat, copilot, and agent applications.",
@@ -1173,11 +1173,11 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("createGoodMemory");
     expect(readme).toContain(CURRENT_PACKAGE_VERSION);
     expect(readme).toContain(
-      "The published registry baseline is GoodMemory `0.7.5`.",
+      "These commands target GoodMemory `0.8.0` after publication.",
     );
     expect(readme).toContain("Use the pinned registry");
     expect(readme).toContain("commands below for reproducible installs.");
-    expect(readme).not.toContain("unpublished `0.7.5` candidate");
+    expect(readme).not.toContain("unpublished `0.8.0` candidate");
     expect(readme).toContain("Node-compatible");
     expect(readme).toContain("Bun-backed");
     expect(readme).toContain(`npm install -g goodmemory@${PUBLISHED_INSTALL_VERSION}`);
@@ -1235,7 +1235,7 @@ describe("release metadata and docs", () => {
     expect(historicalEvidence).not.toContain("MemoryAgentBench");
     expect(readme).toContain("### Versioned evidence");
     expect(readme).toContain(
-      "GoodMemory `0.7.5` has no current or versioned historical benchmark claim.",
+      "GoodMemory `0.8.0` has no current or versioned historical benchmark claim.",
     );
     expect(readme).toContain(
       "internal diagnostics under the same fail-closed boundary",
@@ -1333,7 +1333,7 @@ describe("release metadata and docs", () => {
     expect(readme).toContain("examples/fastify-chat-server.ts");
     expect(readme).toContain("docs/GoodMemory-15-Minute-App-Integration.md");
     expect(guide).toContain("15-Minute App Integration");
-    expect(guide).toContain("npm install goodmemory@0.7.5");
+    expect(guide).toContain("npm install goodmemory@0.8.0");
     expect(guide).not.toContain("verified local `goodmemory-0.7.4.tgz`");
     expect(guide).toContain("createGoodMemory");
     expect(guide).toContain("GoodMemoryConfig.observability.traceSink");
@@ -1368,9 +1368,9 @@ describe("release metadata and docs", () => {
     expect(guide).not.toContain("query-resolved");
   });
 
-  it("v0.7 package metadata, current-source docs, and machine-readable descriptors agree", async () => {
-    expect(CURRENT_PACKAGE_VERSION).toBe("0.7.5");
-    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.7.5.tgz");
+  it("v0.8 package metadata, current-source docs, and machine-readable descriptors agree", async () => {
+    expect(CURRENT_PACKAGE_VERSION).toBe("0.8.0");
+    expect(CURRENT_TARBALL_NAME).toBe("goodmemory-0.8.0.tgz");
 
     const releaseDocPaths = [
       "README.md",
@@ -1435,7 +1435,7 @@ describe("release metadata and docs", () => {
     expect(migrationGuide).toContain("GoodMemory 0.6 to 0.7 Migration Guide");
     expect(migrationGuide).toContain("historical 0.6 evidence");
     expect(llms).toContain(
-      "Current `v0.7.5` claim: none. Versioned historical evidence: none.",
+      "Current `v0.8.0` claim: none. Versioned historical evidence: none.",
     );
     expect(llms).toContain(
       "measurements, plus ImplicitMemBench, are internal diagnostics only",
@@ -1494,7 +1494,7 @@ describe("release metadata and docs", () => {
     expect(standaloneGuide).toContain("2026-07-28");
     expect(standaloneGuide).toContain("2025-11-25");
     expect(standaloneGuide).toContain("application-level memory scope");
-    expect(standaloneGuide).toContain("npm install -g goodmemory@0.7.5");
+    expect(standaloneGuide).toContain("npm install -g goodmemory@0.8.0");
     expect(standaloneGuide).not.toContain("verified local `goodmemory-0.7.4.tgz`");
     // Bun is a hard runtime prerequisite: the goodmemory-mcp bin spawns bun.
     expect(standaloneGuide).toContain("Bun");
@@ -1556,9 +1556,9 @@ describe("release metadata and docs", () => {
     expect(zhReadme).toContain("[English](./README.md)");
     expect(zhReadme).toContain(`# GoodMemory`);
     expect(zhReadme).toContain(CURRENT_PACKAGE_VERSION);
-    expect(zhReadme).toContain("已发布的 registry 基线是 GoodMemory `0.7.5`");
+    expect(zhReadme).toContain("以下命令面向发布后的 GoodMemory `0.8.0`");
     expect(zhReadme).toContain("下面的锁定版本命令用于可复现安装");
-    expect(zhReadme).not.toContain("尚未发布的 `0.7.5`");
+    expect(zhReadme).not.toContain("尚未发布的 `0.8.0`");
     expect(zhReadme).toContain(`npm install -g goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(zhReadme).toContain(`npm install goodmemory@${PUBLISHED_INSTALL_VERSION}`);
     expect(zhReadme).toContain("如果你想直接输入 `goodmemory`，必须安装全局 CLI。");
@@ -2726,20 +2726,20 @@ describe("release metadata and docs", () => {
       "docs/archive/quality-gates/GoodMemory-Phase-20-Quality-Gate.md",
     );
     expect(currentStatus).toContain(
-      "The published installation baseline and current package metadata remain",
+      "The current repository targets the stable release",
     );
     expect(currentStatus).toContain(
-      "`goodmemory@0.7.5` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`)",
+      "`goodmemory@0.8.0` (`goodmemoryRelease.status=stable`, dist-tag intent `latest`)",
     );
     expect(currentStatus).toContain(
-      "Current `main` also contains unpublished v0.8 development",
+      "Publication is a separate, externally verified step",
     );
-    expect(currentStatus).toContain("is not a publishable v0.8 candidate");
+    expect(currentStatus).toContain("Phase 73 Level-2 is closed as an internal negative result");
     expect(currentStatus).toContain(
       "plans/GoodMemory-v0.8-Unpublished-Development-Plan.md",
     );
     expect(currentStatus).not.toContain(
-      "The current repository is the stable `goodmemory@0.7.5` release source",
+      "The current repository is the stable `goodmemory@0.8.0` release source",
     );
     expect(currentStatus).toContain(
       "frozen published baseline is `goodmemory@0.7.4`",
@@ -2774,7 +2774,7 @@ describe("release metadata and docs", () => {
     expect(currentStatus).toContain("task-board/00-README.txt");
     expect(currentStatus).toContain("docs/archive/quality-gates/README.md");
     expect(currentStatus).toContain(
-      "The `0.7.5` source line has no current or versioned historical benchmark",
+      "The `0.8.0` source line has no current or versioned historical benchmark",
     );
     expect(currentStatus).toContain(
       "All remain internal diagnostics",

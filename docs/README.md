@@ -48,7 +48,7 @@ bulk-load. Start here, then open only the file that matches the question.
   HTTP interchange operations (RFC 2119).
 - `GoodMemory-0.6-to-0.7-Migration-Guide.md` - breaking API/configuration,
   projection cutover, validation, and rollback procedure for the 0.7 upgrade.
-- `GoodMemory-0.7-to-0.8-Migration-Guide.md` - unpublished 0.8 upgrade guide:
+- `GoodMemory-0.7-to-0.8-Migration-Guide.md` - 0.8 upgrade guide:
   removed telemetry fields, note interchange, projection rebuild, and recovery.
 - `GoodMemory-Reference-Integration-Guide.md` - reference consumer pattern.
 - `GoodMemory-Inspector-and-Admin-API.md` - local React Inspector, `/admin/v1`

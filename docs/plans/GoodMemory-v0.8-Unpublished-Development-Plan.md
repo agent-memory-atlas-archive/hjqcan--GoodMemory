@@ -1,10 +1,10 @@
 # GoodMemory v0.8 Unpublished Development Plan
 
-Status: prepare on main for maintainer publication; Phase 73 completion required
+Status: Phase 73 internal lane closed; final exact-artifact release verification
 
 The maintainer's 2026-09-04 direction is to finish v0.8 and Phase 73 together
 on `main`, then publish v0.8. The previous v0.7.3 sequencing constraint has
-been discharged; the current package version is 0.7.5. Do not present this
+been discharged; the release source now targets 0.8.0. Do not present this
 working tree as a shipped 0.8 release. The Phase 73 Level-2 experiment freezes
 its runner dependency closure, including package.json, bun.lock, and
 tsconfig.json. Its process stopped in the 2026-09-05T01:36:35Z machine reboot;
@@ -14,7 +14,17 @@ original 171-file runner closure was materialized and hash-verified outside
 the working tree, and the same run resumed after passing its full preflight.
 The source-identity incident remains disclosed and requires independent
 review before this run can close; recovery does not prove historical source
-stability. Version metadata remains unchanged pending that disposition.
+stability. The 2026-09-14 disposition below now permits version finalization.
+
+On 2026-09-14 UTC the complete 720-row / 360-pair sealed Level-2 projection,
+fresh four-input independent review, and final machine gate were accepted.
+The independent scientific/incident companion review supports closing only an
+internal negative result: positions 2+ have 147/270 comparable pairs, 122 vs
+134 passes, 6 rescues / 18 regressions, and -8.1633 percentage points. The
+preregistered advantage rule is unmet. Original failures and interrupted
+attempts are retained; strict host identity still rejects, historical source
+stability is not proven, and no public effect claim is authorized. See the
+Phase 73 board's 2026-09-14 entry for exact hashes and external evidence roots.
 
 The maintainer's 2026-09-06 direction was to continue until they could
 publish 0.8. This supersedes automatic publication: prepare and verify local
@@ -43,9 +53,9 @@ On 2026-09-07 the maintainer confirmed that this is the only task responsible
 for the current checkout and authorized completing the existing changes.
 The development changes can be reviewed, corrected, and committed on `main`
 while Phase 73 continues from its separate frozen runner closure. This does
-not authorize changing that experiment, migrating existing user memory, or
-publishing a release. The clean development commit is not the final v0.8
-release candidate; version metadata still waits for Phase 73's disposition.
+not authorize changing that experiment or migrating existing user memory.
+Publication authorization is the later explicit request recorded above, not
+this historical development authorization.
 
 ## Evidence boundary
 
@@ -84,8 +94,9 @@ claims or a review workflow.
 - No claim that the `general_preference` coexistence problem is solved. Without
   a stable identity boundary, unrelated legacy-category values remain a known
   limitation with retained lineage rather than silent deletion.
-- No v0.8 tag, npm publish, or GitHub release before Phase 73 closure and all
-  release checks pass. Internal Phase 73 evidence never authorizes a public
+- No remote v0.8 tag push, npm publish, or GitHub release before Phase 73 closure
+  and all release checks pass. A local-only source tag binds the stable
+  `release:prepare` check before publication. Internal Phase 73 evidence never authorizes a public
   coding-effect benchmark claim, even if its scientific result is positive.
 
 ## TDD order
@@ -123,16 +134,13 @@ claims or a review workflow.
 
 - Resolve the confirmed default workspace identity collision described below;
   verify same-basename isolation and explicitly document the old-scope boundary.
-- Resolve the interrupted Level-2 run and its source-identity incident under
-  maintainer-approved recovery. Complete the required 720 attempts under the
-  accepted protocol; project, independently review, verify, and interpret
-  the full result. Never treat the incomplete ledger as completed evidence.
-- Finalize the 0.8.0 package metadata and packaged migration guide only after
-  the run's final source-identity verification. Preserve the experimental
-  tarball identity separately from the release tarball. Update the Kimi plugin
-  version/runtime pin and explicitly enable `goodmemory_write_note` in its
-  tool allowlist; the current published-runtime descriptor still exposes nine
-  tools. Re-test that final ten-tool descriptor with the exact 0.8 tarball.
+- Completed: project, independently review, verify, and interpret the sealed
+  Level-2 ledger under the approved narrow relocation policy, retaining the
+  source incident and all missingness. This is not historical-stability proof.
+- The source metadata and migration guide now target 0.8.0. The experimental
+  tarball remains separate. The plugin enables ten tools, including
+  `goodmemory_write_note`; final native acceptance must use the exact release
+  tarball and that descriptor before publication.
 - Run full tests, typecheck, coverage, build, strict public-claim checks,
   projection/storage scale checks, and real Postgres checks.
 - Validate pages import, durable round trip, invalid-input rejection, and

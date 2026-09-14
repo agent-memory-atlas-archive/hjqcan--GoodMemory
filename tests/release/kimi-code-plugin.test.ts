@@ -3,7 +3,7 @@ import { readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 const REPO_ROOT = join(import.meta.dir, "../..");
-const RELEASE_VERSION = "0.7.5";
+const RELEASE_VERSION = "0.8.0";
 const KIMI_TOOLS = [
   "goodmemory_get_context",
   "goodmemory_inspect_memory",
@@ -14,6 +14,7 @@ const KIMI_TOOLS = [
   "goodmemory_read_artifacts",
   "goodmemory_stats",
   "goodmemory_remember",
+  "goodmemory_write_note",
 ] as const;
 
 interface KimiMcpServer {
@@ -55,7 +56,7 @@ async function readJson<T>(path: string): Promise<T> {
 }
 
 describe("Kimi Code plugin release contract", () => {
-  it("pins the plugin and MCP runtime to the 0.7.5 stable release identity", async () => {
+  it("pins the ten-tool plugin and MCP runtime to the 0.8.0 stable release identity", async () => {
     const [manifest, pkg] = await Promise.all([
       readJson<KimiPluginManifest>("kimi.plugin.json"),
       readJson<PackageManifest>("package.json"),
@@ -158,7 +159,7 @@ describe("Kimi Code plugin release contract", () => {
     expect(guide).toContain("Node.js 20");
     expect(guide).toContain("Bun 1.3.14");
     expect(guide).toContain(
-      "repository descriptors target the stable `0.7.5` release",
+      "repository descriptors target the stable `0.8.0` release",
     );
     expect(guide).not.toContain("release candidate");
     expect(guide).toContain("npx");
@@ -180,7 +181,7 @@ describe("Kimi Code plugin release contract", () => {
         audience: "kimi-code-plugin",
         install: "/plugins install https://github.com/hjqcan/GoodMemory",
         method: "plugin",
-        writeBoundary: "goodmemory_remember is exposed at install; Kimi Code approval still governs each unapproved MCP call",
+        writeBoundary: "goodmemory_remember and goodmemory_write_note are exposed at install; Kimi Code approval still governs each unapproved MCP call",
       }),
     );
   });

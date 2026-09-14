@@ -2250,6 +2250,98 @@ This is recovery authorization and input verification, not completion or
 retroactive proof of uninterrupted source stability. Independent review must
 still examine the reboot/source-drift incident and preserved partial attempt.
 
+2026-09-14 internal Level-2 closure and incident disposition
+----------------------------------------------------------
+
+Disposition: complete accounting, no demonstrated advantage, disclosed source
+incident with historical stability unproven. This closes the internal v0.8
+release dependency, not the paused public C6-C7 research lane. It does not
+establish a causal negative, general memory ineffectiveness, or public uplift.
+
+The sealed run `run-c5-level2-flat-20260904T100113Z` accounts for 90 committed
+clusters, 720 scheduled stage rows, and 360 pairs. Those rows are not 720
+successful processes and do not erase six partial stage rows / two partial
+pairs retained across three interruptions. Unrecorded interrupted execution
+cannot be reconstructed merely from the final ledger. Raw failure records,
+the old experimental package, source captures, and recovery records were not
+rewritten or rerun for this disposition.
+
+The maintainer explicitly authorized the one-run runner-directory relocation
+policy on 2026-09-14 UTC. Only the exact filesystem deny line for the original
+and recovered runner roots is compared through a shared marker. The policy
+pins the plan, complete raw capture, 171-source aggregate, original 18/72 host
+hash partition, and all 180 permission receipts. Original bytes/hashes remain
+unchanged. The strict host-identity route still rejects. The pageArtifacts.ts
+newline change genuinely changes exported bytes and hashes; its historical
+load timing, execution impact, uninterrupted stability and external
+authenticity are not proven by restoring the frozen source. It is not
+classified as a proven harmless incident.
+
+The authoritative local projection is on the data disk:
+/Volumes/data/GoodMemory-external/v08-policy-authorized-20260914-1Bg9Fn/r8/projection-r8
+It has 3,908 projected raw bindings plus the explicitly referenced relocation
+sidecar and generated verification/review files. Full raw capture remains at
+/Volumes/data/GoodMemory-external/phase73-full-review-20260908-srk8em.
+Release validation copies the complete projection, unchanged, to
+`reports/quality-gates/phase-73/level2-native-comparator-flat-summary-v1`
+inside its data-disk checkout. A missing projection is a hard gate failure;
+this text is not a substitute for the full replay.
+
+Exact SHA-256 bindings:
+- plan: 91d358512d840f6547990bd28737b29d27e65650363387afa336db387a1da19e
+- projection manifest: 6fc9bc0627520a9af6ec5a818807a84a93e16bfb9f8d1978fe498ffb838f3fcc
+- report: 995b5bd6590e838c06ea6e97c8b9ab355bed2d94dace3e46a2eb5ee5b09aff66
+- verification: 68a5fc6afeb773830767a3585c9293801fa82183d8a5ec2d88f5a41eb9ea4f6e
+- independent review: bd2ade39155dc2fa7315241240be5c0259e44ab008f2df9d190ee5443184efe5
+- review provenance: d1a8ced493c543f7cfad23826a8012ef0edaa1168a1126a3da0084e66085dd71
+
+The fresh fork-none reviewer `/root/c5_final_independent_review_v1` accepted
+all five assertions using only the canonical four-input bundle. The final
+machine gate accepted that review/provenance and independently replayed the
+projection. This is frozen-claims/internal-consistency acceptance, not raw
+source authentication; 914 process-only trajectory origins retain that
+limitation. The first reviewer response had invalid finding-code spelling and
+noncanonical key order; it is retained outside the projection. The same
+reviewer corrected formatting only, without changing its decision or advice.
+
+The separately scoped read-only scientific/incident companion review was
+accepted conditionally on those machine and formal reviews, now satisfied.
+Its 21-file input manifest is
+`companion-review/manifest.json` (889b57333063e08bf4e977ae237bf542fdf87f097dd2f4cdd59d515600f820c2);
+the four-file incident addendum is
+`incident-addendum/manifest.json` (76be462bafdb27c5b967d4e19928db9461f423e67ba532ff4dbf717f262b027d),
+both under the validation root above. The changed-file Git capture in that
+addendum is September 7 evidence, not a contemporaneous September 5 snapshot.
+This companion disposition is orchestrator-recorded, not a cryptographic
+independent-execution attestation and not part of the formal four-input gate.
+
+Preregistered positions-2+ headline: 147/270 comparable pairs (123 missing,
+45.56%); GoodMemory 122/147 versus flat-summary 134/147; 6 rescues and 18
+regressions; delta -8.1633 percentage points. The +3-point advantage and
+positive paired episode-bootstrap lower-bound rule are not met. An independent
+10,000-draw episode-block diagnostic interval is approximately [-16.42, 0] pp;
+it is not an exact replay of the original report RNG. The report's all-position
+result is 188/216 versus 199/216, 9 rescues / 20 regressions, -5.0926 pp, with
+144 incomparable pairs. It must not replace the preregistered headline.
+There is no no-memory arm. The legacy `noMemoryResolveRate` name denotes the
+flat-summary comparator here, not a third arm.
+
+All 33 timeouts retain resolved=false evaluator outcomes. Their 26 pairs also
+have explicit audit/hook failures and remain incomparable under the frozen
+protocol; these observations do not establish causal independence between
+timeout and missing hook. The companion's initial timeout-exclusion concern
+was withdrawn after checking those reasons. The no-history positions-2+
+control has 27/27 incomparable pairs and cannot establish non-inferiority;
+the comparable irrelevant-history control is 87/90 versus 90/90 (-3.33 pp),
+also not the -2 pp non-inferiority requirement. Missingness is substantial and
+asymmetric. The report's 173 infrastructure failures and 64 memory-channel
+failures overlap with other categories and must not be summed as a partition.
+
+`publicClaimEligible`, `publicCodingEffectProof`, and `readmeRowAllowed` remain
+false. No public benchmark row, efficacy statement, or new experiment budget
+is authorized by this closure. Final 0.8 package, native Kimi, and publication
+checks are separate gates.
+
 Boundary
 --------
 

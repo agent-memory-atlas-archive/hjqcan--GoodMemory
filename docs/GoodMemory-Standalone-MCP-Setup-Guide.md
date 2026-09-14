@@ -20,7 +20,7 @@ and writeback governance on top of MCP.
 Install the current stable package from the registry.
 
 ```bash
-npm install -g goodmemory@0.7.5
+npm install -g goodmemory@0.8.0
 ```
 
 ## Start the server

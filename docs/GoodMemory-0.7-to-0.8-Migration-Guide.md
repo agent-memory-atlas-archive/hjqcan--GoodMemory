@@ -1,8 +1,9 @@
 # GoodMemory 0.7 to 0.8 Migration Guide
 
-Status: release preparation, not a statement that 0.8 is published. Phase 73
-must finish before the maintainer publishes 0.8. Use this guide when testing
-the final release candidate, then follow the published release's install pins.
+This guide targets 0.8.0. Install pins apply after publication; source metadata
+alone is not publication proof. The Phase 73 internal Level-2 lane is closed
+without a positive coding-effect claim. Follow the published release's exact
+install pins and verify the upgrade on a separate copy first.
 
 ## Before upgrading
 

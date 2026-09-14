@@ -9,19 +9,19 @@ the local tarball path below.
 Published install:
 
 ```bash
-npm install goodmemory@0.7.5
+npm install goodmemory@0.8.0
 ```
 
 Bun install:
 
 ```bash
-bun add goodmemory@0.7.5
+bun add goodmemory@0.8.0
 ```
 
 Tarball verification of the same release artifact before publish:
 
 ```bash
-npm install ./goodmemory-0.7.5.tgz
+npm install ./goodmemory-0.8.0.tgz
 ```
 
 ## Quick Path
