@@ -432,6 +432,16 @@ function sourceStabilityCheck(input: {
         title: "Source identity stability",
       });
 }
+export function createReleaseConsumerEnvironment(
+  environment: Readonly<Record<string, string | undefined>> = process.env,
+): Record<string, string | undefined> {
+  // Offline package consumers must not inherit maintainer storage, providers,
+  // or policies. Explicit undefined also clears the command runner's defaults.
+  return Object.fromEntries(Object.entries(environment).map(([name, value]) => [
+    name, name.startsWith("GOODMEMORY_") ? undefined : value,
+  ]));
+}
+
 async function validateConsumers(input: {
   artifactPath: string;
   profile: ReleaseProfile;
@@ -467,7 +477,9 @@ async function validateConsumers(input: {
       ["node", ["smoke.mjs"]],
       ["bun", ["run", "smoke.mjs"]],
     ] as const) {
-      const smoke = await input.runCommand({ args, command, cwd: root });
+      const smoke = await input.runCommand({
+        args, command, cwd: root, environment: createReleaseConsumerEnvironment(),
+      });
       if (smoke.code !== 0 || !smoke.stdout.includes("LANGUAGE_CONSUMER_OK")) {
         issues.push(`${command} consumer: ${cleanOutput(smoke)}`);
       }

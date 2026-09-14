@@ -600,11 +600,13 @@ describe("same-tarball preparation", () => {
   it("packs once and passes the exact path through descriptor, audit, Node, and Bun checks", async () => {
     const root = await mkdtemp(join(tmpdir(), "goodmemory-release-pack-"));
     const outputDir = join(root, "output");
+    const previousSentinel = process.env.GOODMEMORY_RELEASE_CONSUMER_TEST;
+    process.env.GOODMEMORY_RELEASE_CONSUMER_TEST = "ambient-test-configuration";
     try {
       const profile = await loadHistoricalV07Profile();
       const artifactPath = join(outputDir, profile.package.tarballName);
       const calls: Array<{ args: readonly string[]; command: string }> = [];
-      const runCommand: ReleaseCommandRunner = async ({ args, command }) => {
+      const runCommand: ReleaseCommandRunner = async ({ args, command, environment }) => {
         calls.push({ args, command });
         if (command === "bun" && args[0] === "pm") {
           await mkdir(outputDir, { recursive: true });
@@ -663,6 +665,9 @@ describe("same-tarball preparation", () => {
           };
         }
         if ((command === "node") || (command === "bun" && args[0] === "run")) {
+          expect(environment).toHaveProperty("GOODMEMORY_RELEASE_CONSUMER_TEST", undefined);
+          expect(environment?.TMPDIR).toBe(process.env.TMPDIR);
+          expect(environment?.PATH).toBe(process.env.PATH);
           return {
             code: 0,
             durationMs: 1,
@@ -690,6 +695,8 @@ describe("same-tarball preparation", () => {
       expect(artifact.consumerCheck.status).toBe("pass");
       expect(artifact.artifactRef.integrity).toMatch(/^sha512-/u);
     } finally {
+      if (previousSentinel === undefined) delete process.env.GOODMEMORY_RELEASE_CONSUMER_TEST;
+      else process.env.GOODMEMORY_RELEASE_CONSUMER_TEST = previousSentinel;
       await rm(root, { force: true, recursive: true });
     }
   });
