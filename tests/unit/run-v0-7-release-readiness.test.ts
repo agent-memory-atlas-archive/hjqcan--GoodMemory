@@ -2851,16 +2851,22 @@ describe("v0.7 release readiness", () => {
     ).toThrow("--strict cannot be combined with release-check skip flags.");
   });
 
-  it("passes the configured Postgres URL into the active release prepare workflow", () => {
+  it("keeps published verification separate from local Postgres preparation", () => {
     const workflow = readFileSync(
       new URL("../../.github/workflows/release.yml", import.meta.url),
       "utf8",
     );
 
-    expect(workflow).toContain("secrets.GOODMEMORY_TEST_POSTGRES_URL");
+    expect(workflow).not.toContain("secrets.GOODMEMORY_TEST_POSTGRES_URL");
     expect(workflow).toContain(
-      "bun scripts/release.ts prepare --output-dir \"$RELEASE_OUTPUT_DIR\"",
+      "bun scripts/release/verify.ts --artifact-dir \"$ARTIFACT_DIR\"",
     );
+    expect(workflow).not.toContain("scripts/release.ts prepare");
+    const profile = readFileSync(
+      new URL("../../scripts/release/profile.ts", import.meta.url),
+      "utf8",
+    );
+    expect(profile).toContain('requiredEnvironment: "GOODMEMORY_TEST_POSTGRES_URL"');
     expect(workflow).not.toContain("--strict");
     expect(workflow).not.toContain("reports/release/v0.7/");
     const gitignore = readFileSync(

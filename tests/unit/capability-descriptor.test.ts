@@ -93,6 +93,16 @@ describe("GoodMemory capability descriptor", () => {
     ]);
   });
 
+  it("describes both Kimi write tools without bypassing host approval", () => {
+    const descriptor = buildGoodMemoryCapabilityDescriptor();
+    const kimi = descriptor.onboarding.find(
+      (entry) => entry.audience === "kimi-code-plugin",
+    );
+    expect(kimi?.writeBoundary).toBe(
+      "goodmemory_remember and goodmemory_write_note are exposed at install; Kimi Code approval still governs each unapproved MCP call",
+    );
+  });
+
   it("keeps all unreceipted benchmark measurements internal", () => {
     const descriptor = buildGoodMemoryCapabilityDescriptor();
     expect(descriptor.benchmarks.currentClaims).toEqual([]);

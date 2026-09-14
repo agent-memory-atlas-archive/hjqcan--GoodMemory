@@ -244,7 +244,7 @@ export function buildGoodMemoryCapabilityDescriptor(
         install: `/plugins install ${REPO}`,
         runtimeRequirements: ["Node.js >=20", "Bun >=1.3.14", "npx"],
         writeBoundary:
-          "goodmemory_remember is exposed at install; Kimi Code approval still governs each unapproved MCP call",
+          "goodmemory_remember and goodmemory_write_note are exposed at install; Kimi Code approval still governs each unapproved MCP call",
         docs: `${REPO}/blob/main/docs/GoodMemory-Kimi-Code-Setup-Guide.md`,
       },
       {

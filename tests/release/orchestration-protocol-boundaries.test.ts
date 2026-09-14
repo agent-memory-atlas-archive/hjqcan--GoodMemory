@@ -4,19 +4,6 @@ import { join, relative } from "node:path";
 
 const REPOSITORY_ROOT = join(import.meta.dir, "../..");
 
-function publicationAllowed(input: {
-  eventName: string;
-  manifestStatus: string;
-  ref: string;
-  refName: string;
-  version: string;
-}): boolean {
-  return input.eventName === "push" &&
-    input.ref.startsWith("refs/tags/") &&
-    input.manifestStatus === "stable" &&
-    input.refName === `v${input.version}`;
-}
-
 function collectBunRunTargets(content: string): string[] {
   return [...content.matchAll(/\bbun run ([A-Za-z0-9:._/-]+)/gu)]
     .map((match) => match[1]!);
@@ -132,69 +119,57 @@ describe("orchestration and proof protocol boundaries", () => {
     expect(historicalAliases).toEqual([]);
   });
 
-  it("keeps release workflow on one prepared artifact set", async () => {
+  it("verifies exactly the published artifact set without repacking or publishing", async () => {
     const workflow = await readFile(
       join(REPOSITORY_ROOT, ".github/workflows/release.yml"),
       "utf8",
     );
 
-    expect(workflow).toContain("bun scripts/release.ts prepare");
+    expect(workflow).toContain("permissions:\n  contents: read");
+    expect(workflow).toContain("persist-credentials: false");
+    expect(workflow).toContain("bun install --frozen-lockfile --ignore-scripts");
+    expect(workflow).toContain('gh release download "$RELEASE_TAG"');
+    expect(workflow.match(/--pattern /gu)).toHaveLength(4);
+    for (const asset of [
+      "release-manifest.json",
+      "goodmemory-$VERSION.tgz",
+      "goodmemory-$VERSION-release-evidence.json.gz",
+      "goodmemory-kimi-plugin-$VERSION.zip",
+    ]) {
+      expect(workflow).toContain(`--pattern "${asset}"`);
+    }
+    expect(workflow).toContain(
+      'bun scripts/release/verify.ts --artifact-dir "$ARTIFACT_DIR"',
+    );
+    expect(workflow).toContain('npm view "goodmemory@$VERSION" version');
+    expect(workflow).toContain('npm view "goodmemory@$VERSION" dist.integrity');
+    expect(workflow).toContain('npm view "goodmemory@latest" version');
+    expect(workflow).not.toContain("bun scripts/release.ts prepare");
     expect(workflow).not.toContain("--strict");
     expect(workflow).not.toContain("reports/release/v0.7/");
     expect(workflow).not.toContain("prepare-v0-7-stable-artifact.ts");
     expect(workflow).not.toContain("verify-v0-7-release-artifact.ts");
     expect(workflow).not.toContain("bun pm pack");
-    expect(workflow).toContain("steps.prepare.outputs.artifact_path");
-    expect(workflow).toContain("steps.prepare.outputs.manifest_path");
-    expect(workflow).toContain("steps.prepare.outputs.archive_path");
-    expect(workflow).toContain(
-      "npm publish --access public \"${{ steps.prepare.outputs.artifact_path }}\"",
-    );
-    expect(workflow).toContain(
-      'if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$GITHUB_REF_NAME" != "v$VERSION" ]; then',
-    );
-    expect(workflow).toContain(
-      "Trigger tag $GITHUB_REF_NAME does not match prepared version $VERSION",
-    );
-    expect(workflow).toContain(
-      "Tag-triggered publication requires stable source metadata",
-    );
-    expect(workflow).toContain("status: manifest.package.status");
-    const publicationCondition =
-      "if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.prepare.outputs.status == 'stable'";
-    expect(workflow.split(publicationCondition)).toHaveLength(4);
-    expect(workflow).toContain("prerelease: false");
-    expect(workflow).toContain("make_latest: true");
-
-    const registryVerification = workflow.indexOf(
-      "npm artifact identity verification failed",
-    );
-    const githubRelease = workflow.indexOf("Create GitHub release");
-    expect(registryVerification).toBeGreaterThan(-1);
-    expect(githubRelease).toBeGreaterThan(registryVerification);
+    expect(workflow).not.toContain("npm pack");
+    expect(workflow).not.toContain("npm publish");
+    expect(workflow).not.toContain("gh release create");
+    expect(workflow).not.toContain("secrets.");
+    expect(workflow).not.toContain("docker");
   });
 
-  it("publishes only for a stable matching tag push", () => {
-    const stableTag = {
-      manifestStatus: "stable",
-      ref: "refs/tags/v0.7.5",
-      refName: "v0.7.5",
-      version: "0.7.5",
-    };
-
-    expect(publicationAllowed({ ...stableTag, eventName: "workflow_dispatch" }))
-      .toBe(false);
-    expect(publicationAllowed({
-      ...stableTag,
-      eventName: "push",
-      manifestStatus: "release-candidate",
-    })).toBe(false);
-    expect(publicationAllowed({
-      ...stableTag,
-      eventName: "push",
-      refName: "v0.7.4",
-    })).toBe(false);
-    expect(publicationAllowed({ ...stableTag, eventName: "push" })).toBe(true);
+  it("verifies only an existing stable v0.8 release and its exact source tag", async () => {
+    const workflow = await readFile(
+      join(REPOSITORY_ROOT, ".github/workflows/release.yml"),
+      "utf8",
+    );
+    expect(workflow).toContain("release:\n    types: [published]");
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).not.toContain("  push:");
+    expect(workflow).toContain('[[ "$RELEASE_TAG" =~ ^v0\\.8\\.[0-9]+$ ]]');
+    expect(workflow).toContain(
+      'gh release view "$RELEASE_TAG" --json isDraft,isPrerelease',
+    );
+    expect(workflow).toContain("ref: refs/tags/${{ env.RELEASE_TAG }}");
   });
 
   it("keeps current public docs off removed package aliases", async () => {
