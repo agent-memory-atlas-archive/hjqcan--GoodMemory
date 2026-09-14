@@ -69,6 +69,10 @@ describe("Kimi Code plugin release contract", () => {
       expect(introduction).toContain(`\`${RELEASE_VERSION}\``);
       expect(introduction).not.toContain("`0.7.5`");
     }
+    const standalone = await readText("docs/GoodMemory-Standalone-MCP-Setup-Guide.md");
+    expect(standalone).toContain("The 0.8 MCP input contract");
+    expect(standalone).toContain("In 0.8, an omitted workspace ID");
+    expect(standalone).not.toContain("0.8 candidate");
   });
 
   it("pins the ten-tool plugin and MCP runtime to the 0.8.0 stable release identity", async () => {
