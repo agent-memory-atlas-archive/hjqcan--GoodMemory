@@ -56,6 +56,21 @@ async function readJson<T>(path: string): Promise<T> {
 }
 
 describe("Kimi Code plugin release contract", () => {
+  it("keeps npm lock root and current setup-guide versions aligned", async () => {
+    const lock = await readJson<{ version: string; packages: Record<string, { version?: string }> }>("package-lock.json");
+    expect(lock.version).toBe(RELEASE_VERSION);
+    expect(lock.packages[""]?.version).toBe(RELEASE_VERSION);
+    for (const path of [
+      "docs/GoodMemory-Claude-Code-Setup-Guide.md",
+      "docs/GoodMemory-Codex-Handoff-Setup-Guide.md",
+      "docs/GoodMemory-Reference-Integration-Guide.md",
+    ]) {
+      const introduction = (await readText(path)).split("## Install")[0];
+      expect(introduction).toContain(`\`${RELEASE_VERSION}\``);
+      expect(introduction).not.toContain("`0.7.5`");
+    }
+  });
+
   it("pins the ten-tool plugin and MCP runtime to the 0.8.0 stable release identity", async () => {
     const [manifest, pkg] = await Promise.all([
       readJson<KimiPluginManifest>("kimi.plugin.json"),

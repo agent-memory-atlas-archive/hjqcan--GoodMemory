@@ -1,6 +1,6 @@
 # GoodMemory Claude Code Setup Guide
 
-This is the canonical global CLI `0.7.5` Claude Code setup path. The registry
+This is the canonical global CLI `0.8.0` Claude Code setup path. The registry
 command requires publication; source verification uses the local tarball path
 below.
 

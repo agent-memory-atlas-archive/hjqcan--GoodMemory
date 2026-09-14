@@ -1,6 +1,6 @@
 # GoodMemory Reference Integration Guide
 
-This is the canonical packaged `0.7.5` reference path for chatbox/copilot-style
+This is the canonical packaged `0.8.0` reference path for chatbox/copilot-style
 integration. Registry commands require publication; source verification uses
 the local tarball path below.
 

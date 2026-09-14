@@ -1,6 +1,6 @@
 # GoodMemory Codex Handoff Setup Guide
 
-This is the canonical global CLI `0.7.5` Codex setup path. The registry command
+This is the canonical global CLI `0.8.0` Codex setup path. The registry command
 requires publication; source verification uses the local tarball path below.
 
 ## Install
