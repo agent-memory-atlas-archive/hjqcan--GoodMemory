@@ -56,6 +56,18 @@ import {
   parseC5HostEnvironment,
 } from "./c5-host-environment";
 import {
+  C5_HOST_RELOCATION_EVIDENCE_PATH,
+  C5_HOST_RELOCATION_POLICY_ID,
+  parseC5HostRelocationEvidence,
+  parseC5HostRelocationReference,
+  verifyC5HostRelocation,
+} from "./c5-host-relocation";
+import type {
+  C5HostRelocationDisclosure,
+  C5HostRelocationEvidence,
+  C5HostRelocationReference,
+} from "./c5-host-relocation";
+import {
   C5_PRIOR_EXPORT_LINEAGE_REASON,
   isC5StageWritebackRequired,
   resolveC5PriorMemoryLineage,
@@ -181,6 +193,7 @@ interface ProjectionFile {
 }
 
 export interface C5EvidenceProjectionManifest {
+  hostRelocationEvidence?: C5HostRelocationReference;
   claimBoundary: typeof CLAIM_BOUNDARY;
   evidenceClass: typeof EVIDENCE_CLASS;
   files: ProjectionFile[];
@@ -206,6 +219,7 @@ interface VerifiedLeakageOriginCounts {
 }
 
 export interface C5EvidenceVerification {
+  hostRelocation?: C5HostRelocationDisclosure;
   checks: {
     actualFileHashesVerified: boolean;
     exactPlanTopologyVerified: boolean;
@@ -256,6 +270,7 @@ export interface C5EvidenceGate {
 }
 
 interface VerifiedProjection {
+  hostRelocation?: C5HostRelocationDisclosure;
   hostPreflightCount: number;
   infrastructureFailureCount: number;
   leakageRejectionCount: number;
@@ -288,6 +303,7 @@ interface FrozenC5DatasetVerification {
 export async function projectC5RunEvidence(input: {
   outputDirectory: string;
   rawRunDirectory: string;
+  hostRelocationEvidence?: C5HostRelocationEvidence;
 }): Promise<C5EvidenceProjectionManifest> {
   const outputDirectory = resolve(input.outputDirectory);
   const rawRunDirectory = resolve(input.rawRunDirectory);
@@ -341,6 +357,8 @@ export async function projectC5RunEvidence(input: {
       sourceSha256: sha256(bytes),
     }));
   const aggregate = evidenceAggregate(files);
+  const relocationBytes = input.hostRelocationEvidence === undefined ? undefined
+    : `${JSON.stringify(parseC5HostRelocationEvidence(input.hostRelocationEvidence), null, 2)}\n`;
   const manifest: C5EvidenceProjectionManifest = {
     claimBoundary: CLAIM_BOUNDARY,
     evidenceClass: EVIDENCE_CLASS,
@@ -350,10 +368,21 @@ export async function projectC5RunEvidence(input: {
     schemaVersion: 1,
     sourceEvidenceAggregateSha256: aggregate,
     sourceRunIdentitySha256: sha256(identityBytes),
+    ...(relocationBytes === undefined ? {} : {
+      hostRelocationEvidence: {
+        policyId: C5_HOST_RELOCATION_POLICY_ID,
+        path: C5_HOST_RELOCATION_EVIDENCE_PATH,
+        bytes: Buffer.byteLength(relocationBytes),
+        sha256: sha256(relocationBytes),
+      },
+    }),
   };
 
   try {
     await mkdir(outputDirectory, { recursive: true });
+    if (relocationBytes !== undefined) {
+      await writeFile(join(outputDirectory, C5_HOST_RELOCATION_EVIDENCE_PATH), relocationBytes, { encoding: "utf8", flag: "wx" });
+    }
     for (const [path, bytes] of rawFiles) {
       const destination = join(outputDirectory, ...path.split("/"));
       await mkdir(dirname(destination), { recursive: true });
@@ -381,10 +410,12 @@ export async function projectC5RunEvidence(input: {
 
 export async function verifyC5EvidenceProjection(input: {
   projectionDirectory: string;
+  hostIdentityPolicy?: "strict";
 }): Promise<C5EvidenceVerification> {
   try {
-    const verified = await inspectProjection(resolve(input.projectionDirectory));
+    const verified = await inspectProjection(resolve(input.projectionDirectory), input.hostIdentityPolicy);
     return {
+      ...(verified.hostRelocation === undefined ? {} : { hostRelocation: verified.hostRelocation }),
       checks: {
         ...passingChecks(),
         noInfrastructureFailure: verified.infrastructureFailureCount === 0,
@@ -687,6 +718,7 @@ export function serializeC5EvidenceVerification(
 
 async function inspectProjection(
   projectionDirectory: string,
+  hostIdentityPolicy?: "strict",
 ): Promise<VerifiedProjection> {
   await assertRealDirectory(projectionDirectory, "C5 projection directory");
   const manifestBytes = await readRequiredRegularFile(
@@ -710,6 +742,7 @@ async function inspectProjection(
   const expectedPaths = new Set([
     ...manifest.files.map((file) => file.path),
     "projection-manifest.json",
+    ...(manifest.hostRelocationEvidence === undefined ? [] : [C5_HOST_RELOCATION_EVIDENCE_PATH]),
   ]);
   for (const path of actualPaths) {
     if (!expectedPaths.has(path) && !GENERATED_PROJECTION_PATHS.has(path)) {
@@ -747,12 +780,24 @@ async function inspectProjection(
     throw new Error("C5 projection file set does not match the frozen plan");
   }
   const reader = createArtifactReader(files);
+  let relocationEvidence: C5HostRelocationEvidence | undefined;
+  if (manifest.hostRelocationEvidence !== undefined) {
+    const ref = manifest.hostRelocationEvidence;
+    const bytes = await readRequiredRegularFile(projectionDirectory, ref.path);
+    if (Buffer.byteLength(bytes) !== ref.bytes || sha256(bytes) !== ref.sha256) {
+      throw new Error("C5 relocation sidecar does not match its manifest reference");
+    }
+    relocationEvidence = parseC5HostRelocationEvidence(JSON.parse(bytes));
+  }
+  const hostRelocation = relocationEvidence === undefined || hostIdentityPolicy === "strict"
+    ? undefined : verifyC5HostRelocation({ evidence: relocationEvidence, rawFiles: files });
   const verified = verifyEvidenceGraph({
     frozenDataset,
     manifest,
     plan,
     planBytes,
     reader,
+    hostRelocation,
   });
   return {
     ...verified,
@@ -763,6 +808,7 @@ async function inspectProjection(
 }
 
 function verifyEvidenceGraph(input: {
+  hostRelocation?: C5HostRelocationDisclosure;
   frozenDataset: FrozenC5DatasetVerification;
   manifest: C5EvidenceProjectionManifest;
   plan: C5PilotPlan;
@@ -894,7 +940,7 @@ function verifyEvidenceGraph(input: {
       claimedTimeoutStdoutStageRunIds.push(...origins.claimedTimeoutStdoutStageRunIds);
     }
   }
-  if (hostIdentityHashes.size !== 1) {
+  if (hostIdentityHashes.size !== 1 && input.hostRelocation === undefined) {
     throw new Error("C5 host identity drifted across the 12 cluster preflights");
   }
   verifyReport({
@@ -907,6 +953,7 @@ function verifyEvidenceGraph(input: {
     stages,
   });
   return {
+    ...(input.hostRelocation === undefined ? {} : { hostRelocation: input.hostRelocation }),
     hostPreflightCount,
     infrastructureFailureCount:
       stages.filter((stage) => stage.infrastructureFailureStage !== null).length +
@@ -5056,6 +5103,47 @@ function verifyEvaluatorSandbox(value: unknown, label: string): void {
   }
 }
 
+export function verifyC5ReportMemoryBehavior(input: {
+  installed: Record<string, unknown>[];
+  pairs: Record<string, unknown>[];
+  report: unknown;
+}): void {
+  const installed = input.installed;
+  const observedStages = installed.filter((stage) =>
+    stage.memoryObservation !== null
+  );
+  const observations = observedStages.map((stage) =>
+    asRecord(stage.memoryObservation, "C5 report memory observation")
+  );
+  const requiredRecallObservedCount = observedStages.filter((stage) => {
+    const pair = input.pairs.find((candidate) =>
+      candidate.clusterId === stage.clusterId &&
+      candidate.stageId === stage.stageId
+    );
+    const observation = asRecord(
+      stage.memoryObservation,
+      "C5 report memory observation",
+    );
+    return pair?.memoryExpectation === "required" &&
+      Number(observation.recalledPriorMemoryCount) > 0;
+  }).length;
+  assertExactRecord(input.report, {
+    injectionObservedCount: observations.filter((observation) =>
+      Number(observation.injectedRecordCount) > 0
+    ).length,
+    installedAttemptCount: installed.length,
+    irrelevantInjectionCount: observations.filter((observation) =>
+      observation.irrelevantInjection === true
+    ).length,
+    missingObservationCount: installed.length - observations.length,
+    observedAttemptCount: observations.length,
+    requiredRecallObservedCount,
+    writebackCommittedCount: observations.filter((observation) =>
+      observation.writebackCommitted === true
+    ).length,
+  }, "C5 report memory behavior");
+}
+
 function verifyReport(input: {
   generatedAt: string;
   pairs: Record<string, unknown>[];
@@ -5179,39 +5267,7 @@ function verifyReport(input: {
     scheduledCount: input.plan.clusters.length * c5PlanStagesPerEpisode(input.plan),
   }, "C5 report pairs");
 
-  const observedStages = installed.filter((stage) =>
-    stage.memoryObservation !== null
-  );
-  const observations = observedStages.map((stage) =>
-    asRecord(stage.memoryObservation, "C5 report memory observation")
-  );
-  const requiredRecallObservedCount = observedStages.filter((stage) => {
-    const pair = input.pairs.find((candidate) =>
-      candidate.clusterId === stage.clusterId &&
-      candidate.stageId === stage.stageId
-    );
-    const observation = asRecord(
-      stage.memoryObservation,
-      "C5 report memory observation",
-    );
-    return pair?.memoryExpectation === "required" &&
-      Number(observation.recalledPriorMemoryCount) > 0;
-  }).length;
-  assertExactRecord(input.report.memoryBehavior, {
-    injectionObservedCount: observations.filter((observation) =>
-      Number(observation.injectedRecordCount) > 0
-    ).length,
-    installedAttemptCount: 36,
-    irrelevantInjectionCount: observations.filter((observation) =>
-      observation.irrelevantInjection === true
-    ).length,
-    missingObservationCount: installed.length - observations.length,
-    observedAttemptCount: observations.length,
-    requiredRecallObservedCount,
-    writebackCommittedCount: observations.filter((observation) =>
-      observation.writebackCommitted === true
-    ).length,
-  }, "C5 report memory behavior");
+  verifyC5ReportMemoryBehavior({ installed, pairs: input.pairs, report: input.report.memoryBehavior });
 
   assertExactRecord(input.report.resourceUsage, {
     attemptsWithUsage: usage.length,
@@ -5496,6 +5552,7 @@ function parseManifest(bytes: string): C5EvidenceProjectionManifest {
     "claimBoundary",
     "evidenceClass",
     "files",
+    ...("hostRelocationEvidence" in value ? ["hostRelocationEvidence"] : []),
     "projectedEvidenceAggregateSha256",
     "runId",
     "schemaVersion",
@@ -5550,6 +5607,9 @@ function parseManifest(bytes: string): C5EvidenceProjectionManifest {
     claimBoundary: CLAIM_BOUNDARY,
     evidenceClass: EVIDENCE_CLASS,
     files,
+    ...("hostRelocationEvidence" in value ? {
+      hostRelocationEvidence: parseC5HostRelocationReference(value.hostRelocationEvidence),
+    } : {}),
     projectedEvidenceAggregateSha256: requiredSha256(
       value.projectedEvidenceAggregateSha256,
       "C5 projected evidence aggregate",

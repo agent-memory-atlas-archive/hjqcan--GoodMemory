@@ -56,13 +56,13 @@ describe("v0.8 release profile", () => {
     expect(await readFile(new URL("../../reports/quality-gates/phase-75/default-enablement-20260905.md", import.meta.url), "utf8")).toContain("Phase 75");
   });
 
-  it("exposes the manifest-bound plugin ZIP in the CLI and both release artifact upload steps", async () => {
+  it("exposes the manifest-bound plugin ZIP in the CLI and read-only release verification", async () => {
     const cli = await readFile(new URL("../../scripts/release.ts", import.meta.url), "utf8");
     const workflow = await readFile(new URL("../../.github/workflows/release.yml", import.meta.url), "utf8");
     expect(cli).toContain('artifact.id === "kimi-plugin-archive"');
     expect(cli).toContain("pluginArchivePath:");
-    expect(workflow.match(/\$\{\{ steps\.prepare\.outputs\.plugin_archive_path \}\}/gu)).toHaveLength(2);
-    expect(workflow).toContain('PLUGIN_ARCHIVE_PATH="$(field pluginArchivePath || true)"');
-    expect(workflow).toContain("zip unzip");
+    expect(workflow).toContain('goodmemory-kimi-plugin-$VERSION.zip');
+    expect(workflow).toContain("scripts/release/verify.ts --artifact-dir");
+    expect(workflow).not.toContain("scripts/release.ts prepare");
   });
 });

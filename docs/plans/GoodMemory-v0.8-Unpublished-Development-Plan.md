@@ -16,11 +16,28 @@ The source-identity incident remains disclosed and requires independent
 review before this run can close; recovery does not prove historical source
 stability. Version metadata remains unchanged pending that disposition.
 
-The maintainer's latest 2026-09-06 direction is to continue until they can
+The maintainer's 2026-09-06 direction was to continue until they could
 publish 0.8. This supersedes automatic publication: prepare and verify local
 changes and artifacts, then hand off readiness. Do not run npm publish, push
 a tag, upload release assets, or create a GitHub release without a new explicit
 publication request. A green gate is not publication authorization.
+
+This authorization boundary was superseded by the maintainer's explicit
+request to publish v0.8, followed by approval on 2026-09-14 UTC of the
+single-sealed-run runner-directory relocation evidence policy. Publication
+is now authorized after the existing release gates pass. This does not
+authorize changing the experiment, scores, failure records, public claims,
+or user memory scopes. New verification checkouts, logs, temporary files,
+and release artifacts belong on the data disk mounted at `/Volumes/data`
+(`/data` is not a mounted path on this host).
+
+The local `release:prepare` run owns the exact artifact set and packs once.
+After validation and publication, `scripts/release/verify.ts --artifact-dir`
+checks the same source/tag, complete check inventory, tarball, manifest,
+evidence archive, and plugin ZIP without rebuilding. The GitHub release
+workflow is read-only and verifies those published assets plus npm integrity;
+tag pushes no longer start a second pack or publish. No npm credential is
+copied to GitHub secrets as part of this flow.
 
 On 2026-09-07 the maintainer confirmed that this is the only task responsible
 for the current checkout and authorized completing the existing changes.
@@ -120,8 +137,8 @@ claims or a review workflow.
   projection/storage scale checks, and real Postgres checks.
 - Validate pages import, durable round trip, invalid-input rejection, and
   recall in fresh Node and Bun consumers of the exact packed tarball.
-- Hand the passing manifest and exact artifacts to the maintainer for
-  publication. After an explicit publication request, verify npm metadata,
+- Publish the passing manifest's exact artifacts under the explicit current
+  authorization. Verify npm metadata,
   fresh installation, the source tag, and GitHub release before calling 0.8
   shipped.
 

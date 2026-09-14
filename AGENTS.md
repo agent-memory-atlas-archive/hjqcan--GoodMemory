@@ -120,6 +120,7 @@ drafts under `docs/archive/design-inputs/` are not current truth.
 - `bun run research:verify -- <id> --root <path>`: verify one registered protocol and its exact gate files; it does not expand a phase-wide glob.
 - `bun run gate:projection-storage-scale`: run the current projection/storage scale gate directly.
 - `bun run release:prepare -- --output-dir <dir>`: freeze source, run required checks, pack exactly once, validate that tarball with Node and Bun, and write the authoritative `release-manifest.json` plus its deterministic evidence archive. Release candidates may prepare/upload evidence; tag publication is stable-only.
+- `bun scripts/release/verify.ts --artifact-dir <dir>`: read-only verification of an existing stable artifact set against the clean tagged source and complete profile-bound manifest. Publication uses the exact locally prepared artifacts; the GitHub release workflow verifies existing published assets and npm integrity without rebuilding or publishing.
 - `bun run eval:smoke`: verify eval wiring without live model calls.
 - `bun run eval:fallback`: run the deterministic fixture-based eval path and write reports to `reports/eval/fallback/`.
 - `bun run eval:live`: run the live generator + live judge eval path with the in-memory memory backend and write reports to `reports/eval/live/`.

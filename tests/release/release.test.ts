@@ -3711,117 +3711,36 @@ describe("release metadata and docs", () => {
     await expectGitTrackedPath(reportPath);
   });
 
-  it("release workflow prepares one exact artifact set before external side effects", async () => {
+  it("release workflow verifies the locally prepared artifact set without repacking or publishing", async () => {
     const workflow = await readFile(
       join(import.meta.dir, "../../.github/workflows/release.yml"),
       "utf8",
     );
-
     expect(workflow).toContain("workflow_dispatch:");
-    expect(workflow).toContain("tags:");
-    expect(workflow).toContain("v*.*.*");
-    expect(workflow).toContain([
-      "- uses: actions/checkout@v4",
-      "        with:",
-      "          fetch-depth: 0",
-    ].join("\n"));
-    expect(
-      workflow.match(/bun scripts\/release\.ts prepare/gu),
-    ).toHaveLength(1);
-    expect(workflow).toContain("--output-dir \"$RELEASE_OUTPUT_DIR\"");
-    expect(workflow).not.toContain("--strict");
-    expect(workflow).toContain("GOODMEMORY_ASSISTED_EXTRACTOR_API_KEY");
-    expect(workflow).toContain("secrets.GOODMEMORY_ASSISTED_EXTRACTOR_PROVIDER");
-    expect(workflow).toContain("secrets.GOODMEMORY_TEST_POSTGRES_URL");
-    expect(workflow).not.toContain("reports/release/v0.7/");
-    expect(workflow).not.toContain("bun run gate:v0.7");
-    expect(workflow).not.toContain("prepare-v0-7-stable-artifact.ts");
-    expect(workflow).not.toContain("verify-v0-7-release-artifact.ts");
-    expect(workflow).not.toContain("bun pm pack");
-    expect(workflow).toContain('if [ "$SOURCE_COMMIT" != "$GITHUB_SHA" ]; then');
-    expect(workflow).toContain(
-      'if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_TYPE" = "tag" ] && [ "$STATUS" != "stable" ]; then',
-    );
-    expect(workflow).toContain(
-      "Manual dispatch prepares and uploads artifacts only; publication is disabled.",
-    );
-    expect(workflow).toContain("actions/upload-artifact@v4");
-    expect(workflow).toContain("actions/setup-node@v4");
+    expect(workflow).toContain("types: [published]");
+    expect(workflow).toContain("contents: read");
+    expect(workflow).toContain("fetch-depth: 0");
+    expect(workflow).toContain("gh release download");
+    expect(workflow).toContain("bun scripts/release/verify.ts --artifact-dir");
+    expect(workflow).toContain("npm view");
+    expect(workflow).toContain("dist.integrity");
     expect(workflow).toContain("node-version: 20");
-    expect(workflow).toContain("registry-url: https://registry.npmjs.org");
-    expect(workflow).toContain("NPM_TOKEN");
-    expect(workflow).not.toContain("npm whoami 2>/dev/null || true");
-    expect(workflow).toContain(
-      'npm publish --access public "${{ steps.prepare.outputs.artifact_path }}" --tag "$DIST_TAG"',
-    );
-    expect(workflow).toContain(
-      'npm view "goodmemory@${VERSION}" dist.integrity',
-    );
-    expect(workflow).toContain(
-      'npm view "goodmemory@${DIST_TAG}" version',
-    );
-    expect(workflow).toContain("npm artifact identity verification failed");
-    expect(workflow).toContain("npm registry verification failed");
-    expect(workflow).toContain("softprops/action-gh-release@v2");
-
-    const prepareIndex = workflow.indexOf("- name: Prepare exact release artifacts");
-    const uploadIndex = workflow.indexOf("- name: Upload prepared release artifacts");
-    const authIndex = workflow.indexOf(
-      "- name: Validate npm publishing credentials",
-    );
-    const publishIndex = workflow.indexOf("- name: Publish package to npm");
-    const githubReleaseIndex = workflow.indexOf("- name: Create GitHub release");
-    expect(prepareIndex).toBeGreaterThan(-1);
-    expect(uploadIndex).toBeGreaterThan(prepareIndex);
-    expect(authIndex).toBeGreaterThan(uploadIndex);
-    expect(publishIndex).toBeGreaterThan(authIndex);
-    expect(githubReleaseIndex).toBeGreaterThan(publishIndex);
-    for (const stepName of [
-      "Validate npm publishing credentials",
-      "Publish package to npm",
-      "Create GitHub release",
-    ]) {
-      expect(workflow).toContain(
-        `- name: ${stepName}\n        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/') && steps.prepare.outputs.status == 'stable'`,
-      );
+    for (const forbidden of ["push:", "scripts/release.ts prepare", "bun pm pack", "npm publish", "NPM_TOKEN", "contents: write", "services:", "softprops/action-gh-release", "secrets.GOODMEMORY"]) {
+      expect(workflow).not.toContain(forbidden);
     }
   });
 
-  it("uploads only manifest-bound release artifacts, including the optional plugin ZIP", async () => {
+  it("downloads the four exact release assets and validates the stable tag before checkout", async () => {
     const workflow = await readFile(
       join(import.meta.dir, "../../.github/workflows/release.yml"),
       "utf8",
     );
-    const uploadIndex = workflow.indexOf("- name: Upload prepared release artifacts");
-    const authIndex = workflow.indexOf(
-      "- name: Validate npm publishing credentials",
-    );
-    const uploadBlock = workflow.slice(uploadIndex, authIndex);
-    const expectedPaths = [
-      "${{ steps.prepare.outputs.artifact_path }}",
-      "${{ steps.prepare.outputs.manifest_path }}",
-      "${{ steps.prepare.outputs.archive_path }}",
-      "${{ steps.prepare.outputs.plugin_archive_path }}",
-    ];
-
-    expect(uploadIndex).toBeGreaterThan(-1);
-    expect(authIndex).toBeGreaterThan(uploadIndex);
-    for (const path of expectedPaths) {
-      expect(uploadBlock).toContain(path);
+    for (const pattern of ["release-manifest.json", "goodmemory-$VERSION.tgz", "goodmemory-$VERSION-release-evidence.json.gz", "goodmemory-kimi-plugin-$VERSION.zip"]) {
+      expect(workflow).toContain(pattern);
     }
-    expect(uploadBlock).not.toContain("summary_path");
-    expect(uploadBlock).not.toContain("reports/");
-    expect(workflow).not.toContain("tar --sort=name");
-    expect(workflow).not.toContain("prepublish-evidence.json");
-
-    const githubReleaseStart = workflow.indexOf("- name: Create GitHub release");
-    const githubReleaseBlock = workflow.slice(githubReleaseStart);
-    for (const path of expectedPaths) {
-      expect(githubReleaseBlock).toContain(path);
-    }
-    expect(githubReleaseBlock).toContain("fail_on_unmatched_files: true");
-    expect(githubReleaseBlock).toContain("prerelease: false");
-    expect(githubReleaseBlock).toContain("make_latest: true");
+    expect(workflow.indexOf("- name: Validate stable release tag")).toBeLessThan(workflow.indexOf("- uses: actions/checkout@v4"));
+    expect(workflow).not.toContain("summary.md");
+    expect(workflow).not.toContain("gh release create");
   });
 
   it("keeps schema-9 lifecycle evidence addable without force", async () => {
@@ -3893,35 +3812,12 @@ describe("release metadata and docs", () => {
     );
   });
 
-  it("release workflow installs sqlite-vss Linux prerequisites before dependency install", async () => {
-    const workflow = await readFile(
-      join(import.meta.dir, "../../.github/workflows/release.yml"),
-      "utf8",
-    );
-
-    expect(workflow).toContain("Install sqlite-vss Linux prerequisites");
-    expect(workflow).toContain("sudo apt-get install -y libgomp1 libatlas-base-dev liblapack-dev");
-    expect(workflow.indexOf("Install sqlite-vss Linux prerequisites")).toBeLessThan(
-      workflow.indexOf("Install dependencies"),
-    );
-  });
-
-  it("release workflow provisions postgres before release preparation", async () => {
-    const workflow = await readFile(
-      join(import.meta.dir, "../../.github/workflows/release.yml"),
-      "utf8",
-    );
-
-    expect(workflow).toContain("services:");
-    expect(workflow).toContain("postgres:");
-    expect(workflow).toContain("image: pgvector/pgvector:pg16");
-    expect(workflow).toContain(
-      "GOODMEMORY_TEST_POSTGRES_URL: postgres://postgres:postgres@localhost:5432/postgres",
-    );
-    expect(workflow.indexOf("services:")).toBeLessThan(workflow.indexOf("steps:"));
-    expect(workflow.indexOf("GOODMEMORY_TEST_POSTGRES_URL")).toBeLessThan(
-      workflow.indexOf("Prepare exact release artifacts"),
-    );
+  it("release workflow needs no native database because it only verifies existing artifacts", async () => {
+    const workflow = await readFile(join(import.meta.dir, "../../.github/workflows/release.yml"), "utf8");
+    expect(workflow).toContain("bun install --frozen-lockfile --ignore-scripts");
+    expect(workflow).not.toContain("services:");
+    expect(workflow).not.toContain("sudo apt-get");
+    expect(workflow).not.toContain("GOODMEMORY_TEST_POSTGRES_URL");
   });
 
   it("ci workflow runs the node package boundary matrix on Node 20, 22, and 24", async () => {

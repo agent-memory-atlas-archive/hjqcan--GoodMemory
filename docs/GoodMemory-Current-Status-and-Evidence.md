@@ -218,8 +218,11 @@ This is the compact current-truth entrypoint. Historical narrative has been remo
   `scripts/release/capsules/v0.7.4-readiness.json` binds the frozen local
   readiness-report hash, source/runtime identity, and 19 required outcomes.
   There is no generic promotion command in the current package-script API.
-  Release-candidate runs may prepare/upload evidence; npm/GitHub tag
-  publication is stable-only and remains workflow-owned.
+  Release-candidate runs may prepare evidence. Stable publication uses the
+  exact locally prepared artifact set under maintainer authorization;
+  `scripts/release/verify.ts --artifact-dir <dir>` and the read-only GitHub
+  release workflow verify source/tag, complete manifest receipts, downloaded
+  assets, and npm integrity without repacking or publishing.
 - HTTP bridge behavior, installed-host writeback, and benchmark-claim policy
   and machine-readable claim surfaces are unchanged and outside this work.
 

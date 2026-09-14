@@ -26,8 +26,9 @@ bulk-load. Start here, then open only the file that matches the question.
   and single-manifest release boundary.
 - `../scripts/release.ts` - current fail-closed `prepare` release
   entrypoint. `release-manifest.json` is authoritative; `summary.md` is a
-  projection. Release candidates may prepare/upload evidence; tag publication
-  is a stable-only workflow side effect.
+  projection. Stable publication uses that exact locally verified artifact
+  set; tag pushes do not rebuild or publish. `../scripts/release/verify.ts`
+  and the read-only release workflow verify published asset identity.
 - `../adr/ADR-008-language-pack-horizontal-extension.txt` - accepted 0.7
   LanguagePack boundary, breaking-replacement decision, script-local Chinese
   guarantee, and versioned projection migration contract.
@@ -90,8 +91,8 @@ bulk-load. Start here, then open only the file that matches the question.
   fixture-only conflict census, and synthetic policy comparison; not a
   production-incidence claim.
 - `plans/GoodMemory-v0.8-Unpublished-Development-Plan.md` - single-main
-  sequencing and the evidence-limited v0.8 scope; development starts only
-  after v0.7.3 publication and v0.8 is not release-authorized.
+  sequencing and the evidence-limited v0.8 scope; publication is authorized
+  after Phase 73 disposition and the exact-artifact release gates pass.
 - `GoodMemory-ImplicitMemBench-Full-300-Research-Summary.md` - internal
   ImplicitMemBench research summary. Do not treat it as a release gate.
 - `GoodMemory-Benchmark-Optimization-Research-2026-07.md` - current
