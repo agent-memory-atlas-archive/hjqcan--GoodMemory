@@ -4,7 +4,7 @@ import type {
 } from "../api/contracts";
 import type { EmbeddingAdapter } from "../embedding/contracts";
 import type { MemoryScope } from "../domain/scope";
-import { scopeToPrefix } from "../domain/scope";
+import { scopeToKey, scopeToPrefix } from "../domain/scope";
 import type { RecallRouterAssistant } from "../recall/assistant";
 
 export interface FakeLLMRequest {
@@ -192,22 +192,17 @@ export function createFakeDocumentStore() {
   };
 }
 
-function scopeKey(scope: MemoryScope): string {
-  return [
-    scope.userId,
-    scope.tenantId ?? "",
-    scope.workspaceId ?? "",
-    scope.agentId ?? "",
-    scope.sessionId ?? "",
-  ].join("::");
-}
+const scopeKey = scopeToKey;
 
 export function createFakeSessionStore() {
   const buffers = new Map<string, unknown>();
   const workingMemory = new Map<string, unknown>();
   const journals = new Map<string, unknown>();
   const deleteByScope = (store: Map<string, unknown>, scope: MemoryScope) => {
-    const prefix = scope.sessionId ? scopeKey(scope) : scopeToPrefix(scope);
+    if (scope.sessionId !== undefined) {
+      return store.delete(scopeKey(scope)) ? 1 : 0;
+    }
+    const prefix = scopeToPrefix(scope);
     let deleted = 0;
 
     for (const key of [...store.keys()]) {

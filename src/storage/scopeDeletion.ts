@@ -1,7 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { isDeepStrictEqual } from "node:util";
 
-import { normalizeScope, scopeToKey } from "../domain/scope";
+import { LegacyScopeKeyError, legacyScopeToKey, normalizeScope, parseScopeKey, scopeToKey } from "../domain/scope";
 import type { MemoryScope } from "../domain/scope";
 import type {
   ProjectionCapableDocumentStore,
@@ -13,8 +13,9 @@ export const SCOPE_DELETION_LOCKS_COLLECTION = "scope_deletion_locks_v1";
 export const SCOPE_MUTATION_BARRIERS_COLLECTION = "scope_mutation_barriers_v1";
 export const SCOPE_MUTATION_INTENTS_COLLECTION = "scope_mutation_intents_v1";
 const MUTATION_DRAIN_POLL_MS = 5;
+const LEGACY_DELETION_CLAIMS_COLLECTION = "scope_deletion_legacy_claims_v1";
 
-interface ScopeDeletionLock extends StorageDocument {
+export interface ScopeDeletionLock extends StorageDocument {
   agentId?: string;
   epoch?: number;
   generation?: string;
@@ -107,17 +108,31 @@ export function scopeDeletionLockIdsForDocument(
       }
     });
     ids.add(scopeDeletionLockId(candidate));
+    ids.add(legacyScopeToKey(candidate));
   }
   return [...ids];
 }
 
+export interface RecoverLegacyDeletionJournalInput {
+  confirmPriorRuntimesStopped: true;
+  confirmTrustedOwnership: true;
+  expectedBarrier: ScopeDeletionLock;
+  expectedLock: ScopeDeletionLock;
+  scope: MemoryScope;
+}
+
 export interface ScopeDeletionCoordinator {
+  recoverLegacyDeletionJournal?(input: RecoverLegacyDeletionJournalInput): Promise<boolean>;
   runExclusive<T>(
     scope: MemoryScope,
     operation: () => Promise<T>,
     options?: ScopeDeletionRunOptions,
   ): Promise<T>;
   runMutation<T>(scope: MemoryScope, operation: () => Promise<T>): Promise<T>;
+}
+
+export interface RecoveryCapableScopeDeletionCoordinator extends ScopeDeletionCoordinator {
+  recoverLegacyDeletionJournal(input: RecoverLegacyDeletionJournalInput): Promise<boolean>;
 }
 
 export interface ScopeDeletionRunOptions {
@@ -171,7 +186,7 @@ function isActiveLock(lock: ScopeDeletionLock | null): boolean {
 }
 
 function lockScope(lock: ScopeDeletionLock): MemoryScope | null {
-  if (!lock.userId) {
+  if (typeof lock.userId !== "string" || lock.userId.trim().length === 0) {
     return null;
   }
   return normalizeScope({
@@ -181,6 +196,86 @@ function lockScope(lock: ScopeDeletionLock): MemoryScope | null {
     ...(lock.agentId ? { agentId: lock.agentId } : {}),
     ...(lock.sessionId ? { sessionId: lock.sessionId } : {}),
   });
+}
+
+function assertLegacyLockOwnership(lock: ScopeDeletionLock, collection: string): void {
+  const owner = lockScope(lock);
+  if (!parseScopeKey(lock.id) && (!owner || (
+    legacyScopeToKey(owner) !== lock.id &&
+    !(collection === SCOPE_MUTATION_BARRIERS_COLLECTION &&
+      legacyScopeToKey({ userId: owner.userId }) === lock.id)
+  ))) {
+    throw new LegacyScopeKeyError(
+      lock.id,
+      "A legacy deletion fence has missing or inconsistent scope ownership. Its journal " +
+        "is preserved; use recoverLegacyDeletionJournal with verified ownership " +
+        "and exact lock/barrier snapshots before interrupted-deletion recovery.",
+    );
+  }
+}
+
+interface LegacyDeletionClaim extends StorageDocument {
+  id: string;
+  legacyKey: string;
+  originalDocument: ScopeDeletionLock;
+  scope: MemoryScope;
+  scopeKey: string;
+  sourceCollection: string;
+  schemaVersion: 1;
+}
+
+function deletionClaimId(collection: string, id: string): string {
+  return JSON.stringify([collection, id]);
+}
+
+async function resolveLegacyFence(
+  documentStore: ProjectionCapableDocumentStore,
+  collection: string,
+  lock: ScopeDeletionLock | null,
+): Promise<ScopeDeletionLock | null> {
+  if (!lock || !isActiveLock(lock) || parseScopeKey(lock.id)) {
+    return lock;
+  }
+  try {
+    assertLegacyLockOwnership(lock, collection);
+    return lock;
+  } catch (error) {
+    if (!(error instanceof LegacyScopeKeyError)) {
+      throw error;
+    }
+    const id = deletionClaimId(collection, lock.id);
+    const claim = await documentStore.get<LegacyDeletionClaim>(LEGACY_DELETION_CLAIMS_COLLECTION, id);
+    if (!claim || claim.schemaVersion !== 1 || claim.id !== id ||
+      claim.sourceCollection !== collection || claim.legacyKey !== lock.id ||
+      !isDeepStrictEqual(claim.originalDocument, lock)) {
+      throw error;
+    }
+    const resolved = { ...lock, ...normalizeScope(claim.scope) };
+    if (scopeToKey(claim.scope) !== claim.scopeKey) {
+      throw error;
+    }
+    assertLegacyLockOwnership(resolved, collection);
+    return resolved;
+  }
+}
+
+function activeLockOverlaps(
+  lock: ScopeDeletionLock | null,
+  scope: MemoryScope,
+  collection = SCOPE_DELETION_LOCKS_COLLECTION,
+): boolean {
+  if (!isActiveLock(lock) || !lock) {
+    return false;
+  }
+  assertLegacyLockOwnership(lock, collection);
+  const persistedScope = lockScope(lock);
+  return !persistedScope || scopesOverlap(persistedScope, scope);
+}
+
+interface ScopeGuardSnapshot {
+  collection: string;
+  document: ScopeDeletionLock | null;
+  id: string;
 }
 
 async function activePersistentLock(
@@ -203,11 +298,8 @@ async function activePersistentLock(
     }
   }
   for (const lock of locks.values()) {
-    const persistedScope = lockScope(lock);
-    if (
-      isActiveLock(lock) &&
-      (!persistedScope || scopesOverlap(persistedScope, normalized))
-    ) {
+    const resolved = await resolveLegacyFence(documentStore, SCOPE_DELETION_LOCKS_COLLECTION, lock);
+    if (activeLockOverlaps(resolved, normalized)) {
       return lock;
     }
   }
@@ -224,63 +316,67 @@ export function createScopeDeletionAwareDocumentStore(
   } = {},
 ): ProjectionCapableDocumentStore {
   async function addGuardSnapshots(
-    snapshots: Map<string, ScopeDeletionLock | null>,
+    snapshots: Map<string, ScopeGuardSnapshot>,
     documents: readonly StorageDocument[],
   ): Promise<void> {
-    const ids = new Set(
-      documents.flatMap((document) => scopeDeletionLockIdsForDocument(document)),
-    );
-    for (const id of ids) {
-      if (snapshots.has(id)) {
+    for (const document of documents) {
+      const scope = documentScope(document);
+      if (!scope) {
         continue;
       }
-      const lock = await documentStore.get<ScopeDeletionLock>(
-        SCOPE_DELETION_LOCKS_COLLECTION,
-        id,
-      );
-      if (lock && isActiveLock(lock)) {
-        const mutation = SCOPE_MUTATION_CONTEXT.getStore();
-        const persistedMutation = mutation
-          ? await documentStore.get<ScopeMutationIntent>(
-              SCOPE_MUTATION_INTENTS_COLLECTION,
-              mutation.id,
-            )
-          : null;
-        const deletionScope = lockScope(lock);
-        if (
-          mutation &&
-          persistedMutation?.operationId === mutation.operationId &&
-          deletionScope &&
-          scopesOverlap(deletionScope, mutation.scope)
-        ) {
-          continue;
+      const references = [
+        ...scopeDeletionLockIdsForDocument(document).map((id) => ({
+          collection: SCOPE_DELETION_LOCKS_COLLECTION,
+          id,
+        })),
+        ...[scopeMutationBarrierId(scope), legacyScopeToKey({ userId: scope.userId })]
+          .map((id) => ({ collection: SCOPE_MUTATION_BARRIERS_COLLECTION, id })),
+      ];
+      for (const reference of references) {
+        const key = JSON.stringify([reference.collection, reference.id]);
+        const snapshot = snapshots.get(key) ?? {
+          ...reference,
+          document: await documentStore.get<ScopeDeletionLock>(reference.collection, reference.id),
+        };
+        const lock = await resolveLegacyFence(documentStore, reference.collection, snapshot.document);
+        if (activeLockOverlaps(lock, scope, reference.collection)) {
+          const mutation = SCOPE_MUTATION_CONTEXT.getStore();
+          const persistedMutation = mutation
+            ? await documentStore.get<ScopeMutationIntent>(
+                SCOPE_MUTATION_INTENTS_COLLECTION,
+                mutation.id,
+              )
+            : null;
+          const deletionScope = lock ? lockScope(lock) : null;
+          if (
+            mutation &&
+            persistedMutation?.operationId === mutation.operationId &&
+            deletionScope &&
+            scopesOverlap(deletionScope, mutation.scope)
+          ) {
+            continue;
+          }
+          throw new Error(`Memory deletion is in progress for scope ${reference.id}`);
         }
-        throw new Error(`Memory deletion is in progress for scope ${id}`);
+        snapshots.set(key, snapshot);
       }
-      snapshots.set(id, lock);
     }
   }
 
-  function guardConstraints(
-    snapshots: ReadonlyMap<string, ScopeDeletionLock | null>,
-  ) {
-    return [...snapshots].map(([id, document]) => ({
-      collection: SCOPE_DELETION_LOCKS_COLLECTION,
-      document,
-      id,
-    }));
+  function guardConstraints(snapshots: ReadonlyMap<string, ScopeGuardSnapshot>) {
+    return [...snapshots.values()];
   }
 
   async function changedGuardId(
-    snapshots: ReadonlyMap<string, ScopeDeletionLock | null>,
+    snapshots: ReadonlyMap<string, ScopeGuardSnapshot>,
   ): Promise<string | null> {
-    for (const [id, snapshot] of snapshots) {
+    for (const snapshot of snapshots.values()) {
       const current = await documentStore.get<ScopeDeletionLock>(
-        SCOPE_DELETION_LOCKS_COLLECTION,
-        id,
+        snapshot.collection,
+        snapshot.id,
       );
-      if (!isDeepStrictEqual(current, snapshot)) {
-        return id;
+      if (!isDeepStrictEqual(current, snapshot.document)) {
+        return snapshot.id;
       }
     }
     return null;
@@ -291,7 +387,7 @@ export function createScopeDeletionAwareDocumentStore(
     id: string,
     document: StorageDocument,
   ): Promise<void> {
-    const guards = new Map<string, ScopeDeletionLock | null>();
+    const guards = new Map<string, ScopeGuardSnapshot>();
     for (let attempt = 0; attempt < 8; attempt += 1) {
       const existing = await documentStore.get<StorageDocument>(collection, id);
       await addGuardSnapshots(
@@ -325,7 +421,7 @@ export function createScopeDeletionAwareDocumentStore(
       return documentStore.get(collection, id);
     },
     async update(collection, id, patch) {
-      const guards = new Map<string, ScopeDeletionLock | null>();
+      const guards = new Map<string, ScopeGuardSnapshot>();
       for (let attempt = 0; attempt < 8; attempt += 1) {
         const existing = await documentStore.get<StorageDocument>(collection, id);
         if (!existing) {
@@ -377,7 +473,7 @@ export function createScopeDeletionAwareDocumentStore(
         }
       : {}),
     async writeBatchIfUnchanged(input) {
-      const guards = new Map<string, ScopeDeletionLock | null>();
+      const guards = new Map<string, ScopeGuardSnapshot>();
       const predecessorConstraints = [];
       for (const operation of input.set) {
         const existing = await documentStore.get<StorageDocument>(
@@ -429,7 +525,7 @@ export interface ScopeDeletionCoordinatorConfig {
 export function createScopeDeletionCoordinator(
   documentStore: ProjectionCapableDocumentStore,
   config: ScopeDeletionCoordinatorConfig = {},
-): ScopeDeletionCoordinator {
+): RecoveryCapableScopeDeletionCoordinator {
   const gate = sharedScopeMutationGate(documentStore);
   const ownerId = config.ownerId ?? crypto.randomUUID();
 
@@ -492,7 +588,9 @@ export function createScopeDeletionCoordinator(
       barrierScope !== null &&
       scopeDeletionLockId(persistedScope) === scopeDeletionLockId(scope) &&
       scopeDeletionLockId(barrierScope) === scopeDeletionLockId(scope) &&
-      barrier.id === scopeMutationBarrierId(scope) &&
+      (barrier.id === scopeMutationBarrierId(scope) ||
+        barrier.id === legacyScopeToKey({ userId: scope.userId })) &&
+      (lock.id === scopeDeletionLockId(scope) || lock.id === legacyScopeToKey(scope)) &&
       lock.epoch === barrier.epoch &&
       lock.generation === barrier.generation &&
       lock.operationId === barrier.operationId &&
@@ -537,14 +635,17 @@ export function createScopeDeletionCoordinator(
     const barrierId = scopeMutationBarrierId(scope);
     let ownedIntent: ScopeMutationIntent | null = null;
     for (let attempt = 0; attempt < 8; attempt += 1) {
-      const barrier = await documentStore.get<ScopeDeletionLock>(
-        SCOPE_MUTATION_BARRIERS_COLLECTION,
-        barrierId,
+      const legacyBarrierId = legacyScopeToKey({ userId: scope.userId });
+      const [barrier, legacyBarrier] = await Promise.all([
+        documentStore.get<ScopeDeletionLock>(SCOPE_MUTATION_BARRIERS_COLLECTION, barrierId),
+        documentStore.get<ScopeDeletionLock>(SCOPE_MUTATION_BARRIERS_COLLECTION, legacyBarrierId),
+      ]);
+      const resolvedLegacyBarrier = await resolveLegacyFence(
+        documentStore, SCOPE_MUTATION_BARRIERS_COLLECTION, legacyBarrier,
       );
-      const barrierScope = barrier ? lockScope(barrier) : null;
       if (
-        isActiveLock(barrier) &&
-        (!barrierScope || scopesOverlap(barrierScope, scope))
+        activeLockOverlaps(barrier, scope, SCOPE_MUTATION_BARRIERS_COLLECTION) ||
+        activeLockOverlaps(resolvedLegacyBarrier, scope, SCOPE_MUTATION_BARRIERS_COLLECTION)
       ) {
         throw new Error(
           `Memory deletion is in progress for scope ${scopeDeletionLockId(scope)}`,
@@ -571,6 +672,10 @@ export function createScopeDeletionCoordinator(
           collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
           document: barrier,
           id: barrierId,
+        }, {
+          collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
+          document: legacyBarrier,
+          id: legacyBarrierId,
         }],
       });
       if (acquired) {
@@ -622,29 +727,51 @@ export function createScopeDeletionCoordinator(
     operation: () => Promise<T>,
     options: ScopeDeletionRunOptions,
   ): Promise<T> {
-    const id = scopeDeletionLockId(scope);
-    const barrierId = scopeMutationBarrierId(scope);
-    const operationKey =
-      options.operationKey ?? `scope-deletion:v1:${id}`;
+    const currentId = scopeDeletionLockId(scope);
+    const currentBarrierId = scopeMutationBarrierId(scope);
+    const legacyId = legacyScopeToKey(scope);
+    const legacyBarrierId = legacyScopeToKey({ userId: scope.userId });
+    let id = currentId;
+    let barrierId = currentBarrierId;
     const operationId = crypto.randomUUID();
     const resumeInterrupted =
       options.resumeInterrupted?.confirmPriorRuntimesStopped === true;
     let ownedLock: ScopeDeletionLock | null = null;
     let ownedBarrier: ScopeDeletionLock | null = null;
     for (let attempt = 0; attempt < 8; attempt += 1) {
-      const [existing, barrier, interruptedMutations] = await Promise.all([
-        documentStore.get<ScopeDeletionLock>(
-          SCOPE_DELETION_LOCKS_COLLECTION,
-          id,
-        ),
-        documentStore.get<ScopeDeletionLock>(
-          SCOPE_MUTATION_BARRIERS_COLLECTION,
-          barrierId,
-        ),
-        resumeInterrupted
-          ? listPersistentMutations(scope)
-          : Promise.resolve([]),
+      const [current, currentBarrier, legacy, legacyBarrier, interruptedMutations] = await Promise.all([
+        documentStore.get<ScopeDeletionLock>(SCOPE_DELETION_LOCKS_COLLECTION, currentId),
+        documentStore.get<ScopeDeletionLock>(SCOPE_MUTATION_BARRIERS_COLLECTION, currentBarrierId),
+        documentStore.get<ScopeDeletionLock>(SCOPE_DELETION_LOCKS_COLLECTION, legacyId),
+        documentStore.get<ScopeDeletionLock>(SCOPE_MUTATION_BARRIERS_COLLECTION, legacyBarrierId),
+        resumeInterrupted ? listPersistentMutations(scope) : Promise.resolve([]),
       ]);
+      // Recover a validated old journal in place. Never create a parallel journal
+      // or rewrite a legacy record whose owner cannot be established.
+      const resolvedLegacy = await resolveLegacyFence(documentStore, SCOPE_DELETION_LOCKS_COLLECTION, legacy);
+      const resolvedLegacyBarrier = await resolveLegacyFence(documentStore, SCOPE_MUTATION_BARRIERS_COLLECTION, legacyBarrier);
+      const legacyLockActive = activeLockOverlaps(resolvedLegacy, scope);
+      const legacyBarrierActive = activeLockOverlaps(
+        resolvedLegacyBarrier, scope, SCOPE_MUTATION_BARRIERS_COLLECTION,
+      );
+      const useLegacy = legacyLockActive || legacyBarrierActive;
+      if (useLegacy && (isActiveLock(current) || isActiveLock(currentBarrier))) {
+        throw new Error(`Memory persistent deletion journal spans key versions for scope ${currentId}; reconcile both journals before recovery`);
+      }
+      id = useLegacy ? legacyId : currentId;
+      barrierId = useLegacy ? legacyBarrierId : currentBarrierId;
+      const existing = useLegacy ? legacy : current;
+      const barrier = useLegacy ? legacyBarrier : currentBarrier;
+      const otherSnapshots = useLegacy
+        ? [
+            { collection: SCOPE_DELETION_LOCKS_COLLECTION, document: current, id: currentId },
+            { collection: SCOPE_MUTATION_BARRIERS_COLLECTION, document: currentBarrier, id: currentBarrierId },
+          ]
+        : [
+            { collection: SCOPE_DELETION_LOCKS_COLLECTION, document: legacy, id: legacyId },
+            { collection: SCOPE_MUTATION_BARRIERS_COLLECTION, document: legacyBarrier, id: legacyBarrierId },
+          ];
+      const operationKey = options.operationKey ?? `scope-deletion:v1:${id}`;
       const hasActiveLock = isActiveLock(existing);
       const hasActiveBarrier = isActiveLock(barrier);
       let canResume = false;
@@ -655,7 +782,11 @@ export function createScopeDeletionCoordinator(
         if (
           !existing ||
           !barrier ||
-          !deletionJournalMatches(existing, barrier, scope)
+          !deletionJournalMatches(
+            useLegacy ? resolvedLegacy! : existing,
+            useLegacy ? resolvedLegacyBarrier! : barrier,
+            scope,
+          )
         ) {
           throw new Error(
             `Memory persistent deletion journal is incomplete for scope ${id}`,
@@ -726,6 +857,7 @@ export function createScopeDeletionCoordinator(
             }
           : {}),
         unchanged: [
+          ...otherSnapshots,
           {
             collection: SCOPE_MUTATION_BARRIERS_COLLECTION,
             document: barrier,
@@ -825,6 +957,88 @@ export function createScopeDeletionCoordinator(
   }
 
   return {
+    async recoverLegacyDeletionJournal(recovery) {
+      if (recovery.confirmTrustedOwnership !== true ||
+        recovery.confirmPriorRuntimesStopped !== true) {
+        throw new Error("Legacy deletion recovery requires trustworthy ownership and stopped prior runtimes.");
+      }
+      const scope = normalizeScope(recovery.scope);
+      const scopeKey = scopeToKey(scope);
+      const legacyId = legacyScopeToKey(scope);
+      const legacyBarrierId = legacyScopeToKey({ userId: scope.userId });
+      const expectedLock = recovery.expectedLock;
+      const expectedBarrier = recovery.expectedBarrier;
+      if (expectedLock.id !== legacyId || expectedBarrier.id !== legacyBarrierId) {
+        return false;
+      }
+      for (const original of [expectedLock, expectedBarrier]) {
+        const owner = lockScope(original);
+        if (owner && scopeToKey(owner) !== scopeKey) {
+          return false;
+        }
+      }
+      if (!deletionJournalMatches(
+        { ...expectedLock, ...scope }, { ...expectedBarrier, ...scope }, scope,
+      )) {
+        return false;
+      }
+      const references = [
+        { collection: SCOPE_DELETION_LOCKS_COLLECTION, id: legacyId, expected: expectedLock },
+        { collection: SCOPE_MUTATION_BARRIERS_COLLECTION, id: legacyBarrierId, expected: expectedBarrier },
+      ];
+      const snapshots = await Promise.all(references.map(async (reference) => ({
+        ...reference,
+        current: await documentStore.get<ScopeDeletionLock>(reference.collection, reference.id),
+        claim: await documentStore.get<LegacyDeletionClaim>(
+          LEGACY_DELETION_CLAIMS_COLLECTION, deletionClaimId(reference.collection, reference.id),
+        ),
+      })));
+      if (snapshots.some(({ claim }) => claim !== null)) {
+        return snapshots.every(({ collection, id, claim, current, expected }) =>
+          claim?.schemaVersion === 1 && claim.id === deletionClaimId(collection, id) &&
+          claim.scopeKey === scopeKey && claim.sourceCollection === collection &&
+          claim.legacyKey === id && scopeToKey(claim.scope) === scopeKey &&
+          isDeepStrictEqual(claim.originalDocument, expected) && current !== null &&
+          (isDeepStrictEqual(current, expected) ||
+            (lockScope(current) !== null && scopeToKey(lockScope(current)!) === scopeKey))
+        );
+      }
+      if (snapshots.some(({ current, expected }) => !isDeepStrictEqual(current, expected))) {
+        return false;
+      }
+      const targets = [
+        { collection: SCOPE_DELETION_LOCKS_COLLECTION, id: scopeDeletionLockId(scope) },
+        { collection: SCOPE_MUTATION_BARRIERS_COLLECTION, id: scopeMutationBarrierId(scope) },
+      ];
+      const targetSnapshots = await Promise.all(targets.map(async (target) => ({
+        ...target, document: await documentStore.get<ScopeDeletionLock>(target.collection, target.id),
+      })));
+      if (targetSnapshots.some(({ document }) => document !== null)) {
+        return false;
+      }
+      const claims = snapshots.map(({ collection, id, expected }) => ({
+        collection: LEGACY_DELETION_CLAIMS_COLLECTION,
+        id: deletionClaimId(collection, id),
+        document: {
+          id: deletionClaimId(collection, id),
+          legacyKey: id,
+          originalDocument: expected,
+          scope,
+          scopeKey,
+          sourceCollection: collection,
+          schemaVersion: 1,
+        },
+      }));
+      return documentStore.writeBatchIfUnchanged({
+        expected: { collection: claims[0]!.collection, id: claims[0]!.id, document: null },
+        unchanged: [
+          { collection: claims[1]!.collection, id: claims[1]!.id, document: null },
+          ...snapshots.map(({ collection, id, current }) => ({ collection, id, document: current })),
+          ...targetSnapshots,
+        ],
+        set: claims,
+      });
+    },
     async runMutation<T>(
       scope: MemoryScope,
       operation: () => Promise<T>,

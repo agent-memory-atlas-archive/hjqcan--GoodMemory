@@ -25,7 +25,7 @@ export function isStorageSafeText(value: string): boolean {
     }
     if (codeUnit >= 0xD800 && codeUnit <= 0xDBFF) {
       const next = value.charCodeAt(index + 1);
-      if (next < 0xDC00 || next > 0xDFFF) {
+      if (index + 1 >= value.length || next < 0xDC00 || next > 0xDFFF) {
         return false;
       }
       index += 1;

@@ -1,8 +1,9 @@
+import { Buffer } from "node:buffer";
 import { createHash } from "node:crypto";
 
 import type { ArtifactSpillRecord } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
-import { scopeToKey } from "../domain/scope";
+import { isSameScope, legacyScopeToKey, scopeToKey } from "../domain/scope";
 import type { DocumentStore } from "../storage/contracts";
 
 export const ARTIFACT_SPILL_COLLECTION = "artifact_spills";
@@ -50,7 +51,8 @@ function buildPreview(content: string, previewChars: number): string {
 }
 
 function buildRecordId(scope: MemoryScope, sourceId: string): string {
-  return `${scopeToKey(scope)}::${sourceId}`;
+  const identity = JSON.stringify([scopeToKey(scope), sourceId]);
+  return `gm2spill:${Buffer.from(identity, "utf8").toString("base64url")}`;
 }
 
 function buildContentHash(content: string): string {
@@ -58,7 +60,8 @@ function buildContentHash(content: string): string {
 }
 
 function buildPayloadId(scope: MemoryScope, contentHash: string): string {
-  return `${scopeToKey(scope)}::${contentHash}`;
+  const identity = JSON.stringify([scopeToKey(scope), contentHash]);
+  return `gm2payload:${Buffer.from(identity, "utf8").toString("base64url")}`;
 }
 
 function buildPayloadUri(payloadId: string): string {
@@ -70,7 +73,11 @@ function parsePayloadUri(storageUri: string): string | undefined {
   if (!storageUri.startsWith(prefix)) {
     return undefined;
   }
-  return decodeURIComponent(storageUri.slice(prefix.length));
+  try {
+    return decodeURIComponent(storageUri.slice(prefix.length));
+  } catch {
+    return undefined;
+  }
 }
 
 export function createArtifactSpilloverService(
@@ -79,6 +86,26 @@ export function createArtifactSpilloverService(
   const previewChars = Math.max(config.previewChars ?? 280, 8);
   const writeBatchIfUnchanged =
     config.documentStore.writeBatchIfUnchanged?.bind(config.documentStore);
+
+  function ownsScope(value: { scope?: MemoryScope }, scope: MemoryScope): boolean {
+    try {
+      return value.scope !== undefined && isSameScope(value.scope, scope);
+    } catch {
+      return false;
+    }
+  }
+
+  async function readLegacyRecord(scope: MemoryScope, sourceId: string) {
+    const id = `${legacyScopeToKey(scope)}::${sourceId}`;
+    const record = await config.documentStore.get<ArtifactSpillRecord>(
+      ARTIFACT_SPILL_COLLECTION,
+      id,
+    );
+    return record && record.id === id && record.sourceId === sourceId &&
+        ownsScope(record, scope)
+      ? record
+      : null;
+  }
 
   return {
     async spill(scope: MemoryScope, input: SpillInput): Promise<ArtifactSpillRecord> {
@@ -95,7 +122,18 @@ export function createArtifactSpilloverService(
           ARTIFACT_SPILL_COLLECTION,
           recordId,
         );
-        const createdAt = existing?.createdAt ?? new Date(0).toISOString();
+        if (existing && (
+          !ownsScope(existing, scope) || existing.id !== recordId ||
+          existing.sourceId !== input.sourceId
+        )) {
+          throw new Error(
+            "Artifact spill identity does not match its versioned storage key; " +
+              "the existing record is preserved for integrity investigation.",
+          );
+        }
+        const legacy = existing ? null : await readLegacyRecord(scope, input.sourceId);
+        const previous = existing ?? legacy;
+        const createdAt = previous?.createdAt ?? new Date(0).toISOString();
         const payload: ArtifactSpillPayloadRecord = {
           content: input.content,
           contentHash,
@@ -105,13 +143,13 @@ export function createArtifactSpilloverService(
           scope,
         };
         const record: ArtifactSpillRecord = {
-          id: existing?.id ?? recordId,
+          id: recordId,
           scope,
           kind: input.kind,
           sourceId: input.sourceId,
           preview: buildPreview(input.content, previewChars),
           replacementText:
-            existing?.replacementText ??
+            previous?.replacementText ??
             `[[spill:${input.kind}:${buildStableHandle(scope, input.sourceId)}]]`,
           storageUri: input.storageUri ?? buildPayloadUri(payloadId),
           originalBytes,
@@ -124,6 +162,13 @@ export function createArtifactSpilloverService(
             document: existing,
             id: recordId,
           },
+          ...(legacy ? {
+            unchanged: [{
+              collection: ARTIFACT_SPILL_COLLECTION,
+              document: legacy,
+              id: legacy.id,
+            }],
+          } : {}),
           set: [
             {
               collection: ARTIFACT_SPILL_PAYLOAD_COLLECTION,
@@ -151,39 +196,62 @@ export function createArtifactSpilloverService(
       scope: MemoryScope,
       sourceId: string,
     ): Promise<ArtifactSpillRecord | null> {
-      return config.documentStore.get(
+      const id = buildRecordId(scope, sourceId);
+      const current = await config.documentStore.get<ArtifactSpillRecord>(
         ARTIFACT_SPILL_COLLECTION,
-        buildRecordId(scope, sourceId),
+        id,
       );
+      if (current) {
+        return current.id === id && current.sourceId === sourceId && ownsScope(current, scope)
+          ? current
+          : null;
+      }
+      return readLegacyRecord(scope, sourceId);
     },
 
     async resolve(
       scope: MemoryScope,
       value: ArtifactSpillRecord | string,
     ): Promise<string | null> {
-      const payloadId = typeof value === "string"
-        ? parsePayloadUri(value)
-        : buildPayloadId(scope, value.contentHash ?? "");
-      if (!payloadId || !payloadId.startsWith(`${scopeToKey(scope)}::`)) {
+      if (typeof value !== "string" && !ownsScope(value, scope)) {
         return null;
       }
-      const payload = await config.documentStore.get<ArtifactSpillPayloadRecord>(
-        ARTIFACT_SPILL_PAYLOAD_COLLECTION,
-        payloadId,
-      );
-      if (!payload) {
-        return null;
-      }
-      if (
-        buildPayloadId(scope, payload.contentHash) !== payloadId ||
-        buildContentHash(payload.content) !== payload.contentHash
-      ) {
-        console.error("[goodmemory:spillover] payload integrity check failed", {
+      const payloadIds = typeof value === "string"
+        ? [parsePayloadUri(value)]
+        : [
+            buildPayloadId(scope, value.contentHash ?? ""),
+            `${legacyScopeToKey(scope)}::${value.contentHash ?? ""}`,
+          ];
+      for (const payloadId of payloadIds) {
+        if (!payloadId || ![
+          "gm2payload:",
+          `${legacyScopeToKey(scope)}::`,
+        ].some((prefix) => payloadId.startsWith(prefix))) {
+          continue;
+        }
+        const payload = await config.documentStore.get<ArtifactSpillPayloadRecord>(
+          ARTIFACT_SPILL_PAYLOAD_COLLECTION,
           payloadId,
-        });
-        return null;
+        );
+        if (!payload || !ownsScope(payload, scope)) {
+          continue;
+        }
+        if (
+          payload.id !== payloadId ||
+          ![
+            buildPayloadId(scope, payload.contentHash),
+            `${legacyScopeToKey(scope)}::${payload.contentHash}`,
+          ].includes(payloadId) ||
+          buildContentHash(payload.content) !== payload.contentHash
+        ) {
+          console.error("[goodmemory:spillover] payload integrity check failed", {
+            payloadId,
+          });
+          return null;
+        }
+        return payload.content;
       }
-      return payload.content;
+      return null;
     },
   };
 }

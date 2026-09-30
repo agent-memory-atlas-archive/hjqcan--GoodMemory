@@ -22,7 +22,7 @@ import type {
   EpisodeMemory,
   FactMemory,
 } from "../domain/records";
-import type { MemoryScope } from "../domain/scope";
+import { isSameDurableScope, scopeToKey, type MemoryScope } from "../domain/scope";
 import type { SessionArchive } from "../evolution/contracts";
 import { createLanguageService } from "../language";
 import type {
@@ -895,7 +895,8 @@ async function runObservationSynthesis(
     ),
   );
   const active = (await repositories.facts.listByScope(scope)).filter(
-    (fact) => fact.lifecycle === "active" && fact.isActive !== false,
+    (fact) => isSameDurableScope(fact, scope) &&
+      fact.lifecycle === "active" && fact.isActive !== false,
   );
   const observations = new Map<string, FactMemory>();
   for (const fact of active) {
@@ -966,7 +967,11 @@ async function runObservationSynthesis(
     // Stable per-subject identity: replacement is a same-id overwrite, so a
     // stale observation can never coexist with its successor. A legacy
     // observation under a different id (if any) is demoted first.
-    const observationId = `observation:${scopeKeyForObservation(scope)}:${subject}`;
+    const observationId = `observation_v2:${scopeKeyForObservation(scope)}:${subject}`;
+    const target = await repositories.facts.get?.(observationId);
+    if (target && !isSameDurableScope(target, scope)) {
+      throw new Error("Observation ID belongs to a different scope.");
+    }
     if (existing && existing.id !== observationId) {
       await repositories.facts.add(
         createFactMemory({
@@ -1008,9 +1013,9 @@ async function runObservationSynthesis(
 }
 
 function scopeKeyForObservation(scope: MemoryScope): string {
-  return [scope.userId, scope.tenantId, scope.workspaceId, scope.agentId]
-    .filter((segment): segment is string => Boolean(segment))
-    .join(":");
+  // Observations are durable and session-independent. Preserve every other
+  // normalized field, including absent dimensions, in the versioned key.
+  return scopeToKey({ ...scope, sessionId: undefined });
 }
 
 export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {

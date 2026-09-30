@@ -1,3 +1,4 @@
+import { LegacyScopeKeyError } from "../domain/scope";
 import { Buffer } from "node:buffer";
 import { createHash, randomBytes } from "node:crypto";
 
@@ -574,6 +575,11 @@ export function createAdminApi(input: CreateAdminApiInput): AdminApi {
       } catch (error) {
         if (error instanceof AdminApiError) {
           return errorResponse(error, requestId);
+        }
+        if (error instanceof LegacyScopeKeyError) {
+          return errorResponse(new AdminApiError(error.code,
+            "Legacy scope ownership could not be verified. Original data is preserved. " +
+            "Use the migration guide's trusted ownership recovery before retrying.", 409), requestId);
         }
         if (error instanceof InvalidAdminMemoryCursorError) {
           return errorResponse(

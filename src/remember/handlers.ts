@@ -441,9 +441,9 @@ export async function writeRememberCandidate(input: {
   }
 
   if (candidate.memoryType === "reference") {
-    const scopedReferences = await context.repositories.references.listByScope(
-      context.input.scope,
-    );
+    const scopedReferences = (
+      await context.repositories.references.listByScope(context.input.scope)
+    ).filter((reference) => isSameDurableScope(reference, context.input.scope));
     const resolvedSubject = resolveReferenceSubject(
       candidate,
       scopedReferences,
@@ -608,6 +608,7 @@ export async function writeRememberCandidate(input: {
     );
     const existing = scopedNotes.find(
       (note) =>
+        isSameDurableScope(note, context.input.scope) &&
         isActiveMemoryLifecycle(note) &&
         context.language.normalizeForEquality(
           note.title,
@@ -718,7 +719,9 @@ export async function writeRememberCandidate(input: {
   }
 
   if (candidate.memoryType === "fact") {
-    const facts = await context.repositories.facts.listByScope(context.input.scope);
+    const facts = (
+      await context.repositories.facts.listByScope(context.input.scope)
+    ).filter((fact) => isSameDurableScope(fact, context.input.scope));
     const occurrence = resolveCandidateOccurrence(
       candidate,
       context.input.messages,
@@ -901,7 +904,9 @@ export async function writeRememberCandidate(input: {
     return;
   }
 
-  const scopedFeedback = await context.repositories.feedback.listByScope(context.input.scope);
+  const scopedFeedback = (
+    await context.repositories.feedback.listByScope(context.input.scope)
+  ).filter((feedback) => isSameDurableScope(feedback, context.input.scope));
   const normalizedRule = context.language.normalizeForEquality(
     candidate.content,
     candidateLanguage,

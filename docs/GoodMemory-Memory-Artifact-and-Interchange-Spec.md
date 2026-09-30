@@ -185,10 +185,22 @@ parse (§3.1) → size check (§3.3) → policy → write. Outcomes:
 | `split` | the page was written as several notes (`memoryIds`) |
 | `rejected` | `not_a_page`, `unsupported_frontmatter`, `empty_body`, `note_too_large`, or `policy_should_remember_blocked` |
 
-The note id is `note_<sha256(scopeKey + " " + identity)[:24]>_<sha256(body)[:8]>`
+The current note id is `note_v2_<sha256(scopeKey + " " + identity)[:24]>_<sha256(body)[:8]>`
 where `identity` is `uuid:<uuid>` when the page carries one and
 `title:<normalized title>` otherwise; the scope salt keeps ids from leaking the
-scope key while making re-imports idempotent.
+scope key while making re-imports idempotent. The versioned prefix is
+separate from historical `note_` IDs, preventing an old arbitrary scope/title
+preimage from occupying a new identity. Re-import checks historical IDs only
+after verifying the full exact durable scope; historical-ID `unchanged`
+semantics (including superseded records) remain in force. Active same-title,
+same-body notes keep their existing IDs. An existing target with a different
+scope MUST NOT be overwritten.
+
+Same-title matching for merge and supersession MUST compare the exact durable
+scope (`userId`, `tenantId`, `workspaceId`, and `agentId`). An omitted scope
+dimension is not a wildcard for a write. `sessionId` records provenance and
+does not partition durable note identity, so same-title imports in later
+sessions still merge or supersede within that durable scope.
 
 ### 5.2 Durable form
 

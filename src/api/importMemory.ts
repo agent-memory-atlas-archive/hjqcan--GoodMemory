@@ -13,6 +13,7 @@ import type {
   NoteMemory,
   ReferenceMemory,
 } from "../domain/records";
+import { isSameDurableScope } from "../domain/scope";
 import type { MemoryScope } from "../domain/scope";
 import { assertStorageSafeExternalValue } from "../domain/semanticText";
 import {
@@ -37,6 +38,7 @@ import {
 } from "../evidence/contracts";
 import {
   computePagesSha256,
+  deriveLegacyPageNoteId,
   derivePageNoteId,
   normalizePageTitle,
   parsePageFile,
@@ -157,7 +159,10 @@ async function importPages(
   const timestamp = deps.now().toISOString();
   const existingNotes = (
     await deps.documentStore.query<NoteMemory>("notes", { userId: input.scope.userId })
-  ).filter((note) => recordMatchesScope(note, input.scope));
+  // Administrative scope matching treats omitted dimensions as wildcards.
+  // Note identity must instead stay within the exact durable write scope,
+  // independent of the session that originally authored the page.
+  ).filter((note) => isSameDurableScope(note, input.scope));
   const notesById = new Map(existingNotes.map((note) => [note.id, note] as const));
   const activeByTitle = new Map<string, NoteMemory>();
   for (const note of existingNotes) {
@@ -178,9 +183,22 @@ async function importPages(
     splitInfo?: { index: number; total: number },
   ): Promise<{ memoryId: string; outcome: "imported" | "superseded" | "unchanged"; supersededMemoryId?: string }> => {
     const headId = derivePageNoteId(input.scope, identity);
-    const memoryId = `${headId}_${sha256(chunk.body).slice(0, 8)}`;
+    const bodyHash = sha256(chunk.body).slice(0, 8);
+    const memoryId = `${headId}_${bodyHash}`;
+    // A globally addressed target must never overwrite another scope, even
+    // if a supplied durable record previously occupied this derived ID.
+    const target = await deps.documentStore.get<NoteMemory>("notes", memoryId);
+    if (target && !isSameDurableScope(target, input.scope)) {
+      throw new Error("import_scope_conflict: note ID belongs to a different scope.");
+    }
     if (notesById.has(memoryId)) {
       return { memoryId, outcome: "unchanged" };
+    }
+    const legacyId = `${deriveLegacyPageNoteId(input.scope, identity)}_${bodyHash}`;
+    if (notesById.has(legacyId)) {
+      // Include superseded legacy versions so retrying an older page cannot
+      // resurrect it and supersede the current content after an upgrade.
+      return { memoryId: legacyId, outcome: "unchanged" };
     }
     const previous = activeByTitle.get(normalizePageTitle(chunk.title));
     if (previous && previous.body.trimEnd() === chunk.body.trimEnd()) {

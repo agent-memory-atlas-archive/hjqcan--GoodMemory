@@ -17,6 +17,9 @@ describe("semantic and storage-safe text boundaries", () => {
     expect(isStorageSafeText("visible\uD800text")).toBe(false);
     expect(isStorageSafeText("visible\uDC00text")).toBe(false);
     expect(isStorageSafeText("visible😀text")).toBe(true);
+    expect(isStorageSafeText("visible\uD800")).toBe(false);
+    expect(isStorageSafeText("visible\uDC00")).toBe(false);
+    expect(isStorageSafeText("visible😀")).toBe(true);
     expect(hasPersistableSemanticText(value)).toBe(false);
   });
 

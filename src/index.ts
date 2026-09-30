@@ -62,10 +62,19 @@ import type {
   VectorStore,
 } from "./storage/contracts";
 
+export { createExtractionCursorStore, EXTRACTION_CURSORS_COLLECTION } from "./remember/extractionCursor";
+export type { ExtractionCursor, ExtractionCursorStore, RecoverLegacyExtractionCursorInput, RecoveryCapableExtractionCursorStore } from "./remember/extractionCursor";
+export { createScopeDeletionCoordinator } from "./storage/scopeDeletion";
+export type { ScopeDeletionCoordinator, ScopeDeletionLock, RecoverLegacyDeletionJournalInput, RecoveryCapableScopeDeletionCoordinator } from "./storage/scopeDeletion";
+
 export type { MemoryScope } from "./domain/scope";
 export {
+  decodeLegacyScopeKey,
   isSameScope,
+  LegacyScopeKeyError,
+  legacyScopeToKey,
   normalizeScope,
+  parseScopeKey,
   scopeToKey,
 } from "./domain/scope";
 export type {
@@ -215,7 +224,10 @@ export type {
   ConditionalDocumentWriteBatch,
   DocumentStore,
   DocumentWriteOperation,
+  LegacySessionScope,
   ProjectionCapableDocumentStore,
+  RecoverLegacySessionStateInput,
+  SessionStateKind,
   SessionStore,
   StorageDocument,
   StorageFilter,

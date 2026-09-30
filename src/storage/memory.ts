@@ -4,7 +4,16 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
-import { scopeToKey, scopeToPrefix } from "../domain/scope";
+import {
+  listLegacySessionScopes,
+  planLegacySessionRecovery,
+  planSessionDelete,
+  planSessionDeleteByScope,
+  planSessionSet,
+  readSessionValue,
+  type CompatibleSessionStateStore,
+  type SessionStatePlan,
+} from "./sessionScopeKeys";
 import type {
   ConditionalDocumentWriteBatch,
   DocumentQueryPageInput,
@@ -102,7 +111,7 @@ export function createInMemoryDocumentStore(): ProjectionCapableDocumentStore {
             (input.cursor === undefined || id > input.cursor) &&
             matchesFilter(document, input.filter),
         )
-        .sort(([left], [right]) => left.localeCompare(right));
+        .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
       const page = matches.slice(0, input.limit);
       return {
         items: page.map(([, document]) => clone(document) as TDocument),
@@ -170,70 +179,36 @@ export function createInMemoryDocumentStore(): ProjectionCapableDocumentStore {
   };
 }
 
-interface SessionStateStore<TValue> {
-  set(scope: MemoryScope, value: TValue): Promise<void>;
-  setIfUnchanged(
-    scope: MemoryScope,
-    expectedValue: TValue | null,
-    nextValue: TValue,
-  ): Promise<boolean>;
-  get(scope: MemoryScope): Promise<TValue | null>;
-  deleteIfUnchanged(scope: MemoryScope, expectedValue: TValue): Promise<boolean>;
-  deleteByScope(scope: MemoryScope): Promise<number>;
-}
+function createScopedMapStore<TValue>(): CompatibleSessionStateStore<TValue> {
+  const records = new Map<string, string>();
 
-function createScopedMapStore<TValue>(): SessionStateStore<TValue> {
-  const records = new Map<string, TValue>();
+  function apply<T>(plan: SessionStatePlan<T>): T {
+    for (const [key, value] of plan.set) records.set(key, value);
+    for (const key of plan.delete) records.delete(key);
+    return plan.result;
+  }
 
   return {
     async set(scope, value) {
-      records.set(scopeToKey(scope), clone(value));
+      apply(planSessionSet(records, scope, value));
     },
-
     async setIfUnchanged(scope, expectedValue, nextValue) {
-      const key = scopeToKey(scope);
-      const current = records.get(key);
-      const matches = expectedValue === null
-        ? current === undefined
-        : current !== undefined && documentsEqual(current, expectedValue);
-      if (!matches) {
-        return false;
-      }
-
-      records.set(key, clone(nextValue));
-      return true;
+      return apply(planSessionSet(records, scope, nextValue, { value: expectedValue }));
     },
-
     async get(scope) {
-      const record = records.get(scopeToKey(scope));
-      return record ? clone(record) : null;
+      return readSessionValue<TValue>(records, scope);
     },
-
     async deleteIfUnchanged(scope, expectedValue) {
-      const key = scopeToKey(scope);
-      const current = records.get(key);
-      if (current === undefined || !documentsEqual(current, expectedValue)) {
-        return false;
-      }
-
-      records.delete(key);
-      return true;
+      return apply(planSessionDelete(records, scope, expectedValue));
     },
-
     async deleteByScope(scope) {
-      const normalizedPrefix = scopeToPrefix(scope);
-      let deleted = 0;
-
-      for (const key of [...records.keys()]) {
-        if (!key.startsWith(normalizedPrefix)) {
-          continue;
-        }
-
-        records.delete(key);
-        deleted += 1;
-      }
-
-      return deleted;
+      return apply(planSessionDeleteByScope(records, scope));
+    },
+    async listLegacyScopes(kind) {
+      return listLegacySessionScopes(records, kind);
+    },
+    async recoverLegacyState(scope, legacyKey, expected) {
+      return apply(planLegacySessionRecovery(records, scope, legacyKey, expected));
     },
   };
 }
@@ -244,6 +219,24 @@ export function createInMemorySessionStore(): SessionStore {
   const journals = createScopedMapStore<SessionJournal>();
 
   return {
+    async listLegacyScopes() {
+      return (await Promise.all([
+        buffers.listLegacyScopes("buffer"),
+        workingMemory.listLegacyScopes("working_memory"),
+        journals.listLegacyScopes("journal"),
+      ])).flat();
+    },
+
+    recoverLegacyState(input) {
+      switch (input.kind) {
+        case "buffer":
+          return buffers.recoverLegacyState(input.scope, input.legacyKey, input.expectedValue);
+        case "working_memory":
+          return workingMemory.recoverLegacyState(input.scope, input.legacyKey, input.expectedValue);
+        case "journal":
+          return journals.recoverLegacyState(input.scope, input.legacyKey, input.expectedValue);
+      }
+    },
     saveBuffer(scope, buffer) {
       return buffers.set(scope, buffer);
     },

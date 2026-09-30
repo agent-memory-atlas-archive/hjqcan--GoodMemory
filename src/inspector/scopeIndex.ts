@@ -56,6 +56,8 @@ const DURABLE_ONLY_BLIND_SPOT =
 export interface ListScopesDeps {
   documentStore: DocumentStore;
   now?: () => Date;
+  // Migration callers must not persist completion after a partial scan.
+  requireCompleteScan?: boolean;
 }
 
 interface ScopeAccumulator {
@@ -87,6 +89,7 @@ export async function listScopes(deps: ListScopesDeps): Promise<ScopeIndexResult
     try {
       documents = await deps.documentStore.query<Record<string, unknown>>(collection);
     } catch (error) {
+      if (deps.requireCompleteScan) throw error;
       blindSpots.push(
         `Collection "${collection}" could not be scanned: ${describeError(error)}`,
       );

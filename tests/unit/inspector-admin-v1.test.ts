@@ -421,7 +421,7 @@ describe("Inspector Admin API v1", () => {
       ),
     ).toMatchObject({ coverage: "partial", scopeKey: SCOPE_KEY });
     expect(
-      await store.get(SCOPE_CATALOG_COLLECTION, "migration:durable-v1"),
+      await store.get(SCOPE_CATALOG_COLLECTION, "migration:durable-scope-key-v2"),
     ).toMatchObject({ schemaVersion: 1 });
   });
 

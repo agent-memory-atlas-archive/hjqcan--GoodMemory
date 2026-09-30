@@ -24,7 +24,7 @@ const MEMORY_COLLECTIONS = [
   "references",
   SESSION_ARCHIVES_COLLECTION,
 ] as const;
-const SCOPE_CATALOG_MIGRATION_ID = "migration:durable-v1";
+const SCOPE_CATALOG_MIGRATION_ID = "migration:durable-scope-key-v2";
 const SCOPE_CATALOG_PAGE_SIZE = 200;
 
 export type AdminMemoryCollection = (typeof MEMORY_COLLECTIONS)[number];
@@ -325,24 +325,57 @@ async function ensureHistoricalScopeCatalog(
   ) {
     return;
   }
-  const index = await listScopes({ documentStore, now });
+  const index = await listScopes({ documentStore, now, requireCompleteScan: true });
+  const discovered = new Map<string, {
+    scope: MemoryScope;
+    firstSeenAt: string;
+    lastSeenAt: string;
+  }>();
+  // Catalog-only scopes remain discoverable from their full tuple, but old
+  // completeness/fingerprint claims are never carried into the new namespace.
+  const historical = await documentStore.query<ScopeCatalogProjection>(
+    SCOPE_CATALOG_COLLECTION,
+  );
+  for (const catalog of historical) {
+    if (!isScopeCatalogRecord(catalog)) continue;
+    const scope = readStoredScope(catalog as unknown as Record<string, unknown>);
+    if (!scope) continue;
+    const key = scopeToKey(scope);
+    const existing = discovered.get(key);
+    discovered.set(key, {
+      scope,
+      firstSeenAt: existing && existing.firstSeenAt < catalog.firstSeenAt
+        ? existing.firstSeenAt : catalog.firstSeenAt,
+      lastSeenAt: existing && existing.lastSeenAt > catalog.lastSeenAt
+        ? existing.lastSeenAt : catalog.lastSeenAt,
+    });
+  }
   for (const summary of index.scopes) {
-    const id = `scope:${summary.scopeKey}`;
-    if (await documentStore.get(SCOPE_CATALOG_COLLECTION, id)) {
+    const timestamp = summary.lastUpdatedAt ?? index.generatedAt;
+    const existing = discovered.get(summary.scopeKey);
+    discovered.set(summary.scopeKey, {
+      scope: summary.scope,
+      firstSeenAt: existing?.firstSeenAt ?? timestamp,
+      lastSeenAt: existing && existing.lastSeenAt > timestamp
+        ? existing.lastSeenAt : timestamp,
+    });
+  }
+  for (const [scopeKey, summary] of discovered) {
+    const id = `scope:${scopeKey}`;
+    if (isScopeCatalogProjection(await documentStore.get(SCOPE_CATALOG_COLLECTION, id))) {
       continue;
     }
-    const timestamp = summary.lastUpdatedAt ?? index.generatedAt;
     await documentStore.set<ScopeCatalogProjection>(SCOPE_CATALOG_COLLECTION, id, {
       ...summary.scope,
       coverage: "partial",
       analyzerFingerprint: null,
-      firstSeenAt: timestamp,
+      firstSeenAt: summary.firstSeenAt,
       id,
-      lastSeenAt: timestamp,
+      lastSeenAt: summary.lastSeenAt,
       projectionVersion: RECALL_PROJECTION_PIPELINE_VERSION,
       schemaVersion: 2,
       searchSchemaVersion: PROJECTION_SEARCH_SCHEMA_VERSION,
-      scopeKey: summary.scopeKey,
+      scopeKey,
     });
   }
   await documentStore.set(SCOPE_CATALOG_COLLECTION, SCOPE_CATALOG_MIGRATION_ID, {
@@ -363,7 +396,9 @@ async function readScopeCatalogPage(input: {
     ))
       .filter(isScopeCatalogProjection)
       .filter((catalog) => input.cursor === undefined || catalog.scopeKey > input.cursor)
-      .sort((left, right) => left.scopeKey.localeCompare(right.scopeKey))
+      .sort((left, right) =>
+        left.scopeKey < right.scopeKey ? -1 : left.scopeKey > right.scopeKey ? 1 : 0,
+      )
       .slice(0, input.limit);
   }
 
@@ -383,9 +418,9 @@ async function readScopeCatalogPage(input: {
     }
     cursor = page.nextCursor;
   }
-  return catalogs
-    .sort((left, right) => left.scopeKey.localeCompare(right.scopeKey))
-    .slice(0, input.limit);
+  // Preserve the backend's cursor order (which may use database collation).
+  // Re-sorting a fetched page would make its last visible key an unsafe cursor.
+  return catalogs.slice(0, input.limit);
 }
 
 async function queryExactScopeDocuments(
@@ -415,6 +450,13 @@ function toStorageFilter(scope: MemoryScope): StorageFilter {
 function isScopeCatalogProjection(
   value: unknown,
 ): value is ScopeCatalogProjection {
+  return isScopeCatalogRecord(value) &&
+    hasCanonicalScopeIdentity(value as unknown as Record<string, unknown>);
+}
+
+function isScopeCatalogRecord(
+  value: unknown,
+): value is ScopeCatalogProjection {
   if (!value || typeof value !== "object") {
     return false;
   }
@@ -433,6 +475,13 @@ function isScopeCatalogProjection(
     typeof record.firstSeenAt === "string" &&
     typeof record.lastSeenAt === "string"
   );
+}
+
+function hasCanonicalScopeIdentity(record: Record<string, unknown>): boolean {
+  const scope = readStoredScope(record);
+  if (!scope) return false;
+  const scopeKey = scopeToKey(scope);
+  return record.scopeKey === scopeKey && record.id === `scope:${scopeKey}`;
 }
 
 function selectVisibleDetails(

@@ -5,13 +5,25 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
-import { scopeToKey, scopeToPrefix } from "../domain/scope";
+import {
+  listLegacySessionScopes,
+  planLegacySessionRecovery,
+  planSessionDelete,
+  planSessionDeleteByScope,
+  planSessionSet,
+  readSessionValue,
+  sessionScopeKeys,
+  type CompatibleSessionStateStore,
+  type SessionStatePlan,
+  type SessionStateSnapshot,
+} from "./sessionScopeKeys";
 import type {
   ConditionalDocumentWriteBatch,
   DocumentQueryPageInput,
   DocumentStore,
   DocumentTextSearchInput,
   ProjectionCapableDocumentStore,
+  SessionStateKind,
   SessionStore,
   StorageDocument,
   StorageFilter,
@@ -97,8 +109,6 @@ export interface PostgresStorageMigrationDependencies {
 interface PostgresStoreOptions {
   readOnly?: boolean;
 }
-
-type SessionStateKind = "buffer" | "working_memory" | "journal";
 
 interface DocumentRow {
   document_json: string;
@@ -419,161 +429,94 @@ function createPostgresSessionStateStore<TValue>(
   runtime: PostgresRuntime,
   stateKind: SessionStateKind,
   options?: PostgresStoreOptions,
-): {
-  set(scope: MemoryScope, value: TValue): Promise<void>;
-  setIfUnchanged(
-    scope: MemoryScope,
-    expectedValue: TValue | null,
-    nextValue: TValue,
-  ): Promise<boolean>;
-  get(scope: MemoryScope): Promise<TValue | null>;
-  deleteIfUnchanged(scope: MemoryScope, expectedValue: TValue): Promise<boolean>;
-  deleteByScope(scope: MemoryScope): Promise<number>;
-} {
+): CompatibleSessionStateStore<TValue> {
+  async function snapshot(sql: Pick<SQL, "unsafe">, scope?: MemoryScope): Promise<SessionStateSnapshot> {
+    const rows = scope
+      ? await sql.unsafe<Array<SessionRow & { scope_key: string }>>(
+          `SELECT scope_key, payload::text AS payload_json FROM ${runtime.sessionStateTable}
+           WHERE state_kind = $1 AND scope_key IN ($2, $3, $4)`,
+          [stateKind, ...sessionScopeKeys(scope)],
+        )
+      : await sql.unsafe<Array<SessionRow & { scope_key: string }>>(
+          `SELECT scope_key, payload::text AS payload_json FROM ${runtime.sessionStateTable}
+           WHERE state_kind = $1`,
+          [stateKind],
+        );
+    return new Map(rows.map((row) => [row.scope_key, row.payload_json]));
+  }
+
+  async function readSnapshot(scope?: MemoryScope): Promise<SessionStateSnapshot> {
+    if (options?.readOnly) {
+      if (!(await runtime.hasSessionStore())) return new Map();
+    } else {
+      await runtime.ensureSessionStore();
+    }
+    return snapshot(runtime.sql, scope);
+  }
+
+  async function mutate<T>(scope: MemoryScope | undefined,
+    operation: (state: SessionStateSnapshot) => SessionStatePlan<T>): Promise<T> {
+    if (options?.readOnly) throw createReadOnlyMutationError("session");
+    await runtime.ensureSessionStore();
+    return runtime.sql.begin(async (tx) => {
+      // Exact mutations share the table namespace and serialize only a single
+      // (kind, legacy key). Bulk deletion holds the namespace exclusively to
+      // prevent phantoms while preflighting every candidate. All writers must
+      // run the upgraded adapter; pre-v2 writers must be stopped for migration.
+      const namespace = JSON.stringify(["goodmemory-session-table", runtime.sessionStateTable]);
+      await tx.unsafe(
+        scope
+          ? "SELECT pg_advisory_xact_lock_shared(hashtextextended($1, 0))"
+          : "SELECT pg_advisory_xact_lock(hashtextextended($1, 0))",
+        [namespace],
+      );
+      if (scope) {
+        await tx.unsafe("SELECT pg_advisory_xact_lock(hashtextextended($1, 0))", [
+          JSON.stringify(["goodmemory-session-scope", runtime.sessionStateTable, stateKind, sessionScopeKeys(scope)[1]]),
+        ]);
+      }
+      const plan = operation(await snapshot(tx, scope));
+      for (const [key, json] of plan.set) {
+        await tx.unsafe(
+          `INSERT INTO ${runtime.sessionStateTable} (scope_key, state_kind, payload, updated_at)
+           VALUES ($1, $2, $3::text::jsonb, NOW())
+           ON CONFLICT (scope_key, state_kind)
+           DO UPDATE SET payload = EXCLUDED.payload, updated_at = EXCLUDED.updated_at`,
+          [key, stateKind, json],
+        );
+      }
+      for (const key of plan.delete) {
+        await tx.unsafe(
+          `DELETE FROM ${runtime.sessionStateTable} WHERE scope_key = $1 AND state_kind = $2`,
+          [key, stateKind],
+        );
+      }
+      return plan.result;
+    });
+  }
+
   return {
     async set(scope, value) {
-      if (options?.readOnly) {
-        throw createReadOnlyMutationError("session");
-      }
-
-      await runtime.ensureSessionStore();
-      await runtime.sql.unsafe(
-        `
-          INSERT INTO ${runtime.sessionStateTable} (
-            scope_key,
-            state_kind,
-            payload,
-            updated_at
-          ) VALUES (
-            $1,
-            $2,
-            $3::text::jsonb,
-            NOW()
-          )
-          ON CONFLICT (scope_key, state_kind)
-          DO UPDATE SET
-            payload = EXCLUDED.payload,
-            updated_at = EXCLUDED.updated_at
-        `,
-        [scopeToKey(scope), stateKind, bindJson(value)],
-      );
+      await mutate(scope, (state) => planSessionSet(state, scope, value));
     },
-
     async setIfUnchanged(scope, expectedValue, nextValue) {
-      if (options?.readOnly) {
-        throw createReadOnlyMutationError("session");
-      }
-
-      await runtime.ensureSessionStore();
-      const key = scopeToKey(scope);
-      const rows = expectedValue === null
-        ? await runtime.sql.unsafe<Array<{ count: number }>>(
-            `
-              INSERT INTO ${runtime.sessionStateTable} (
-                scope_key,
-                state_kind,
-                payload,
-                updated_at
-              ) VALUES (
-                $1,
-                $2,
-                $3::text::jsonb,
-                NOW()
-              )
-              ON CONFLICT (scope_key, state_kind) DO NOTHING
-              RETURNING 1 AS count
-            `,
-            [key, stateKind, bindJson(nextValue)],
-          )
-        : await runtime.sql.unsafe<Array<{ count: number }>>(
-            `
-              UPDATE ${runtime.sessionStateTable}
-              SET
-                payload = $3::text::jsonb,
-                updated_at = NOW()
-              WHERE scope_key = $1
-                AND state_kind = $2
-                AND payload = $4::text::jsonb
-              RETURNING 1 AS count
-            `,
-            [
-              key,
-              stateKind,
-              bindJson(nextValue),
-              bindJson(expectedValue),
-            ],
-          );
-      return rows.length === 1;
+      return mutate(scope, (state) => planSessionSet(state, scope, nextValue, { value: expectedValue }));
     },
-
     async get(scope) {
-      if (options?.readOnly && !(await runtime.hasSessionStore())) {
-        return null;
-      }
-
-      if (!options?.readOnly) {
-        await runtime.ensureSessionStore();
-      }
-      const rows = await runtime.sql.unsafe<SessionRow[]>(
-        `
-          SELECT payload::text AS payload_json
-          FROM ${runtime.sessionStateTable}
-          WHERE scope_key = $1 AND state_kind = $2
-        `,
-        [scopeToKey(scope), stateKind],
-      );
-      const row = rows[0];
-
-      return row ? parseJson<TValue>(row.payload_json) : null;
+      return readSessionValue<TValue>(await readSnapshot(scope), scope);
     },
-
     async deleteIfUnchanged(scope, expectedValue) {
-      if (options?.readOnly) {
-        throw createReadOnlyMutationError("session");
-      }
-
-      await runtime.ensureSessionStore();
-      const rows = await runtime.sql.unsafe<Array<{ count: number }>>(
-        `
-          DELETE FROM ${runtime.sessionStateTable}
-          WHERE scope_key = $1
-            AND state_kind = $2
-            AND payload = $3::text::jsonb
-          RETURNING 1 AS count
-        `,
-        [scopeToKey(scope), stateKind, bindJson(expectedValue)],
-      );
-      return rows.length === 1;
+      return mutate(scope, (state) => planSessionDelete(state, scope, expectedValue));
     },
-
     async deleteByScope(scope) {
-      if (options?.readOnly) {
-        throw createReadOnlyMutationError("session");
-      }
-
-      await runtime.ensureSessionStore();
-
-      if (scope.sessionId !== undefined) {
-        const rows = await runtime.sql.unsafe<Array<{ count: number }>>(
-          `
-            DELETE FROM ${runtime.sessionStateTable}
-            WHERE scope_key = $1 AND state_kind = $2
-            RETURNING 1 AS count
-          `,
-          [scopeToKey(scope), stateKind],
-        );
-        return rows.length;
-      }
-
-      const rows = await runtime.sql.unsafe<Array<{ count: number }>>(
-        `
-          DELETE FROM ${runtime.sessionStateTable}
-          WHERE scope_key LIKE $1 AND state_kind = $2
-          RETURNING 1 AS count
-        `,
-        [`${scopeToPrefix(scope)}%`, stateKind],
-      );
-      return rows.length;
+      return mutate(scope.sessionId === undefined ? undefined : scope,
+        (state) => planSessionDeleteByScope(state, scope));
+    },
+    async listLegacyScopes(kind) {
+      return listLegacySessionScopes(await readSnapshot(), kind);
+    },
+    async recoverLegacyState(scope, legacyKey, expected) {
+      return mutate(scope, (state) => planLegacySessionRecovery(state, scope, legacyKey, expected));
     },
   };
 }
@@ -962,6 +905,24 @@ export function createPostgresSessionStore(
   );
 
   return {
+    async listLegacyScopes() {
+      return (await Promise.all([
+        buffers.listLegacyScopes("buffer"),
+        workingMemory.listLegacyScopes("working_memory"),
+        journals.listLegacyScopes("journal"),
+      ])).flat();
+    },
+
+    recoverLegacyState(input) {
+      switch (input.kind) {
+        case "buffer":
+          return buffers.recoverLegacyState(input.scope, input.legacyKey, input.expectedValue);
+        case "working_memory":
+          return workingMemory.recoverLegacyState(input.scope, input.legacyKey, input.expectedValue);
+        case "journal":
+          return journals.recoverLegacyState(input.scope, input.legacyKey, input.expectedValue);
+      }
+    },
     saveBuffer(scope, buffer) {
       return buffers.set(scope, buffer);
     },

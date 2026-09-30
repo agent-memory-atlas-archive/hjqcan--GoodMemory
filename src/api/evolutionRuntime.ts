@@ -1,6 +1,6 @@
 import { createMemorySource } from "../domain/provenance";
 import type { FactMemory, FeedbackKind } from "../domain/records";
-import { scopeToKey } from "../domain/scope";
+import { isSameScope, legacyScopeToKey, scopeToKey } from "../domain/scope";
 import type { MemoryScope } from "../domain/scope";
 import {
   createEvidenceRecord,
@@ -84,10 +84,10 @@ function encodeExperienceIdSegment(value: string): string {
 function createAgentCorrectionExperienceId(input: {
   scope: MemoryScope;
   traceId: string;
-}): string {
+}, legacy = false): string {
   return [
     "agent_event.feedback",
-    `scope=${encodeExperienceIdSegment(scopeToKey(input.scope))}`,
+    `scope=${encodeExperienceIdSegment((legacy ? legacyScopeToKey : scopeToKey)(input.scope))}`,
     `trace=${encodeExperienceIdSegment(input.traceId)}`,
   ].join("|");
 }
@@ -96,10 +96,10 @@ function createBehavioralOutcomeRecordId(input: {
   kind: "evidence" | "experience";
   scope: MemoryScope;
   traceId: string;
-}): string {
+}, legacy = false): string {
   return [
     `behavioral_outcome.${input.kind}`,
-    `scope=${encodeExperienceIdSegment(scopeToKey(input.scope))}`,
+    `scope=${encodeExperienceIdSegment((legacy ? legacyScopeToKey : scopeToKey)(input.scope))}`,
     `trace=${encodeExperienceIdSegment(input.traceId)}`,
   ].join("|");
 }
@@ -182,6 +182,20 @@ function toFeedbackObservationResult(
 
 export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
   const now = config.now ?? (() => new Date().toISOString());
+
+  async function retainLegacyId(
+    kind: "evidence" | "experience",
+    scope: MemoryScope,
+    currentId: string,
+    legacyId: string,
+  ): Promise<string> {
+    const repository = kind === "evidence"
+      ? config.governanceRepositories.evidence
+      : config.governanceRepositories.experiences;
+    if (!repository.get || await repository.get(currentId)) return currentId;
+    const legacy = await repository.get(legacyId);
+    return legacy && isSameScope(legacy, scope) ? legacyId : currentId;
+  }
 
   function createEmptyAgentEventReceipts(): {
     promotionReceipts: AgentEventPromotionReceipt[];
@@ -368,10 +382,9 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
     }> {
       const traceId = input.traceId ?? crypto.randomUUID();
       const experienceId = input.traceId
-        ? createAgentCorrectionExperienceId({
-            scope: input.scope,
-            traceId,
-          })
+        ? await retainLegacyId("experience", input.scope,
+            createAgentCorrectionExperienceId({ scope: input.scope, traceId }),
+            createAgentCorrectionExperienceId({ scope: input.scope, traceId }, true))
         : crypto.randomUUID();
       const feedbackExperience = buildFeedbackExperienceRecord({
         scope: input.scope,
@@ -407,21 +420,17 @@ export function createEvolutionRuntime(config: EvolutionRuntimeConfig) {
       const timestamp = now();
       const traceId = input.traceId ?? crypto.randomUUID();
       const experienceId = input.traceId
-        ? createBehavioralOutcomeRecordId({
-            kind: "experience",
-            scope: input.scope,
-            traceId,
-          })
+        ? await retainLegacyId("experience", input.scope,
+            createBehavioralOutcomeRecordId({ kind: "experience", scope: input.scope, traceId }),
+            createBehavioralOutcomeRecordId({ kind: "experience", scope: input.scope, traceId }, true))
         : crypto.randomUUID();
       let evidence: EvidenceRecord | undefined;
 
       if (input.result.evidenceExcerpt) {
         const evidenceId = input.traceId
-          ? createBehavioralOutcomeRecordId({
-              kind: "evidence",
-              scope: input.scope,
-              traceId,
-            })
+          ? await retainLegacyId("evidence", input.scope,
+              createBehavioralOutcomeRecordId({ kind: "evidence", scope: input.scope, traceId }),
+              createBehavioralOutcomeRecordId({ kind: "evidence", scope: input.scope, traceId }, true))
           : crypto.randomUUID();
         const languageContext = config.language.resolveFromText({
           text: input.result.evidenceExcerpt,

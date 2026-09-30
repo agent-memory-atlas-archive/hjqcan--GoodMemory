@@ -69,7 +69,7 @@ describe("memoryfield page parsing", () => {
     const byTitle = derivePageNoteId(scope, { title: "  Carbon Fibre   Woks " });
 
     expect(byUuid).toBe(again);
-    expect(byUuid).toMatch(/^note_[0-9a-f]{24}$/);
+    expect(byUuid).toMatch(/^note_v2_[0-9a-f]{24}$/);
     expect(byUuid).not.toBe(otherScope);
     expect(byTitle).toBe(derivePageNoteId(scope, { title: "carbon fibre woks" }));
   });

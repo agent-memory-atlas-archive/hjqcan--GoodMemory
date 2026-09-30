@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { MemoryScope } from "../domain/scope";
-import { scopeToKey } from "../domain/scope";
+import { legacyScopeToKey, scopeToKey } from "../domain/scope";
 
 // Memoryfield-compatible page interchange (ADR-010 §9). A page is a UTF-8
 // Markdown file with an optional YAML frontmatter *subset*: scalar `title`,
@@ -238,11 +238,27 @@ export function derivePageNoteId(
   scope: MemoryScope,
   identity: { title?: string; uuid?: string },
 ): string {
+  return deriveNoteId("note_v2_", scopeToKey(scope), identity);
+}
+
+// Compatibility lookup only: the caller must verify the stored full scope.
+export function deriveLegacyPageNoteId(
+  scope: MemoryScope,
+  identity: { title?: string; uuid?: string },
+): string {
+  return deriveNoteId("note_", legacyScopeToKey(scope), identity);
+}
+
+function deriveNoteId(
+  prefix: string,
+  scopeKey: string,
+  identity: { title?: string; uuid?: string },
+): string {
   const key = identity.uuid?.trim()
     ? `uuid:${identity.uuid.trim()}`
     : `title:${normalizePageTitle(identity.title ?? "")}`;
-  return `note_${createHash("sha256")
-    .update(scopeToKey(scope))
+  return `${prefix}${createHash("sha256")
+    .update(scopeKey)
     .update(" ")
     .update(key)
     .digest("hex")

@@ -127,6 +127,16 @@ function createAutoSessionStore(
   resolveBackend: () => Promise<ResolvedStorageBackend>,
 ): SessionStore {
   return {
+    async listLegacyScopes() {
+      const backend = await resolveBackend();
+      return backend.sessionStore.listLegacyScopes!();
+    },
+
+    async recoverLegacyState(input) {
+      const backend = await resolveBackend();
+      return backend.sessionStore.recoverLegacyState!(input);
+    },
+
     saveBuffer(scope: MemoryScope, buffer: SessionBuffer) {
       return resolveBackend().then((backend) =>
         backend.sessionStore.saveBuffer(scope, buffer),

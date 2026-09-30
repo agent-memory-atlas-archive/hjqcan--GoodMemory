@@ -3,7 +3,7 @@ import { containsSensitiveCredential } from "../language/sensitive";
 import { mkdir, open, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import type { MemoryScope } from "../domain/scope";
-import { normalizeScope, scopeToKey } from "../domain/scope";
+import { legacyScopeToKey, normalizeScope, scopeToKey } from "../domain/scope";
 import { isRecord } from "./hostConfigValidation";
 import type { InstalledHostKind } from "./hostInstall";
 import { resolveInstallRoot } from "./hostRuntimeConfig";
@@ -80,7 +80,7 @@ export function buildReviewCandidateId(input: {
   scope: MemoryScope;
   candidateKey: string;
 }): string {
-  return `rc_${hashText(`${scopeToKey(input.scope)}\n${input.candidateKey}`, 20)}`;
+  return `rc_v2_${hashText(`${scopeToKey(input.scope)}\n${input.candidateKey}`, 20)}`;
 }
 
 export async function readReviewQueue(
@@ -96,7 +96,13 @@ export async function readReviewQueue(
       );
     }
     return {
-      candidates: parsed.candidates.filter(isReviewCandidate),
+      // The stored full tuple, not a legacy lossy key, establishes ownership.
+      // Keep the original candidate ID so approved/rejected and in-flight
+      // review state stays addressable across the key-format transition.
+      candidates: parsed.candidates.filter(isReviewCandidate).map((candidate) => {
+        const scope = normalizeScope(candidate.scope);
+        return { ...candidate, scope, scopeKey: scopeToKey(scope) };
+      }),
       version: REVIEW_QUEUE_VERSION,
     };
   } catch (error) {
@@ -174,7 +180,16 @@ export async function persistReviewCandidates(input: {
     for (const candidate of input.candidates) {
       const scope = normalizeScope(candidate.scope);
       const id = buildReviewCandidateId({ scope, candidateKey: candidate.candidateKey });
-      if (byId.has(id)) {
+      const legacyId = `rc_${hashText(`${legacyScopeToKey(scope)}\n${candidate.candidateKey}`, 20)}`;
+      const existing = byId.get(id);
+      if (existing) {
+        if (scopeToKey(existing.scope) !== scopeToKey(scope)) {
+          throw new Error("Review candidate ID belongs to a different scope.");
+        }
+        continue;
+      }
+      const legacy = byId.get(legacyId);
+      if (legacy && scopeToKey(legacy.scope) === scopeToKey(scope)) {
         continue;
       }
       byId.set(id, {

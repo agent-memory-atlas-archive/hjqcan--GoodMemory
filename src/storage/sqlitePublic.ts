@@ -134,6 +134,16 @@ function createDeferredSessionStore(
   resolveStore: () => Promise<SessionStore>,
 ): SessionStore {
   return {
+    async listLegacyScopes() {
+      const store = await resolveStore();
+      return store.listLegacyScopes!();
+    },
+
+    async recoverLegacyState(input) {
+      const store = await resolveStore();
+      return store.recoverLegacyState!(input);
+    },
+
     async saveBuffer(scope, buffer) {
       const store = await resolveStore();
       return store.saveBuffer(scope, buffer);

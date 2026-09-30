@@ -25,7 +25,7 @@ import type {
   LanguageService,
   ResolvedLanguageContext,
 } from "../language";
-import { scopeToKey, type MemoryScope } from "../domain/scope";
+import { isSameScope, legacyScopeToKey, scopeToKey, type MemoryScope } from "../domain/scope";
 import type {
   AgentEventCorrectionResult,
   AgentEventIngestResult,
@@ -63,17 +63,18 @@ const AGENT_EVENT_POLICY_PREFIX = "agent_event";
 function createAgentEventId(
   prefix: "evidence" | "experience",
   event: ExternalAgentEvent,
+  legacy = false,
 ): string {
-  return `${AGENT_EVENT_POLICY_PREFIX}.${prefix}.${createAgentEventKey(event)}`;
+  return `${AGENT_EVENT_POLICY_PREFIX}.${prefix}.${createAgentEventKey(event, legacy)}`;
 }
 
 function encodeAgentEventKeySegment(value: string): string {
   return encodeURIComponent(value);
 }
 
-function createAgentEventKey(event: ExternalAgentEvent): string {
+function createAgentEventKey(event: ExternalAgentEvent, legacy = false): string {
   return [
-    `scope=${encodeAgentEventKeySegment(scopeToKey(event.scope))}`,
+    `scope=${encodeAgentEventKeySegment((legacy ? legacyScopeToKey : scopeToKey)(event.scope))}`,
     `surface=${encodeAgentEventKeySegment(event.surface)}`,
     `event=${encodeAgentEventKeySegment(event.eventId)}`,
     `run=${encodeAgentEventKeySegment(event.runId ?? "")}`,
@@ -330,6 +331,24 @@ async function applyAgentEventPolicy(input: {
   };
 }
 
+// Legacy IDs are lookup hints only. Full stored scope is the authority.
+async function retainLegacyEventId<T extends EvidenceRecord | ExperienceRecord>(
+  documentStore: DocumentStore,
+  kind: "evidence" | "experience",
+  event: ExternalAgentEvent,
+  record: T | undefined,
+): Promise<T | undefined> {
+  if (!record || await documentStore.get(kind === "evidence" ? EVIDENCE_COLLECTION : EXPERIENCES_COLLECTION, record.id)) {
+    return record;
+  }
+  const legacyId = createAgentEventId(kind, event, true);
+  const legacy = await documentStore.get<T>(
+    kind === "evidence" ? EVIDENCE_COLLECTION : EXPERIENCES_COLLECTION,
+    legacyId,
+  );
+  return legacy && isSameScope(legacy, event.scope) ? { ...record, id: legacyId } : record;
+}
+
 async function readPersistedEventArtifacts(
   documentStore: DocumentStore,
   input: {
@@ -373,7 +392,7 @@ async function readUserCorrectionFeedbackReceipt(
     ...(event.scope.sessionId ? { sessionId: event.scope.sessionId } : {}),
   });
 
-  return matches[0] ?? null;
+  return matches.find((record) => isSameScope(record, event.scope)) ?? null;
 }
 
 function resolveUserCorrectionAppliesTo(
@@ -501,12 +520,12 @@ export function createAgentEventIngestor(
       }
 
       const timestamp = input.now().toISOString();
-      const evidence = buildEvidence({
+      const evidence = await retainLegacyEventId(input.documentStore, "evidence", event, buildEvidence({
         event,
         excerpt: policyResult.content,
         language: policyResult.language,
         now: timestamp,
-      });
+      }));
       const persistedArtifacts = await readPersistedEventArtifacts(input.documentStore, {
         evidence,
       });
@@ -554,13 +573,13 @@ export function createAgentEventIngestor(
         };
       }
 
-      const experience = buildExperience({
+      const experience = await retainLegacyEventId(input.documentStore, "experience", event, buildExperience({
         event,
         evidenceId: evidence?.id,
         now: timestamp,
         policyApplied: policyResult.policyApplied,
         summaryText: policyResult.content,
-      });
+      }));
       const completePersistedArtifacts = await readPersistedEventArtifacts(
         input.documentStore,
         {

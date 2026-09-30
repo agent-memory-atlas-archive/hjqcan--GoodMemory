@@ -8,7 +8,18 @@ import type {
   WorkingMemorySnapshot,
 } from "../domain/records";
 import type { MemoryScope } from "../domain/scope";
-import { scopeToKey, scopeToPrefix } from "../domain/scope";
+import {
+  listLegacySessionScopes,
+  planLegacySessionRecovery,
+  planSessionDelete,
+  planSessionDeleteByScope,
+  planSessionSet,
+  readSessionValue,
+  sessionScopeKeys,
+  type CompatibleSessionStateStore,
+  type SessionStatePlan,
+  type SessionStateSnapshot,
+} from "./sessionScopeKeys";
 import type {
   ConditionalDocumentWriteBatch,
   DocumentQueryPageInput,
@@ -977,112 +988,59 @@ function createSQLiteScopedStore<TValue>(
   database: Database,
   tableName: "session_buffers" | "session_working_memory" | "session_journals",
   options?: SQLiteStoreOptions,
-): {
-  set(scope: MemoryScope, value: TValue): Promise<void>;
-  setIfUnchanged(
-    scope: MemoryScope,
-    expectedValue: TValue | null,
-    nextValue: TValue,
-  ): Promise<boolean>;
-  get(scope: MemoryScope): Promise<TValue | null>;
-  deleteIfUnchanged(scope: MemoryScope, expectedValue: TValue): Promise<boolean>;
-  deleteByScope(scope: MemoryScope): Promise<number>;
-} {
-  if (options?.readOnly && !hasTable(database, tableName)) {
-    return {
-      async set() {
-        throw createReadOnlyMutationError("session");
-      },
-
-      async get() {
-        return null;
-      },
-
-      async setIfUnchanged() {
-        throw createReadOnlyMutationError("session");
-      },
-
-      async deleteIfUnchanged() {
-        throw createReadOnlyMutationError("session");
-      },
-
-      async deleteByScope() {
-        throw createReadOnlyMutationError("session");
-      },
-    };
+): CompatibleSessionStateStore<TValue> {
+  function snapshot(scope?: MemoryScope): SessionStateSnapshot {
+    if (options?.readOnly && !hasTable(database, tableName)) return new Map();
+    const rows = scope
+      ? database.query<SessionRow & { scope_key: string }, [string, string, string]>(
+          `SELECT scope_key, json FROM ${tableName} WHERE scope_key IN (?1, ?2, ?3)`,
+        ).all(...sessionScopeKeys(scope))
+      : database.query<SessionRow & { scope_key: string }, []>(
+          `SELECT scope_key, json FROM ${tableName}`,
+        ).all();
+    return new Map(rows.map((row) => [row.scope_key, row.json]));
   }
 
-  const upsertStatement = database.query(
-    `INSERT INTO ${tableName} (scope_key, json)
-     VALUES (?1, ?2)
-     ON CONFLICT(scope_key) DO UPDATE SET json = excluded.json`,
-  );
-  const getStatement = database.query<SessionRow, [string]>(
-    `SELECT json FROM ${tableName} WHERE scope_key = ?1`,
-  );
-  const insertIfMissingStatement = database.query(
-    `INSERT INTO ${tableName} (scope_key, json)
-     VALUES (?1, ?2)
-     ON CONFLICT(scope_key) DO NOTHING`,
-  );
-  const updateIfUnchangedStatement = database.query(
-    `UPDATE ${tableName}
-     SET json = ?3
-     WHERE scope_key = ?1 AND json = ?2`,
-  );
-  const deleteExactStatement = database.query(
-    `DELETE FROM ${tableName} WHERE scope_key = ?1`,
-  );
-  const deleteIfUnchangedStatement = database.query(
-    `DELETE FROM ${tableName} WHERE scope_key = ?1 AND json = ?2`,
-  );
-  const deletePrefixStatement = database.query(
-    `DELETE FROM ${tableName} WHERE scope_key LIKE ?1`,
-  );
+  function mutate<T>(scope: MemoryScope | undefined,
+    operation: (state: SessionStateSnapshot) => SessionStatePlan<T>): T {
+    if (options?.readOnly) throw createReadOnlyMutationError("session");
+    return runSQLiteImmediateTransaction(database, () => {
+      const plan = operation(snapshot(scope));
+      for (const [key, json] of plan.set) {
+        database.query(
+          `INSERT INTO ${tableName} (scope_key, json) VALUES (?1, ?2)
+           ON CONFLICT(scope_key) DO UPDATE SET json = excluded.json`,
+        ).run(key, json);
+      }
+      for (const key of plan.delete) {
+        database.query(`DELETE FROM ${tableName} WHERE scope_key = ?1`).run(key);
+      }
+      return plan.result;
+    });
+  }
 
   return {
     async set(scope, value) {
-      upsertStatement.run(scopeToKey(scope), JSON.stringify(value));
+      mutate(scope, (state) => planSessionSet(state, scope, value));
     },
-
     async setIfUnchanged(scope, expectedValue, nextValue) {
-      return runSQLiteImmediateTransaction(database, () => {
-        const key = scopeToKey(scope);
-        const nextJson = JSON.stringify(nextValue);
-        const result = expectedValue === null
-          ? insertIfMissingStatement.run(key, nextJson)
-          : updateIfUnchangedStatement.run(
-              key,
-              JSON.stringify(expectedValue),
-              nextJson,
-            );
-        return Number(result.changes ?? 0) === 1;
-      });
+      return mutate(scope, (state) => planSessionSet(state, scope, nextValue, { value: expectedValue }));
     },
-
     async get(scope) {
-      const row = getStatement.get(scopeToKey(scope));
-      return row ? parseJson<TValue>(row.json) : null;
+      return readSessionValue<TValue>(snapshot(scope), scope);
     },
-
     async deleteIfUnchanged(scope, expectedValue) {
-      return runSQLiteImmediateTransaction(database, () => {
-        const result = deleteIfUnchangedStatement.run(
-          scopeToKey(scope),
-          JSON.stringify(expectedValue),
-        );
-        return Number(result.changes ?? 0) === 1;
-      });
+      return mutate(scope, (state) => planSessionDelete(state, scope, expectedValue));
     },
-
     async deleteByScope(scope) {
-      if (scope.sessionId !== undefined) {
-        const result = deleteExactStatement.run(scopeToKey(scope));
-        return Number(result.changes ?? 0);
-      }
-
-      const result = deletePrefixStatement.run(`${scopeToPrefix(scope)}%`);
-      return Number(result.changes ?? 0);
+      return mutate(scope.sessionId === undefined ? undefined : scope,
+        (state) => planSessionDeleteByScope(state, scope));
+    },
+    async listLegacyScopes(kind) {
+      return listLegacySessionScopes(snapshot(), kind);
+    },
+    async recoverLegacyState(scope, legacyKey, expected) {
+      return mutate(scope, (state) => planLegacySessionRecovery(state, scope, legacyKey, expected));
     },
   };
 }
@@ -1113,6 +1071,24 @@ export function createSQLiteSessionStore(
   );
 
   return {
+    async listLegacyScopes() {
+      return (await Promise.all([
+        buffers.listLegacyScopes("buffer"),
+        workingMemory.listLegacyScopes("working_memory"),
+        journals.listLegacyScopes("journal"),
+      ])).flat();
+    },
+
+    recoverLegacyState(input) {
+      switch (input.kind) {
+        case "buffer":
+          return buffers.recoverLegacyState(input.scope, input.legacyKey, input.expectedValue);
+        case "working_memory":
+          return workingMemory.recoverLegacyState(input.scope, input.legacyKey, input.expectedValue);
+        case "journal":
+          return journals.recoverLegacyState(input.scope, input.legacyKey, input.expectedValue);
+      }
+    },
     saveBuffer(scope, buffer) {
       return buffers.set(scope, buffer);
     },

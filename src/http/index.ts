@@ -20,6 +20,7 @@ import type {
   ReviseMemoryResult,
 } from "../api/contracts";
 import type { MemoryScope } from "../domain/scope";
+import { LegacyScopeKeyError } from "../domain/scope";
 import { StorageUnsafeTextError } from "../domain/semanticText";
 import { isIanaTimezone, isRfc3339Instant } from "../domain/temporal";
 import type { TemporalInterval } from "../domain/temporal";
@@ -1893,7 +1894,12 @@ export function createGoodMemoryHttpMemoryBridge(
         operation,
         scope: scope.value,
       });
-    } catch {
+    } catch (error) {
+      if (error instanceof LegacyScopeKeyError) {
+        return errorResult(409, error.code,
+          "Legacy scope ownership could not be verified. Original data is preserved. " +
+          "Use the migration guide's trusted ownership recovery before retrying.");
+      }
       return errorResult(
         500,
         "bridge_operation_failed",

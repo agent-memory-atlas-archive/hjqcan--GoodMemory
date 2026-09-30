@@ -61,6 +61,117 @@ Back up and inspect the old scope using its explicit ID before deciding on
 record-by-record reconciliation. Do not copy an ambiguous old scope into every
 new workspace, and do not treat an empty new scope as database corruption.
 
+## Versioned scope-key safety migration
+
+The scope-key safety update uses `gm2:` keys. Each of the five normalized scope
+components (`userId`, `tenantId`, `workspaceId`, `agentId`, `sessionId`) is a
+separately encoded JSON string or `null`; components are separated by a single
+colon. Arbitrary colons, Unicode, absent dimensions, and field boundaries no
+longer alias another user's scope. New keys cannot equal any old `::`-joined
+key. Do not parse keys yourself: use `scopeToKey`, `parseScopeKey`, and the
+full `MemoryScope` fields. Treat the serialized key as a versioned opaque ID.
+
+Stop **all old and new writers** and take a consistent database backup before
+recovery. Do not run old package versions concurrently with the upgraded
+package. The new transaction/ownership protocol cannot make an old writer
+participate in the new key format. Rollback requires restoring the backup;
+pointing an old binary at upgraded state is not a supported downgrade.
+
+### Existing session state
+
+Built-in memory, SQLite, and Postgres adapters use the same compatibility rules:
+
+- Uniquely decodable legacy keys remain readable. Read-only access does not
+  mutate the database. On the first successful mutation, a permanent owner
+  marker is written atomically with the new state, preventing later fallback
+  from resurrecting an older snapshot.
+- An unresolved ambiguous legacy key raises `LegacyScopeKeyError`, with code
+  `GOODMEMORY_LEGACY_SCOPE_AMBIGUOUS`. The original row is left intact and is
+  logically quarantined from normal reads, writes, CAS, and deletes. A bulk
+  deletion encountering such a row fails before modifying that state kind.
+  A higher-level multi-collection deletion may have its normal recoverable
+  deletion journal; do not assume the whole multi-store operation was atomic.
+- Explicit empty/blank `sessionId` still means an exact sessionless record.
+  Omitted `sessionId` selects all sessions of the exact durable tuple.
+- Ordinary deletion of a safe or explicitly confirmed owner erases its current
+  and preserved legacy payloads. Payload-free ownership markers remain to
+  prevent a later replay from reassigning or resurrecting archived data. This
+  is distinct from unresolved quarantine, whose original payload is retained.
+
+The optional `SessionStore.listLegacyScopes()` method lists metadata only:
+state kind, old key, provably unique scope (or `null`), and a resolved owner (or
+`null`). This is a privileged storage-maintenance API, not a user-facing
+endpoint. Custom session adapters need not implement the optional methods;
+their operators must provide an equivalent safe migration before upgrading.
+
+For an ambiguous row, independently establish its full owner from a trusted
+backup or application source. A session ID, matching payload, or the lossy key
+alone is **not** proof. If no such evidence exists, keep the row quarantined.
+Once the owner is known, inspect its original payload through trusted storage
+administration and submit exactly that snapshot:
+
+```ts
+const restored = await sessionStore.recoverLegacyState?.({
+  kind: "buffer", // or "working_memory" / "journal"
+  legacyKey: inspectedLegacyKey,
+  scope: independentlyVerifiedScope,
+  expectedValue: inspectedOriginalBuffer,
+});
+if (restored !== true) {
+  // Missing capability, changed original, different owner, or target conflict.
+  // Stop and re-inspect; never retry with a guessed owner or overwrite a target.
+}
+```
+
+Recovery atomically copies the expected original into the v2 target and records
+one durable owner per legacy key/state kind. It leaves the original intact until
+normal owner deletion. A content digest pins the inspected original; if an
+external restore later changes it, owner deletion fails before erasing either
+payload. Stop the old writer/importer and re-inspect the backup rather than
+changing the claim to silence the conflict. A second owner cannot claim the
+same source after a restart. Repeating the same claim returns true only while the original and
+target still match; it never overwrites newer state or resurrects deleted state.
+This operation does not claim to split a payload that was already mixed by an
+old collision, nor recover an older value overwritten before the upgrade.
+
+### Other persisted consumers
+
+Canonical durable records already carry full scope fields and keep their IDs.
+The update verifies those fields when reusing legacy event, trace, review, and
+page-import identities. Approved/rejected review candidates keep their status.
+New imported pages and review candidates have disjoint `note_v2_` and `rc_v2_`
+ID namespaces. Existing historical-ID page-import idempotency is preserved.
+
+Recall projections and Inspector catalogs are rebuildable from canonical
+records; old key strings are not ownership evidence. Allow first-use rebuild
+work, and verify paginated scope listing and recall on the upgraded copy.
+Spill pointers and payloads use separate `gm2spill:` / `gm2payload:` namespaces;
+old payload URIs are readable only after full stored scope and content-integrity
+checks. New requests issue new progressive-record HMAC references and scope digests;
+previous references/cache entries must be refreshed through normal index
+retrieval. They are not accepted as aliases for an ambiguous legacy scope.
+
+Extraction cursors and interrupted deletion fences can also require explicit
+ownership recovery. Use `createExtractionCursorStore(...).recoverLegacyCursor`
+with the independently verified scope, source ID, original cursor snapshot,
+and `confirmTrustedOwnership: true`. This public cursor boundary enforces the
+normal storage-safe text contract (no NUL or unpaired surrogate characters)
+before any storage access. Use
+`createScopeDeletionCoordinator(...).recoverLegacyDeletionJournal` for a
+legacy deletion journal after inspecting its original lock/barrier snapshots,
+with both `confirmTrustedOwnership: true` and
+`confirmPriorRuntimesStopped: true`.
+Both are privileged maintenance operations: retain the originals, reject
+conflicting targets/owners, and use compare-and-swap. Mapping a journal does
+not remove its fence; resume the normal deletion coordinator only after
+confirming that the original deletion intent still applies. Never edit away
+an active lock or reset a cursor merely to suppress a migration error.
+
+No automatic scan can determine whether pre-upgrade collisions already mixed
+or overwrote user data. The affected quantity is installation-specific and
+unknown until inspected; a passing migration test is not proof that existing
+production data is unmixed.
+
 ## Notes, projections, and context
 
 The new `note` kind stores a titled Markdown body verbatim, up to 8192 UTF-8

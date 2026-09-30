@@ -60,7 +60,9 @@ function slugify(title: string): string {
 }
 
 function idStem(id: string): string {
-  const raw = id.startsWith("note_") ? id.slice("note_".length) : id;
+  const raw = id.startsWith("note_v2_")
+    ? id.slice("note_v2_".length)
+    : id.startsWith("note_") ? id.slice("note_".length) : id;
   const cleaned = raw.replace(/[^A-Za-z0-9-]/g, "").slice(0, ID_STEM_CHARS);
   return cleaned.length > 0 ? cleaned : "page";
 }

@@ -173,7 +173,41 @@ export interface VectorStore {
   delete(collection: string, id: string): Promise<void>;
 }
 
+export type SessionStateKind = "buffer" | "working_memory" | "journal";
+
+/** Legacy key metadata only. Payloads require an externally verified owner. */
+export interface LegacySessionScope {
+  kind: SessionStateKind;
+  legacyKey: string;
+  /** Present only when the legacy encoding proves a unique normalized owner. */
+  scope: MemoryScope | null;
+  /** A durable resolution. Normal owner deletion also erases the original payload. */
+  resolvedTo: MemoryScope | null;
+}
+
+export type RecoverLegacySessionStateInput = {
+  legacyKey: string;
+  scope: MemoryScope;
+} & (
+  | { kind: "buffer"; expectedValue: SessionBuffer }
+  | { kind: "working_memory"; expectedValue: WorkingMemorySnapshot }
+  | { kind: "journal"; expectedValue: SessionJournal }
+);
+
 export interface SessionStore {
+  /** Inspect preserved legacy keys without exposing their payloads or mutating. */
+  listLegacyScopes?(): Promise<LegacySessionScope[]>;
+  /**
+   * Explicit trusted ownership assertion. The caller must independently verify
+   * the full scope and original payload. Atomically claims one owner per legacy
+   * key/state kind, preserves the original until normal owner deletion, and
+   * never replaces a differing v2
+   * target. Returns false on an owner, original, or target conflict. Repeating
+   * the same claim succeeds only while the original and target remain unchanged.
+   * Invalid claim metadata throws LegacyScopeKeyError. Owner deletion also
+   * refuses to erase an original changed after its durable ownership claim.
+   */
+  recoverLegacyState?(input: RecoverLegacySessionStateInput): Promise<boolean>;
   saveBuffer(scope: MemoryScope, buffer: SessionBuffer): Promise<void>;
   saveBufferIfUnchanged(
     scope: MemoryScope,

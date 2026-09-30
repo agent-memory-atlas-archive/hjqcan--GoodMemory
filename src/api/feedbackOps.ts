@@ -5,6 +5,7 @@ import {
   normalizeFeedbackAppliesTo,
 } from "../domain/records";
 import { createMemorySource } from "../domain/provenance";
+import { isSameDurableScope } from "../domain/scope";
 import { hasPersistableSemanticText } from "../domain/semanticText";
 import type { LanguageService } from "../language";
 import type { GovernanceRepositoryPort } from "../storage/ports";
@@ -82,7 +83,9 @@ async function resolveFeedbackSignalState(input: {
   signal: string;
 }) {
   const metadata = resolveFeedbackSignalMetadata(input);
-  const existing = await input.feedbackRepository.listByScope(input.scope);
+  const existing = (
+    await input.feedbackRepository.listByScope(input.scope)
+  ).filter((record) => isSameDurableScope(record, input.scope));
   const nextIdentityKey = buildFeedbackIdentityKey(metadata);
   const duplicate = existing.find((record) => {
     const recordLanguage = input.language.resolveFromText({
