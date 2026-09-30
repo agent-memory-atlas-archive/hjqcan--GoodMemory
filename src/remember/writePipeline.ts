@@ -1,4 +1,4 @@
-import { hasUnattributedPersonalClaims, speakerAttributedText, withheldPersonalText } from "../language/speakerAttribution";
+import { hasUnattributedPersonalClaims, requiresFinalSourceGrounding, speakerAttributedText, withheldPersonalText } from "../language/speakerAttribution";
 import { sourcePreferenceStatement } from "../language/personalPreferences";
 import { hasPersistableSemanticText } from "../domain/semanticText";
 import { buildEpisodeEmbeddingWrite } from "../embedding/vectorWrites";
@@ -293,18 +293,29 @@ export function createRememberWritePipeline(
           })),
         };
 
-        const personalSourceCandidates = new Map<number, MemoryCandidate[]>();
+        const personalSourceCandidates = new Map<string, MemoryCandidate[]>();
         const hasAttributionRisk = producerInput.messages.some((message) =>
           hasUnattributedPersonalClaims(message.content));
         const withheldSources = producerInput.messages.map((message) => withheldPersonalText(message.content));
-        const personalCandidateIsGrounded = (candidate: MemoryCandidate): boolean => {
-          if (candidate.kindHint !== "profile" && candidate.kindHint !== "preference") return true;
+        const personalCandidateIsGrounded = (candidate: MemoryCandidate, original: MemoryCandidate): boolean => {
+          // Read the restriction from the original candidate: a redactor that
+          // returns a new object must not accidentally erase this requirement.
+          const requiresDerivedSource = requiresFinalSourceGrounding(original);
+          if (!requiresDerivedSource && candidate.kindHint !== "profile" && candidate.kindHint !== "preference") return true;
           const indexes = candidateSourceMessageIndexes(candidate);
+          const requiresCurrentAssertion = requiresDerivedSource || (candidate.kindHint === "profile" &&
+            candidate.metadata?.profileField === "currentProject" &&
+            /^(?:en|zh-Hans|zh-Hant)$/u.test(
+              resolveCandidateLanguage(candidate, sourceAnalyses, requestLanguage).languagePackId,
+            ));
           // Producer-supplied source indexes cannot turn off the check: a model
           // may attach a quoted name to a different, unrelated user message.
-          if (!hasAttributionRisk) return true;
+          if (!hasAttributionRisk && !requiresCurrentAssertion) return true;
           return indexes.some((index) => {
-            const source = producerInput.messages[index];
+            // Structured current-project writes need affirmative current source
+            // support even without quotes. Use only the final policy-safe view:
+            // raw source must not restore proof that a redaction removed.
+            const source = (requiresCurrentAssertion ? policySafeInput : producerInput).messages[index];
             if (!source || source.role !== "user") return false;
             const sourceLanguage = sourceAnalyses.get(index)?.context ?? requestLanguage.context;
             const candidateValue = candidate.kindHint === "preference"
@@ -317,10 +328,11 @@ export function createRememberWritePipeline(
             const borrowedFromWithheldSource = withheldSources.some((text) =>
               language.normalizeForEquality(text, sourceLanguage).includes(value));
             const authorSource = speakerAttributedText(source.content);
-            if (value.length > 0 &&
+            if (!requiresCurrentAssertion && value.length > 0 &&
               !borrowedFromWithheldSource &&
               language.normalizeForEquality(authorSource, sourceLanguage).includes(value)) return true;
-            let grounded = personalSourceCandidates.get(index);
+            const cacheKey = `${requiresCurrentAssertion ? "current" : "personal"}:${index}`;
+            let grounded = personalSourceCandidates.get(cacheKey);
             if (!grounded) {
               let next = 0;
               grounded = language.extractCandidates({
@@ -328,7 +340,7 @@ export function createRememberWritePipeline(
                 locale: sourceLanguage.locale,
                 nextId: () => `attributed-${index}-${++next}`,
               }, sourceLanguage);
-              personalSourceCandidates.set(index, grounded);
+              personalSourceCandidates.set(cacheKey, grounded);
             }
             return grounded.some((item) => item.kindHint === candidate.kindHint &&
               (candidate.kindHint !== "profile" ||
@@ -480,7 +492,7 @@ export function createRememberWritePipeline(
             continue;
           }
 
-          if (!personalCandidateIsGrounded(effectiveCandidate)) {
+          if (!personalCandidateIsGrounded(effectiveCandidate, candidate)) {
             state.rejected += 1;
             state.events.push({
               candidateId: candidate.id, outcome: "rejected",

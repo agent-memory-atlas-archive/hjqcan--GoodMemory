@@ -126,6 +126,23 @@ const V07_COMMAND_CHECKS = [
   },
 ] as const;
 
+// Patch releases validate the current product, not a historical experiment on
+// a maintainer's private disk. test:ci already includes typecheck, coverage and
+// post-coverage package/CLI tests; packing runs the existing prepack build.
+const PORTABLE_V08_COMMAND_CHECKS = [
+  {
+    args: ["run", "test:ci"],
+    command: "bun",
+    id: "ci",
+    required: true,
+    successDetail: "strict types, canonical coverage gates and post-coverage package/CLI tests passed",
+    title: "Current source CI gate",
+  },
+  ...V07_COMMAND_CHECKS.filter(({ id }) =>
+    id === "public-claims" || id === "scale" || id === "postgres"
+  ),
+] as const;
+
 const LANGUAGE_CONSUMER_SMOKE = `
 import {
   createChineseLanguagePack,
@@ -309,6 +326,10 @@ async function loadVersionedReleaseProfile(
     );
   }
 
+  // Keep the old profile readable for exact historical 0.7/0.8.0 receipts.
+  // Their checks are not claimed as current 0.8.1+ validation results.
+  const portablePatchRelease = minor === "0.8" && Number(version.split(".")[2]) >= 1;
+
   return {
     artifact: {
       consumerSmoke: LANGUAGE_CONSUMER_SMOKE + (minor === "0.8" ? V08_CONSUMER_SMOKE : ""),
@@ -319,14 +340,15 @@ async function loadVersionedReleaseProfile(
         "reports/quality-gates/phase-75/default-enablement-20260905.md",
       ] : [])],
     },
-    checks: [...V07_COMMAND_CHECKS, ...(minor === "0.8" ? [{
+    checks: [...(portablePatchRelease ? PORTABLE_V08_COMMAND_CHECKS : V07_COMMAND_CHECKS), ...(minor === "0.8" ? [
+      ...(portablePatchRelease ? [] : [{
       args: ["scripts/release/phase73.ts"],
       command: "bun",
       id: "phase-73",
       required: true,
       successDetail: "Complete Level-2 evidence and independent review verified; no public claim promoted",
       title: "Phase 73 Level-2 closure",
-    }, {
+    }]), {
       args: ["scripts/release/kimiPlugin.ts", "--output", { outputPath: `goodmemory-kimi-plugin-${version}.zip` }],
       command: "bun",
       generatedEvidence: { id: "kimi-plugin-archive", path: `goodmemory-kimi-plugin-${version}.zip` },
@@ -335,7 +357,7 @@ async function loadVersionedReleaseProfile(
       successDetail: "Version-pinned plugin-only ZIP generated from the allowlisted source closure",
       title: "Kimi Code plugin release archive",
     }] : [])],
-    evidenceInputs: [{
+    evidenceInputs: portablePatchRelease ? [] : [{
       checkId: V07_HISTORICAL_CAPSULE_CHECK_ID,
       id: "v0.7.4-release-readiness-capsule",
       kind: "file",
@@ -343,7 +365,7 @@ async function loadVersionedReleaseProfile(
       sha256: V07_READINESS_CAPSULE_SHA256,
       title: "Frozen v0.7.4 release readiness capsule",
     }],
-    id: `goodmemory-v${minor}`,
+    id: portablePatchRelease ? "goodmemory-v0.8-portable-v1" : `goodmemory-v${minor}`,
     package: {
       distTag,
       installCommandsApplyAfterPublish: true,

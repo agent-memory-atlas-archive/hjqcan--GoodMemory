@@ -29,6 +29,9 @@ bulk-load. Start here, then open only the file that matches the question.
   projection. Stable publication uses that exact locally verified artifact
   set; tag pushes do not rebuild or publish. `../scripts/release/verify.ts`
   and the read-only release workflow verify published asset identity.
+  From 0.8.1, the current-product profile runs CI once plus mandatory local
+  database/scale and exact-package checks. Historical Phase 73 raw captures
+  and old readiness capsules are not patch-release prerequisites.
 - `../adr/ADR-008-language-pack-horizontal-extension.txt` - accepted 0.7
   LanguagePack boundary, breaking-replacement decision, script-local Chinese
   guarantee, and versioned projection migration contract.

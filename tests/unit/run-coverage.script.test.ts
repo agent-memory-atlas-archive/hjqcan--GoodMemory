@@ -10,6 +10,9 @@ import {
 } from "../../scripts/run-ci-post-coverage-tests";
 
 describe("run-coverage script", () => {
+  it("restores the real SQLite hook-latency regression after coverage instrumentation", () => {
+    expect(POST_COVERAGE_TEST_TARGETS).toContain("tests/integration/host-recall-latency.test.ts");
+  });
   it("discovers integration coverage files while excluding child-process and slow evidence tests", () => {
     expect(
       selectIntegrationCoverageFiles([

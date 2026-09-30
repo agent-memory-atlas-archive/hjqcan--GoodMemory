@@ -1,5 +1,6 @@
 import { parsePersonalPreferenceStatements } from "./personalPreferences";
 import { extractWithPersonalAttribution } from "./speakerAttribution";
+import { matchCurrentAssertion } from "./currentAssertions";
 import type {
   MemoryCandidate,
   MemoryCandidateMetadata,
@@ -230,9 +231,9 @@ const PERSONAL_BEST_TIME_PATTERN =
 const LEARNING_WITH_TOOL_PATTERN =
   /我(?:正在|想|想要|试着)?学习\s*([^，。！？；]+?)(?:，|,)?(?:用|使用)\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
 const CURRENT_PROJECT_INVOLVEMENT_PATTERN =
-  /我(?:正在|最近|一直|已经)?(?:做|负责|推进|参与)\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
+  /我(?:正在|最近|一直|已经)?(?:做|负责|推进|参与)\s*(.+)$/u;
 const PROJECT_LEADERSHIP_PATTERN =
-  /我(?:主导了|主导|带领了|带领|领导了|领导|负责了|负责)\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
+  /我(?:主导了|主导|带领了|带领|领导了|领导)\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
 const PROJECT_ACTIVITY_PATTERN =
   /我(?:最近|刚)?(参加了|参与了|展示了|汇报了|发表了|介绍了)\s*([^，。！？；]+?)(?=，|。|！|？|；|$)/u;
 const RELATION_RELOCATION_PATTERN =
@@ -1152,6 +1153,7 @@ function maybeExtractCandidatesFromClause(
     observedAt?: string;
     timezone?: string;
   },
+  markAuthorDerived: (candidate: MemoryCandidate) => MemoryCandidate = (candidate) => candidate,
 ): MemoryCandidate[] {
   const trimmed = content.trim();
   if (!trimmed) {
@@ -1284,7 +1286,7 @@ function maybeExtractCandidatesFromClause(
     }
   }
 
-  const currentProjectMatch = trimmed.match(/我(?:现在|目前|正在)?(?:在做|负责|推进)\s*([^，。！？；]+)/u);
+  const currentProjectMatch = matchCurrentAssertion(trimmed, /我(?:现在|目前|正在)?(?:在做|负责|推进)\s*(.+)$/u, "zh");
   if (currentProjectMatch?.[1]) {
     candidates.push(
       createProfileCandidate(
@@ -1479,18 +1481,16 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const currentProjectInvolvementMatch = trimmed.match(
-    CURRENT_PROJECT_INVOLVEMENT_PATTERN,
-  );
+  const currentProjectInvolvementMatch = matchCurrentAssertion(trimmed, CURRENT_PROJECT_INVOLVEMENT_PATTERN, "zh");
   if (currentProjectInvolvementMatch?.[1]) {
     const project = cleanProjectTarget(currentProjectInvolvementMatch[1]);
     candidates.push(
-      createGenericProjectFactCandidate(
+      markAuthorDerived(createGenericProjectFactCandidate(
         index,
         nextId,
         `我正在做${project}。`,
         project,
-      ),
+      )),
     );
   }
 
@@ -1679,7 +1679,7 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
           behavioralDirective: canonicalSourceAnalysis.behavioralDirective,
           interrogative: canonicalSourceAnalysis.interrogative,
         };
-        candidates.push(...extractWithPersonalAttribution(message.content, (content) => {
+        candidates.push(...extractWithPersonalAttribution(message.content, (content, markAuthorDerived) => {
           const candidates: MemoryCandidate[] = [];
           // A semicolon list with one explicit instruction is parsed before
           // splitting only when EVERY source clause is an independent fact.
@@ -1747,6 +1747,7 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
                 observedAt: message.observedAt,
                 timezone: message.timezone,
               },
+              markAuthorDerived,
             );
             candidates.push(...(sourceOfTruthReference
               ? clauseCandidates.filter(

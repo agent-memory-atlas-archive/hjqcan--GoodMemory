@@ -21,6 +21,30 @@ async function packageRoot(version: string, status = "release-candidate") {
 }
 
 describe("v0.8 release profile", () => {
+  it.each(["0.8.1", "0.8.2"])("uses reproducible current-product gates for %s", async (version) => {
+    const profile = await loadReleaseProfile(await packageRoot(version, "stable"));
+    expect(profile.id).toBe("goodmemory-v0.8-portable-v1");
+    expect(profile.checks.map((check) => check.id)).toEqual([
+      "ci", "public-claims", "scale", "postgres", "kimi-plugin",
+    ]);
+    expect(profile.checks.every((check) => check.required)).toBe(true);
+    expect(profile.checks[0]).toMatchObject({ command: "bun", args: ["run", "test:ci"] });
+    expect(profile.checks.find((check) => check.id === "postgres")).toMatchObject({
+      requiredEnvironment: "GOODMEMORY_TEST_POSTGRES_URL",
+      args: ["test", "tests/integration/storage.postgres.test.ts", "tests/integration/api.postgres.test.ts"],
+    });
+    expect(profile.evidenceInputs).toEqual([]);
+    expect(JSON.stringify(profile)).not.toContain("phase73.ts");
+    expect(JSON.stringify(profile)).not.toContain("/Volumes/");
+    expect(profile.artifact.consumerSmoke).toContain("V08_CONSUMER_OK");
+    expect(profile.artifact.requiredFiles).toContain("dist/index.d.ts");
+    const pkg = JSON.parse(await readFile(new URL("../../package.json", import.meta.url), "utf8"));
+    expect(pkg.scripts["test:ci"]).toContain("typecheck");
+    expect(pkg.scripts["test:ci"]).toContain("test:coverage");
+    expect(pkg.scripts["test:ci"]).toContain("run-ci-post-coverage-tests.ts");
+    expect(pkg.scripts.prepack).toBe("bun run build");
+  });
+
   it.each(["release-candidate", "stable"])("prepares %s with the required 0.8 product and Phase 73 gates", async (status) => {
     const profile = await loadReleaseProfile(await packageRoot("0.8.0", status));
     expect(profile.id).toBe("goodmemory-v0.8");

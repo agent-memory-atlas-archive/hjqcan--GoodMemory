@@ -683,7 +683,7 @@ describe("deterministic memory extractor", () => {
     ]);
   });
 
-  it("uses generic recent-event and active-work grammar without domain normalization", async () => {
+  it("preserves past starts and recognizes present work without domain normalization", async () => {
     const extractor = createDeterministicMemoryExtractor();
 
     const result = await extractor.extract({
@@ -708,6 +708,11 @@ describe("deterministic memory extractor", () => {
           role: "user",
           content:
             "I also started working on the orchard irrigation dashboard.",
+        },
+        {
+          role: "user",
+          content:
+            "I have been working on the orchard irrigation dashboard.",
         },
         {
           role: "user",
@@ -737,6 +742,11 @@ describe("deterministic memory extractor", () => {
       {
         category: "event",
         content: "I acquired a kiln controller at the reuse center.",
+        kindHint: "fact",
+      },
+      {
+        category: "personal",
+        content: "I also started working on the orchard irrigation dashboard.",
         kindHint: "fact",
       },
       {

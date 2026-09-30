@@ -1,6 +1,6 @@
 {
   "name": "goodmemory",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Local-first, auditable cross-session project memory for Kimi Code.",
   "keywords": [
     "memory",
@@ -27,7 +27,7 @@
       "command": "npx",
       "args": [
         "-y",
-        "goodmemory@0.8.0",
+        "goodmemory@0.8.1",
         "mcp",
         "serve",
         "--standalone",

@@ -39,7 +39,7 @@ public GoodMemory surfaces:
 Installed package usage with the current stable package:
 
 ```bash
-bun add goodmemory@0.8.0
+bun add goodmemory@0.8.1
 
 GOODMEMORY_HTTP_BRIDGE_TOKEN="replace-with-service-token" \
 GOODMEMORY_STORAGE_PROVIDER=postgres \

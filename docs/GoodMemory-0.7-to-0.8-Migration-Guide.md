@@ -1,6 +1,6 @@
 # GoodMemory 0.7 to 0.8 Migration Guide
 
-This guide targets 0.8.0. Install pins apply after publication; source metadata
+This guide targets 0.8.1. Install pins apply after publication; source metadata
 alone is not publication proof. The Phase 73 internal Level-2 lane is closed
 without a positive coding-effect claim. Follow the published release's exact
 install pins and verify the upgrade on a separate copy first.
@@ -257,9 +257,10 @@ installed artifact rather than inferring publication from `package.json`.
 English and Chinese personal extraction treats first-person text inside an
 external quotation, code example, hypothetical, or reported third-party speech
 as a different speaker. Supported direct self-reports and literal quoted names
-remain eligible. Attribution masking is used only for profile and preference
-candidates: technical commands, references, and quoted fact payloads are not
-rewritten. Assisted extraction is checked against the source when the input
+remain eligible. Attribution masking is used for profile/preference candidates and the
+specifically identified current-self activity/role fact generators described
+below. Technical commands, references, and literal quoted fact payloads are
+not rewritten. Assisted extraction is checked against the source when the input
 contains masked first-person claims; a producer's source index cannot switch
 off that guard. Unmasked author spans retain the assisted extractor's open
 grammar, with literal value support required in this mixed-attribution case;
@@ -336,12 +337,70 @@ still reproduces two kinds of pre-existing affirmative error:
   is an unresolved current-state error, not a safe abstention. Use an explicit
   target-specific revision/removal when the current parser cannot resolve the
   user’s intended target; do not infer that an ignored write changed memory.
-- A Chinese clause describing a context such as doing travel planning can be
-  mistaken for a current-project assertion. Conditional/contextual self-fact
-  qualification needs further source-grounded handling.
+- Other personal-fact generators, such as goals, tool use, and open loops,
+  still need source/tense qualification beyond the current-project branches
+  below. Arbitrary assisted fact text and other language packs do not gain
+  universal source grounding from this update.
 
 Some valid names and multi-facet preference queries also remain coverage misses.
 Those omissions are distinct from the affirmative errors above. Source tests,
 synthetic host replays and dependency audits are bounded engineering evidence;
 they are not a live-model accuracy claim or a reason to treat an old preference
 as current after an unresolved user correction.
+
+
+### Current-project assertion boundaries
+
+The English and Chinese current-project generators now require a direct,
+independent current assertion. A request such as “给我做旅行规划时”, a
+conditional “when I am working on …”, a past “我做过 …”, and a third-party
+report cannot be shortened into a statement that the author is currently
+working on that project. Real current statements remain eligible beside
+preferences or trailing questions; quoted project labels remain literal
+values. A responsibility statement no longer invents a separate past
+leadership claim.
+
+Current-project profiles, current-activity facts and the English role-drift
+current-role fact have explicitly identified author-derived generation paths.
+These paths are rechecked against the final policy-safe source after candidate
+redaction; a redactor cannot restore a removed currentness qualifier by leaving
+an earlier candidate intact. The internal requirement is not a public metadata
+flag, a new identity slot, or permission for a model to overwrite memory.
+
+Supplied English/Chinese `profileField: "currentProject"` candidates also need
+a matching supported current assertion, even in an otherwise unquoted message.
+A literal mention of the project or a producer-supplied source index alone is
+not sufficient. This is intentionally conservative: an unsupported paraphrase
+may be omitted. Other language packs retain their existing assisted contract.
+
+These checks establish what the source says at its utterance time. They do not
+prove that an old replay is still true today, reorder historical updates,
+restore already superseded records, or automatically repair existing erroneous
+projects. Existing data remains untouched. English/Chinese analyzer versions
+advance so derived retrieval projections rebuild under the changed extraction
+semantics. Paraphrased preference retractions listed above remain unresolved.
+
+### Reproducible patch-release validation
+
+Starting with 0.8.1, release preparation validates the current source and
+package without requiring the maintainer's private Phase 73 capture directory
+or a historical v0.7.4 readiness capsule. Those records remain historical;
+their past acceptance is not relabeled as a successful current benchmark or
+rerun. Exact historical 0.7/0.8.0 verification retains its original profile.
+The new receipt is identified as `goodmemory-v0.8-portable-v1`; the manifest
+verifier still requires its complete exact check inventory and artifact edges.
+
+The current profile runs `test:ci` once, including strict TypeScript, coverage
+gates and post-coverage CLI/package regression tests, rather than repeating
+the full suite for a separate coverage check. It retains the public-claim
+boundary check, projection/storage scale checks, mandatory real PostgreSQL
+validation, version-pinned Kimi archive, and exact tarball consumer/audit
+checks. PostgreSQL is explicit so a release cannot silently succeed with the
+database tests skipped. The final pack still executes the existing `prepack`
+build; a separate duplicate build command is no longer scheduled.
+
+Clean source/tag identity, source stability, complete required-check inventory,
+artifact hashes and npm integrity verification remain fail-closed. Functional,
+security, scope-isolation, policy, migration and package compatibility tests
+are retained. Removing an unavailable historical input is not permission to
+publish a failing product or to claim a historical experiment passed again.

@@ -7,6 +7,7 @@ const EXCLUDED_INTEGRATION_COVERAGE_FILES = new Set([
 ]);
 export const POST_COVERAGE_TEST_TARGETS = [
   "tests/integration/host-mcp-server.standalone.test.ts",
+  "tests/integration/host-recall-latency.test.ts",
   "tests/integration/python-http-bridge.test.ts",
   "tests/unit/codex-coding-effect.c6-source-v3-simple-prior-identity-draft.test.ts",
   "tests/unit/codex-coding-effect.c6-source-v3-simple-prior-identity-portable-evidence.test.ts",

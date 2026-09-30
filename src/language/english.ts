@@ -1,5 +1,6 @@
 import { parsePersonalPreferenceStatements } from "./personalPreferences";
 import { extractWithPersonalAttribution } from "./speakerAttribution";
+import { matchCurrentAssertion } from "./currentAssertions";
 import type {
   DurableTargetIdentity,
   MemoryCandidate,
@@ -178,7 +179,7 @@ const PROFILE_ROLE_WITH_ORGANIZATION_PATTERN =
 const PROFILE_ROLE_WITH_LOCATION_PATTERN =
   /(?:remember that\s+)?i(?:'m| am)\s+(?:an?|the)\s+(.+?)\s+in\s+([A-Z][A-Za-z.-]*(?:\s+[A-Z][A-Za-z.-]*)*(?:,\s*[A-Z][A-Za-z.-]*(?:\s+[A-Z][A-Za-z.-]*)*)?)(?=\.|\s+(?:remember|working|leading|based)\b|,?\s+(?:remember|working|leading|based)\b|$)/i;
 const PROFILE_ROLE_DRIFT_WITH_PROJECT_PATTERN =
-  /(?:remember that\s+)?i(?:\s+have)?\s+now\s+moved\s+into\s+(?:an?|the)\s+(.+?)\s+leading\s+(.+?)(?=\.|$)/i;
+  /(?:remember that\s+)?i(?:\s+have)?\s+now\s+moved\s+into\s+(?:an?|the)\s+(.+?)\s+leading\s+(.+)$/i;
 const PROFILE_ROLE_PATTERN =
   /(?:remember that\s+)?i(?:'m| am)\s+(?:an?|the)\s+([a-z][a-z -]*(?:\s+[a-z][a-z -]*)*)(?=[.!?,]|$)/i;
 const PROFILE_LOCATION_PATTERN =
@@ -188,7 +189,7 @@ const PROFILE_TIMEZONE_PATTERN =
 const PROFILE_LANGUAGE_PATTERN =
   /(?:my\s+preferred\s+language\s+is|my\s+language\s+is)\s+([A-Za-z][A-Za-z -]*)/i;
 const CURRENT_PROJECT_PATTERN =
-  /(?:remember that\s+)?i(?:'m| am)\s+(?:leading|working on|focused on|owning)\s+(.+?)(?=\.|$)/i;
+  /(?:remember that\s+)?(?:i(?:'m| am)\s+(?:leading|working on|focused on|owning)|my current project is(?!\s+(?:not|no\s+longer)\b))\s+(.+)$/i;
 const CURRENT_GOAL_PATTERN = /\bmy current goal is\s+(.+?)(?=[.!?]|$)/iu;
 const QUARTERLY_PRIORITY_PATTERN =
   /\bmy top priority this quarter is\s+(.+?)(?=[.!?]|$)/iu;
@@ -223,7 +224,7 @@ const PERSONAL_BEST_TIME_PATTERN =
 const LEARNING_WITH_TOOL_PATTERN =
   /\bi(?:'m| am)\s+trying\s+to\s+learn\s+more\s+about\s+(.+?)\s+with\s+(.+?),\s+which\s+i\s+enjoy\s+to\s+use\b/i;
 const CURRENT_PROJECT_INVOLVEMENT_PATTERN =
-  /\bi(?:'m| am|(?:'ve| have)\s+been|(?:\s+also)?\s+started)\s+working\s+on\s+([^,.!?]+?)(?=[,.!?]|$)/i;
+  /\bi(?:'m| am|(?:'ve| have)\s+been)\s+working\s+on\s+(.+)$/i;
 const PROJECT_LEADERSHIP_PATTERN =
   /\bi\s+led\s+([^,.!?]+?)(?=\s+and\b|[,.!?]|$)/i;
 const PROJECT_LEADERSHIP_CONTEXT_PATTERN =
@@ -1369,6 +1370,7 @@ function maybeExtractCandidatesFromClause(
     observedAt?: string;
     timezone?: string;
   },
+  markAuthorDerived: (candidate: MemoryCandidate) => MemoryCandidate = (candidate) => candidate,
 ): MemoryCandidate[] {
   const trimmed = content.trim();
 
@@ -1528,9 +1530,7 @@ function maybeExtractCandidatesFromClause(
   const roleWithOrganizationAndLocationMatch = trimmed.match(
     PROFILE_ROLE_WITH_ORGANIZATION_AND_LOCATION_PATTERN,
   );
-  const roleDriftWithProjectMatch = trimmed.match(
-    PROFILE_ROLE_DRIFT_WITH_PROJECT_PATTERN,
-  );
+  const roleDriftWithProjectMatch = matchCurrentAssertion(trimmed, PROFILE_ROLE_DRIFT_WITH_PROJECT_PATTERN, "en");
   if (roleDriftWithProjectMatch) {
     const role = cleanRoleValue(roleDriftWithProjectMatch[1]!);
     const project = cleanExtractedValue(roleDriftWithProjectMatch[2]!);
@@ -1551,12 +1551,12 @@ function maybeExtractCandidatesFromClause(
       ),
     );
     candidates.push(
-      createFactCandidate(
+      markAuthorDerived(createFactCandidate(
         index,
         nextId,
         `my current role is ${role} leading ${project}.`,
         "project",
-      ),
+      )),
     );
   } else if (roleWithOrganizationAndLocationMatch) {
     candidates.push(
@@ -1662,7 +1662,7 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const currentProjectMatch = trimmed.match(CURRENT_PROJECT_PATTERN);
+  const currentProjectMatch = matchCurrentAssertion(trimmed, CURRENT_PROJECT_PATTERN, "en");
   const currentProject = currentProjectMatch
     ? cleanExtractedValue(currentProjectMatch[1]!)
     : undefined;
@@ -1910,13 +1910,11 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const currentProjectInvolvementMatch = trimmed.match(
-    CURRENT_PROJECT_INVOLVEMENT_PATTERN,
-  );
+  const currentProjectInvolvementMatch = matchCurrentAssertion(trimmed, CURRENT_PROJECT_INVOLVEMENT_PATTERN, "en");
   if (currentProjectInvolvementMatch) {
     const project = cleanExtractedValue(currentProjectInvolvementMatch[1]!);
     candidates.push(
-      createFactCandidate(
+      markAuthorDerived(createFactCandidate(
         index,
         nextId,
         `I am working on ${project}.`,
@@ -1927,7 +1925,7 @@ function maybeExtractCandidatesFromClause(
           scopeKind: "project",
           subject: extractBoundedEnglishSubject(project) ?? "project",
         },
-      ),
+      )),
     );
   }
 
@@ -2105,7 +2103,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "22-personal-source-attribution",
+    analyzerVersion: "24-current-project-source",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -2178,7 +2176,7 @@ export function createEnglishLanguagePack(): LanguagePack {
           behavioralDirective: canonicalSourceAnalysis.behavioralDirective,
           interrogative: canonicalSourceAnalysis.interrogative,
         };
-        candidates.push(...extractWithPersonalAttribution(message.content, (content) => {
+        candidates.push(...extractWithPersonalAttribution(message.content, (content, markAuthorDerived) => {
           const candidates: MemoryCandidate[] = [];
           // A semicolon list with one explicit instruction is parsed before
           // splitting only when EVERY source clause is an independent fact.
@@ -2230,6 +2228,7 @@ export function createEnglishLanguagePack(): LanguagePack {
                   observedAt: message.observedAt,
                   timezone: message.timezone,
                 },
+                markAuthorDerived,
               ),
             );
           }

@@ -25,7 +25,7 @@ import { createSQLiteDocumentStore } from "../../src/storage/sqlite";
 
 const POSTGRES_URL = process.env.GOODMEMORY_TEST_POSTGRES_URL;
 const PREVIOUS_ANALYZER_VERSION = "17-behavioral-directive-admission";
-const CURRENT_ANALYZER_VERSION = "21-personal-source-attribution";
+const CURRENT_ANALYZER_VERSION = "22-current-project-source";
 const ONE_OFF_DIRECTIVE =
   "请用 read 工具读取 hello.txt 的内容，并把其中的标记原样告诉我。";
 const DURABLE_DIRECTIVE = "以后请用要点汇报状态。";

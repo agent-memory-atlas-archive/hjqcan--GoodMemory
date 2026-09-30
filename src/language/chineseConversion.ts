@@ -3,7 +3,7 @@ import {
   tokenizeUnicodeText,
 } from "./generic";
 
-export const CHINESE_ANALYZER_VERSION = "21-personal-source-attribution";
+export const CHINESE_ANALYZER_VERSION = "22-current-project-source";
 
 export function normalizeChineseForEquality(text: string): string {
   return normalizeUnicodeForEquality(text);

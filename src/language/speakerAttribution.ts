@@ -3,6 +3,13 @@
 // deterministic personal extraction; canonical source messages stay unchanged.
 import type { MemoryCandidate } from "../domain/memoryCandidate";
 
+// An internal restriction, not producer metadata or permission to write. It
+// survives internal object spreads but is absent from JSON/wire representations.
+const FINAL_SOURCE_GROUNDING = Symbol("final-source-grounding-required");
+export function requiresFinalSourceGrounding(candidate: MemoryCandidate): boolean {
+  return (candidate as MemoryCandidate & { [FINAL_SOURCE_GROUNDING]?: boolean })[FINAL_SOURCE_GROUNDING] === true;
+}
+
 const FIRST_PERSON = /\bi\b(?![/\\])|\b(?:my|me|je|moi|mon|ma|mes|yo|mi)\b|\bj['’]|我|私|僕|나는|저는|제\s/iu;
 const PERSONAL_ASSERTION = /\b(?:my\s+(?:name|timezone|preferred\s+language|language)|i\s*(?:am\b|'m\b|(?:(?:no\s+longer|do\s+not|don't)\s+)?prefer\b|like\b|love\b|withdraw\b|retract\b)|restore\s+my\b)|我(?:自己)?(?:叫|(?:的)?(?:名字|姓名|时区|時區|语言|語言)|是|在|(?:不再|不)?(?:喜欢|喜歡|偏好))/iu;
 const NON_ACTUAL = /^\s*(?:(?:(?:please\s+)?(?:pretend|imagine|suppose|translate|roleplay)\b)|(?:in|from)\s+(?:(?:my|the|a|this)\s+)?(?:novel|fiction|story)\b|(?:this\s+is\s+(?:an?\s+)?)?(?:hypothetical|example|sample|test\s+string)\b|(?:here\s+is\s+(?:an?\s+)?(?:example|sample|test\s+string))\b|(?:小说里|小說裡|小说中|小說中|假设|假設|假如|如果|假使|倘若|想象|想像|例如|示例|例子|(?:请|請)?(?:翻译|翻譯)|测试|測試|字符串))/iu;
@@ -182,14 +189,22 @@ export function withheldPersonalText(text: string): string {
 /** Attribution masking must never rewrite commands, quoted facts or pointers. */
 export function extractWithPersonalAttribution(
   text: string,
-  extract: (content: string) => MemoryCandidate[],
+  extract: (content: string, markAuthorDerived: (candidate: MemoryCandidate) => MemoryCandidate) => MemoryCandidate[],
 ): MemoryCandidate[] {
+  // This ephemeral marker is only supplied to trusted pack generation code.
+  // It is not serialized metadata or authority that an extractor can claim.
+  const authorDerived = new WeakSet<MemoryCandidate>();
+  const markAuthorDerived = (candidate: MemoryCandidate): MemoryCandidate => {
+    authorDerived.add(candidate);
+    Object.assign(candidate, { [FINAL_SOURCE_GROUNDING]: true });
+    return candidate;
+  };
   const attributed = speakerAttributedText(text);
-  if (attributed === text) return extract(text);
+  if (attributed === text) return extract(text, markAuthorDerived);
   const personal = (candidate: MemoryCandidate) =>
-    candidate.kindHint === "profile" || candidate.kindHint === "preference";
+    candidate.kindHint === "profile" || candidate.kindHint === "preference" || authorDerived.has(candidate);
   return [
-    ...extract(text).filter((candidate) => !personal(candidate)),
-    ...extract(attributed).filter(personal),
+    ...extract(text, markAuthorDerived).filter((candidate) => !personal(candidate)),
+    ...extract(attributed, markAuthorDerived).filter(personal),
   ];
 }
