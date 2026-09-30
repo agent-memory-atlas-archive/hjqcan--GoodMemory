@@ -383,6 +383,12 @@ describe("goodmemory cli host bootstrap", () => {
     const caller = await createTempWorkspace("goodmemory-codex-bootstrap-caller");
 
     try {
+      // The generated export imports the current built package. This case
+      // must work on a clean checkout, without an earlier test creating dist.
+      await packCurrentPackage({
+        outputDir: join(workspace.root, ".pack"),
+        packageRoot: join(import.meta.dir, "../.."),
+      });
       await withCwd(workspace.root, async () =>
         runCLI([
           "codex",
