@@ -1,3 +1,5 @@
+import { parsePersonalPreferenceStatements } from "./personalPreferences";
+import { extractWithPersonalAttribution } from "./speakerAttribution";
 import type {
   MemoryCandidate,
   MemoryCandidateMetadata,
@@ -295,7 +297,7 @@ const CHINESE_OBJECT_FRONTED_BEHAVIORAL_DIRECTIVE_PATTERN =
 const CHINESE_ACTION_NOMINAL_ASSERTION_PATTERN =
   /^(?:[^，。！？\s]{1,12}(?:说明|說明|率|状态|狀態|情况|情況|方式|方法|方案|结果|結果|报告|報告|记录|記錄|计划|計畫|进度|進度))(?:是|为|為|在|已|会|會|保持|处于|處於)/u;
 const CHINESE_INDEPENDENT_EXPLICIT_FACT_PATTERN =
-  /^(?!(?:其中|而且|并且|並且|以及|但是|不過|不过))(?:[^，,、；;。！？]{1,60}(?:是|为|為)|[^，,、；;。！？]{1,60}[=＝])\s*\S/u;
+  /^(?!(?:其中|而且|并且|並且|以及|但是|不過|不过))(?:[^，,、；;。！？]{1,60}(?:是|为|為|使用|采用|採用)|[^，,、；;。！？]{1,60}[=＝])\s*\S/u;
 const CHINESE_DEPENDENT_EXPLICIT_FACT_PATTERN =
   /^(?:即使|儘管|尽管|如果|因為|因为|雖然|虽然)/u;
 const CHINESE_STRUCTURAL_BEHAVIORAL_DIRECTIVE_PATTERN =
@@ -1223,7 +1225,7 @@ function maybeExtractCandidatesFromClause(
   }
 
   const nameMatch = trimmed.match(
-    /(?:请记住|請記住)?我(?:(?:的)?(?:名字|姓名)(?:是|叫)|叫)\s*([^\s，。！？；]+)/u,
+    /(?:请记住|請記住)?我(?:自己)?(?:(?:的)?(?:名字|姓名)(?:是|叫)|叫(?![他她它你您]))\s*["'“‘「『]?([^\s，。！？；"'“”‘’「」『』]+)/u,
   );
   if (nameMatch?.[1]) {
     candidates.push(createProfileCandidate(index, nextId, "name", cleanValue(nameMatch[1])));
@@ -1555,8 +1557,8 @@ function maybeExtractCandidatesFromClause(
     }
   }
 
-  if (preferenceMatch?.[1]) {
-    const preferenceValue = cleanValue(preferenceMatch[1]);
+  for (const statement of parsePersonalPreferenceStatements(trimmed)) {
+    const preferenceValue = statement.value;
     candidates.push({
       id: nextId(),
       kindHint: "preference",
@@ -1677,70 +1679,84 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
           behavioralDirective: canonicalSourceAnalysis.behavioralDirective,
           interrogative: canonicalSourceAnalysis.interrogative,
         };
-        const clauses = expandExplicitFactCandidateClauses(
-          message.content,
-          extractExplicitFactClauses,
-          splitChineseClauses,
-        );
-        for (const clause of clauses) {
-          const clauseAnalysis = clauses.length === 1 && clause.content === message.content
-            ? sourceAnalysis
-            : analyzeChineseContent(clause.content);
-          if (clause.disposition === "feedback") {
-            const optOutTarget = extractChineseOptOutTarget(clause.content);
-            candidates.push({
-              id: input.nextId(),
-              kindHint: "feedback",
-              explicitness: "explicit",
-              content: clause.content.trim(),
-              disposition: createLanguageDurableOptOutDisposition(
-                optOutTarget,
-                CHINESE_DURABLE_TARGET_ALIASES,
-              ),
+        candidates.push(...extractWithPersonalAttribution(message.content, (content) => {
+          const candidates: MemoryCandidate[] = [];
+          // A semicolon list with one explicit instruction is parsed before
+          // splitting only when EVERY source clause is an independent fact.
+          // Otherwise retain the established per-clause opt-out/question path.
+          const sourceClauses = splitChineseClauses(content);
+          const explicitList = /[;；]/u.test(content) && sourceClauses.length > 1
+            ? extractExplicitFactClauses(content) : undefined;
+          const clauses = explicitList?.status === "complete" &&
+            explicitList.clauses.length === sourceClauses.length &&
+            explicitList.clauses.every((clause) => clause.disposition === "fact")
+            ? explicitList.clauses
+            : expandExplicitFactCandidateClauses(
+              content,
+              extractExplicitFactClauses,
+              splitChineseClauses,
+            );
+          for (const clause of clauses) {
+            const clauseAnalysis = clauses.length === 1 && clause.content === content
+              ? sourceAnalysis
+              : analyzeChineseContent(clause.content);
+            if (clause.disposition === "feedback") {
+              const optOutTarget = extractChineseOptOutTarget(clause.content);
+              candidates.push({
+                id: input.nextId(),
+                kindHint: "feedback",
+                explicitness: "explicit",
+                content: clause.content.trim(),
+                disposition: createLanguageDurableOptOutDisposition(
+                  optOutTarget,
+                  CHINESE_DURABLE_TARGET_ALIASES,
+                ),
+                sourceMessageIndex,
+                sourceRole: "user",
+                metadata: {
+                  feedbackKind: "dont",
+                  appliesTo: "general_response",
+                },
+              });
+              continue;
+            }
+            if (
+              clause.disposition === "ordinary" &&
+              (isChineseInterrogativeClause(clause.content, clause.content) ||
+                clauseAnalysis.behavioralDirective === "one_off")
+            ) {
+              continue;
+            }
+            const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
+              analysis: clauseAnalysis,
+              nextId: input.nextId,
               sourceMessageIndex,
-              sourceRole: "user",
-              metadata: {
-                feedbackKind: "dont",
-                appliesTo: "general_response",
-              },
+              subject: extractReferenceSubject(clause.content) ?? "unknown",
             });
-            continue;
+            if (sourceOfTruthReference) {
+              candidates.push(sourceOfTruthReference);
+            }
+            const clauseCandidates = maybeExtractCandidatesFromClause(
+              clause.content,
+              sourceMessageIndex,
+              input.nextId,
+              clauseAnalysis,
+              clause.disposition === "fact",
+              {
+                locale: input.locale,
+                observedAt: message.observedAt,
+                timezone: message.timezone,
+              },
+            );
+            candidates.push(...(sourceOfTruthReference
+              ? clauseCandidates.filter(
+                ({ explicitness, kindHint }) =>
+                  kindHint !== "fact" || explicitness !== "inferred",
+              )
+              : clauseCandidates));
           }
-          if (
-            clause.disposition === "ordinary" &&
-            (isChineseInterrogativeClause(clause.content, clause.content) ||
-              clauseAnalysis.behavioralDirective === "one_off")
-          ) {
-            continue;
-          }
-          const sourceOfTruthReference = createSourceOfTruthReferenceCandidate({
-            analysis: clauseAnalysis,
-            nextId: input.nextId,
-            sourceMessageIndex,
-            subject: extractReferenceSubject(clause.content) ?? "unknown",
-          });
-          if (sourceOfTruthReference) {
-            candidates.push(sourceOfTruthReference);
-          }
-          const clauseCandidates = maybeExtractCandidatesFromClause(
-            clause.content,
-            sourceMessageIndex,
-            input.nextId,
-            clauseAnalysis,
-            clause.disposition === "fact",
-            {
-              locale: input.locale,
-              observedAt: message.observedAt,
-              timezone: message.timezone,
-            },
-          );
-          candidates.push(...(sourceOfTruthReference
-            ? clauseCandidates.filter(
-              ({ explicitness, kindHint }) =>
-                kindHint !== "fact" || explicitness !== "inferred",
-            )
-            : clauseCandidates));
-        }
+          return candidates;
+        }));
       });
 
       return candidates.map((candidate) =>

@@ -246,3 +246,102 @@ compatibility. Writes after the backup require an explicit reconciliation.
 
 The exact format and failure semantics are in
 [Memory Artifact and Interchange Spec](GoodMemory-Memory-Artifact-and-Interchange-Spec.md).
+
+
+## Personal extraction and preference-update safety (source update)
+
+These safeguards describe the newer source tree; they do not establish that a
+previously published `goodmemory@0.8.0` package contains them. Check the exact
+installed artifact rather than inferring publication from `package.json`.
+
+English and Chinese personal extraction treats first-person text inside an
+external quotation, code example, hypothetical, or reported third-party speech
+as a different speaker. Supported direct self-reports and literal quoted names
+remain eligible. Attribution masking is used only for profile and preference
+candidates: technical commands, references, and quoted fact payloads are not
+rewritten. Assisted extraction is checked against the source when the input
+contains masked first-person claims; a producer's source index cannot switch
+off that guard. Unmasked author spans retain the assisted extractor's open
+grammar, with literal value support required in this mixed-attribution case;
+a clean mention cannot borrow its value from a withheld personal claim.
+This is a bounded safeguard, not a general proof of every natural-language
+claim, narrator interpretation, or model-generated paraphrase.
+
+Preference categories are retrieval groupings, not universally exclusive
+slots. Ordinary generic values coexist; exact repetition merges the matching
+record without retiring its neighbors. This also changes application-defined
+categories: a model- or rule-produced category name alone no longer grants
+permission to overwrite every active preference in that category. Applications
+that intend a specific replacement should use `reviseMemory` with the target
+memory ID or provide a supported explicit user withdrawal naming the old value.
+A target-specific revision now changes only that target, including when other
+active values describe the same response format.
+
+For supported English/Chinese explicit withdrawals, the source clause must
+name the old object. Only a unique, literal object/context match is retired.
+An immediately adjacent explicit replacement can supply its stated context;
+`now` plus a shared context alone cannot prove two objects conflict. Ambiguous
+matches remain active rather than being guessed away. Negative wording remains
+in the stored value: “no longer prefer” does not become “dislike.” Explicit
+additive `also`/`也` preferences coexist, including response-format preferences.
+Narrow existing response-format/verbosity replacement remains supported, but
+neither synonyms nor embeddings infer a general preference identity.
+
+Source-derived correction enrichment happens before the first policy redaction
+and `shouldRemember` evaluation. Retirement is recomputed only from the final
+prepared policy-safe source, with no fallback to raw input when source redaction
+cannot be reconciled. Appended context cannot bypass those policy hooks.
+
+Recognized serialized role XML and transcript sections are document sources,
+not live user roles. Nested role tags stay inside the enclosing document span.
+A supported explicit author-owned section mapping must be a complete positive
+statement in the live preface, outside XML, quotes, and code. Quoted or
+hypothetical declarations cannot grant ownership; unknown ownership abstains.
+The original document still remains available as source evidence. This parser
+does not claim complete coverage of arbitrary document formats or narrator
+semantics. Same-message name-spelling corrections require an explicit own-name
+referent; old literal attendance sheets do not override that correction.
+
+Fronted literal preference context (for example, “For travel plans, I prefer
+train journeys”) is retained. Direct `withdraw/retract my ... preference` and
+`restore my ... preference` operations require an unambiguous author command
+and exact object/context matching. They preserve historical lineage and do not
+infer synonyms, paraphrased objects, or a preference opposite. Reported,
+quoted, denied, and hypothetical operations cannot grant retirement authority.
+Unrecognized retraction paraphrases still require a target-specific revision.
+
+For explicit English/Chinese semicolon fact lists, the initial remember
+instruction covers the whole list only if every clause is independently
+classified as a fact. Questions, one-off instructions, opt-outs and mixed or
+incomplete lists retain their established per-clause admission path.
+
+Retirement preserves the old record and its audit lineage as superseded; it is
+not physical deletion. These changes do not automatically restore preferences
+that an earlier version already superseded, reconcile ambiguous historic
+preferences, or establish event-time ordering for backfilled material. Review
+such history using canonical source evidence and make target-specific repairs.
+Analyzer versions change, so persistent language projections must rebuild using
+the normal manifest/version mechanism. No live-model benchmark improvement or
+complete solution to memory distortion is claimed from these regression tests.
+
+
+### Known current-meaning failures outside this checkpoint
+
+This source update does **not** make all semantic memory reliable. Evaluation
+still reproduces two kinds of pre-existing affirmative error:
+
+- Paraphrased retractions such as “that outdoor-seating preference no longer
+  applies” or “stop applying the detailed-agenda preference to team meetings”
+  can leave an older positive preference active and eligible for recall. This
+  is an unresolved current-state error, not a safe abstention. Use an explicit
+  target-specific revision/removal when the current parser cannot resolve the
+  user’s intended target; do not infer that an ignored write changed memory.
+- A Chinese clause describing a context such as doing travel planning can be
+  mistaken for a current-project assertion. Conditional/contextual self-fact
+  qualification needs further source-grounded handling.
+
+Some valid names and multi-facet preference queries also remain coverage misses.
+Those omissions are distinct from the affirmative errors above. Source tests,
+synthetic host replays and dependency audits are bounded engineering evidence;
+they are not a live-model accuracy claim or a reason to treat an old preference
+as current after an unresolved user correction.

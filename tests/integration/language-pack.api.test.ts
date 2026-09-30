@@ -205,7 +205,7 @@ describe("LanguagePack public API integration", () => {
 
     expect(remembered.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "20-explicit-compound-facts",
+      languagePackVersion: "21-personal-source-attribution",
       locale: "zh-TW",
     });
     expect(recalled.facts.some((fact) => fact.content.includes("供應商審批"))).toBe(
@@ -213,7 +213,7 @@ describe("LanguagePack public API integration", () => {
     );
     expect(recalled.metadata).toMatchObject({
       languagePackId: "zh-Hant",
-      languagePackVersion: "20-explicit-compound-facts",
+      languagePackVersion: "21-personal-source-attribution",
       locale: "zh-TW",
     });
   });

@@ -1334,8 +1334,8 @@ describe("public remember API", () => {
     expect(exported.durable.preferences).toHaveLength(3);
     expect(preferenceById.get(firstId)).toMatchObject({
       category: "general_preference",
-      lifecycle: "superseded",
-      supersededBy: secondId,
+      lifecycle: "active",
+      supersededBy: null,
       value: "I prefer jasmine tea.",
     });
     expect(preferenceById.get(secondId)).toMatchObject({
@@ -1348,9 +1348,9 @@ describe("public remember API", () => {
       value: "I prefer dim dark editor themes.",
     });
     expect(revisionEvidence?.linkedMemoryIds).toEqual([secondId, revisedId]);
-    expect(recalled.preferences.map((preference) => preference.id)).toEqual([
-      revisedId,
-    ]);
+    expect(recalled.preferences.map((preference) => preference.id).sort()).toEqual([
+      firstId, revisedId,
+    ].sort());
   });
 
   it("keeps preference supersession isolated to the requested workspace", async () => {

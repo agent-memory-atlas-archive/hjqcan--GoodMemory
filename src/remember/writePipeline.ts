@@ -1,3 +1,5 @@
+import { hasUnattributedPersonalClaims, speakerAttributedText, withheldPersonalText } from "../language/speakerAttribution";
+import { sourcePreferenceStatement } from "../language/personalPreferences";
 import { hasPersistableSemanticText } from "../domain/semanticText";
 import { buildEpisodeEmbeddingWrite } from "../embedding/vectorWrites";
 import type { SourceMessageRecord } from "../evidence/contracts";
@@ -70,7 +72,7 @@ export function createRememberWritePipeline(
       const resolved = await extractionPipeline.resolve(input);
       input = resolved.input;
       const {
-        extraction,
+        extraction: producerExtraction,
         extractionWarning,
         explicitOptOutSourceIndexes,
         optOutTargetSelectors,
@@ -82,6 +84,23 @@ export function createRememberWritePipeline(
         resolvedLanguage,
         sourceAnalyses,
       } = resolved;
+      // Enrichment is source-derived and must precede the FIRST redaction call,
+      // including the source-preparation pass and its per-candidate cache.
+      const extraction = {
+        ...producerExtraction,
+        candidates: producerExtraction.candidates.map((candidate) => {
+          if (candidate.kindHint !== "preference") return candidate;
+          const value = String(candidate.metadata?.preferenceValue ?? candidate.content);
+          const sources = candidateSourceMessageIndexes(candidate)
+            .map((index) => input.messages[index])
+            .filter((message) => message?.role === "user")
+            .map((message) => message!.content);
+          const statement = sourcePreferenceStatement(value, sources);
+          if (!statement || statement.renderedValue === value) return candidate;
+          return { ...candidate, content: statement.renderedValue,
+            metadata: { ...candidate.metadata, preferenceValue: statement.renderedValue } };
+        }),
+      };
       const writeCoordinator = createRememberWriteCoordinator(config.documentStore);
       const { rollbackActions } = writeCoordinator;
       const state: RememberWriteState = {
@@ -221,10 +240,20 @@ export function createRememberWritePipeline(
               },
               policyContext,
             )).content;
-            for (const sourceCandidate of sourceCandidates) {
-              const redactedCandidate = await redactCandidate(sourceCandidate);
+            const sourceRedactions: Array<{ original: MemoryCandidate; redacted: MemoryCandidate }> = [];
+            for (const original of sourceCandidates) {
+              sourceRedactions.push({ original, redacted: await redactCandidate(original) });
+            }
+            for (const { original: sourceCandidate, redacted: redactedCandidate } of sourceRedactions) {
               if (redactedCandidate.content !== sourceCandidate.content) {
                 if (!redactedContent.includes(sourceCandidate.content)) {
+                  // A raw-source redaction or an earlier, containing candidate
+                  // may already have applied this exact replacement. Require
+                  // both original-source support and final redacted support;
+                  // never recover a missing span from the original raw text.
+                  if (message.content.includes(sourceCandidate.content) &&
+                    redactedContent.includes(redactedCandidate.content) &&
+                    sourceRedactions.every(({ redacted }) => redactedContent.includes(redacted.content))) continue;
                   sourceRedactionUnresolved = true;
                   break;
                 }
@@ -264,6 +293,51 @@ export function createRememberWritePipeline(
           })),
         };
 
+        const personalSourceCandidates = new Map<number, MemoryCandidate[]>();
+        const hasAttributionRisk = producerInput.messages.some((message) =>
+          hasUnattributedPersonalClaims(message.content));
+        const withheldSources = producerInput.messages.map((message) => withheldPersonalText(message.content));
+        const personalCandidateIsGrounded = (candidate: MemoryCandidate): boolean => {
+          if (candidate.kindHint !== "profile" && candidate.kindHint !== "preference") return true;
+          const indexes = candidateSourceMessageIndexes(candidate);
+          // Producer-supplied source indexes cannot turn off the check: a model
+          // may attach a quoted name to a different, unrelated user message.
+          if (!hasAttributionRisk) return true;
+          return indexes.some((index) => {
+            const source = producerInput.messages[index];
+            if (!source || source.role !== "user") return false;
+            const sourceLanguage = sourceAnalyses.get(index)?.context ?? requestLanguage.context;
+            const candidateValue = candidate.kindHint === "preference"
+              ? candidate.metadata?.preferenceValue ?? candidate.content
+              : candidate.content;
+            const value = language.normalizeForEquality(candidateValue, sourceLanguage);
+            // A clean mention is not authority to borrow a quoted identity.
+            // Preserve open assisted grammar only when its literal value has
+            // not appeared in a withheld personal claim elsewhere in the input.
+            const borrowedFromWithheldSource = withheldSources.some((text) =>
+              language.normalizeForEquality(text, sourceLanguage).includes(value));
+            const authorSource = speakerAttributedText(source.content);
+            if (value.length > 0 &&
+              !borrowedFromWithheldSource &&
+              language.normalizeForEquality(authorSource, sourceLanguage).includes(value)) return true;
+            let grounded = personalSourceCandidates.get(index);
+            if (!grounded) {
+              let next = 0;
+              grounded = language.extractCandidates({
+                messages: [{ ...source, content: speakerAttributedText(source.content), sourceMessageIndex: index }],
+                locale: sourceLanguage.locale,
+                nextId: () => `attributed-${index}-${++next}`,
+              }, sourceLanguage);
+              personalSourceCandidates.set(index, grounded);
+            }
+            return grounded.some((item) => item.kindHint === candidate.kindHint &&
+              (candidate.kindHint !== "profile" ||
+                (item.metadata?.profileField ?? "name") === (candidate.metadata?.profileField ?? "name")) &&
+              language.normalizeForEquality(item.kindHint === "preference"
+                ? sourcePreferenceStatement(String(item.metadata?.preferenceValue ?? item.content), [source.content])?.renderedValue ?? item.metadata?.preferenceValue ?? item.content
+                : item.content, sourceLanguage) === value);
+          });
+        };
         const storageUnsafeCandidateIds = new Set<string>();
         const rejectUngroundedOptOutSourceCandidate = (
           candidate: MemoryCandidate,
@@ -403,6 +477,16 @@ export function createRememberWritePipeline(
           }
 
           if (rejectDurableOptOutTarget(candidate.id, effectiveCandidate)) {
+            continue;
+          }
+
+          if (!personalCandidateIsGrounded(effectiveCandidate)) {
+            state.rejected += 1;
+            state.events.push({
+              candidateId: candidate.id, outcome: "rejected",
+              memoryType: toRememberEventMemoryType(effectiveCandidate.memoryType),
+              reason: "unattributed_personal_claim", ...buildRememberEventTrace(effectiveCandidate),
+            });
             continue;
           }
 

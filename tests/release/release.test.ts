@@ -732,11 +732,11 @@ describe("release metadata and docs", () => {
       packages?: Record<string, { dependencies?: Record<string, string> }>;
     };
     const expected = {
-      "@ai-sdk/anthropic": "3.0.64",
-      "@ai-sdk/openai": "3.0.49",
-      "@ai-sdk/openai-compatible": "2.0.40",
-      "@ai-sdk/provider-utils": "4.0.23",
-      ai: "6.0.143",
+      "@ai-sdk/anthropic": "3.0.89",
+      "@ai-sdk/openai": "3.0.77",
+      "@ai-sdk/openai-compatible": "2.0.54",
+      "@ai-sdk/provider-utils": "4.0.33",
+      ai: "6.0.214",
     };
 
     expect(pkg.dependencies).toEqual(expect.objectContaining(expected));

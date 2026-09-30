@@ -1,3 +1,5 @@
+import { candidateSourceMessageIndexes } from "./sourceMessages";
+import { preferenceSupersessionIds, sourcePreferenceStatement } from "../language/personalPreferences";
 import {
   buildFeedbackIdentityKey,
   createFactMemory,
@@ -274,9 +276,15 @@ export async function writeRememberCandidate(input: {
   if (candidate.memoryType === "preference") {
     const category =
       candidate.metadata?.preferenceCategory ?? "general_preference";
-    const value = String(
+    const candidateValue = String(
       candidate.metadata?.preferenceValue ?? candidate.content,
     ).trim();
+    const userSources = candidateSourceMessageIndexes(candidate)
+      .map((index) => context.sourceMessagesByIndex.get(index))
+      .filter((message) => message?.role === "user")
+      .map((message) => message!.content);
+    const preferenceStatement = sourcePreferenceStatement(candidateValue, userSources);
+    const value = candidateValue;
     const normalizedValue = context.language.normalizeForEquality(
       value,
       candidateLanguage,
@@ -298,6 +306,8 @@ export async function writeRememberCandidate(input: {
               preference.category === category,
           )
           .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
+        const retirementIds = preferenceSupersessionIds(categoryPreferences, preferenceStatement);
+        const retiredPreferences = categoryPreferences.filter((preference) => retirementIds.has(preference.id));
         const updatedAt = preferenceWriteTimestamp(
           timestamp,
           categoryPreferences,
@@ -332,8 +342,10 @@ export async function writeRememberCandidate(input: {
                 updatedAt,
               })
             : null;
-          const stalePreferences = categoryPreferences.filter(
-            (preference) => preference.id !== duplicate.id,
+          const explicitCorrection = preferenceStatement?.polarity === "withdrawn" ||
+            preferenceStatement?.explicitUpdate === true;
+          const stalePreferences = retiredPreferences.filter(
+            (preference) => explicitCorrection && preference.id !== duplicate.id,
           );
           return {
             batch: {
@@ -378,7 +390,7 @@ export async function writeRememberCandidate(input: {
         const preference = createPreferenceMemory({
           ...buildPreference(
             context.input.scope,
-            candidate,
+            { ...candidate, metadata: { ...candidate.metadata, preferenceValue: value } },
             context.createId(),
             timestamp,
             candidateSourceLanguage,
@@ -403,7 +415,7 @@ export async function writeRememberCandidate(input: {
                 document: preference,
                 id: preference.id,
               },
-              ...categoryPreferences.map((existing) => ({
+              ...retiredPreferences.map((existing) => ({
                 collection: "preferences",
                 document: createPreferenceMemory({
                   ...existing,
@@ -415,7 +427,7 @@ export async function writeRememberCandidate(input: {
               })),
             ],
           },
-          result: categoryPreferences.length > 0
+          result: retiredPreferences.length > 0
             ? {
                 memoryId: preference.id,
                 outcome: "superseded" as const,

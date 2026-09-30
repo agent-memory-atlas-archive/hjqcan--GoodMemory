@@ -700,7 +700,7 @@ describe("public reviseMemory API", () => {
     expect(JSON.stringify(spans)).not.toContain("revision-user");
   });
 
-  it("atomically supersedes every active category sibling with monotonic timestamps", async () => {
+  it("atomically revises only the named preference with monotonic target timestamps", async () => {
     const documentStore = createInMemoryDocumentStore();
     const memory = createGoodMemory({
       adapters: {
@@ -769,20 +769,18 @@ describe("public reviseMemory API", () => {
     );
 
     expect(result.accepted).toBe(true);
-    expect(active).toEqual([expect.objectContaining({
+    expect(active).toHaveLength(2);
+    expect(active).toContainEqual(expect.objectContaining({
       id: result.newMemoryId,
       supersededBy: null,
-    })]);
-    expect(superseded).toHaveLength(2);
-    expect(
-      superseded.every(({ supersededBy }) => supersededBy === result.newMemoryId),
-    ).toBe(true);
-    expect(
-      preferences.every(
-        (preference) => preference.updatedAt >= preference.source.extractedAt,
-      ),
-    ).toBe(true);
-    expect(active[0]?.updatedAt).toBe("2026-01-04T00:00:00.000Z");
+    }));
+    expect(await documentStore.get("preferences", second.id)).toEqual(second);
+    expect(superseded).toHaveLength(1);
+    expect(superseded[0]).toMatchObject({ id: first.id, supersededBy: result.newMemoryId });
+    const revised = active.find((preference) => preference.id === result.newMemoryId)!;
+    expect(revised.updatedAt >= revised.source.extractedAt).toBe(true);
+    expect(superseded[0]!.updatedAt >= first.updatedAt).toBe(true);
+    expect(revised.updatedAt).toBe("2026-01-03T00:00:00.000Z");
   });
 
   it("persists revision reason and evidence source in the durable audit record", async () => {

@@ -1037,17 +1037,10 @@ export async function reviseMemory(input: {
             throw new PreferenceRevisionConflict("target_not_active");
           }
 
-          const activePreferences = scopedPreferences.filter((preference) =>
-            isSameDurableScope(preference, initialPreference) &&
-            preference.category === initialPreference.category &&
-            isActiveMemoryLifecycle(preference)
-          );
-          const siblings = activePreferences.filter(
-            (preference) => preference.id !== currentTarget.id,
-          );
+          // A target-specific revision only retires its named target.
           const commitTimestamp = preferenceRevisionTimestamp(
             timestamp,
-            [currentTarget, ...siblings],
+            [currentTarget],
           );
           const revised = buildRevisedRecords({
             candidate,
@@ -1090,11 +1083,7 @@ export async function reviseMemory(input: {
                   document: currentEvidence,
                   id: evidenceId,
                 },
-                ...siblings.map((preference) => ({
-                  collection: target.collection,
-                  document: preference,
-                  id: preference.id,
-                })),
+
               ],
               set: [
                 {
@@ -1112,16 +1101,7 @@ export async function reviseMemory(input: {
                   document: next,
                   id: next.id,
                 },
-                ...siblings.map((preference) => ({
-                  collection: target.collection,
-                  document: createPreferenceMemory({
-                    ...preference,
-                    lifecycle: "superseded",
-                    supersededBy: next.id,
-                    updatedAt: commitTimestamp,
-                  }),
-                  id: preference.id,
-                })),
+
               ],
             },
             result: next,

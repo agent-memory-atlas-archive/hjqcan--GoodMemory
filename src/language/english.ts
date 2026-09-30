@@ -1,3 +1,5 @@
+import { parsePersonalPreferenceStatements } from "./personalPreferences";
+import { extractWithPersonalAttribution } from "./speakerAttribution";
 import type {
   DurableTargetIdentity,
   MemoryCandidate,
@@ -168,7 +170,7 @@ function matchesEnglishEventPredicate(query: string, candidate: string): boolean
   );
 }
 const PROFILE_NAME_PATTERN =
-  /\b[Mm]y\s+[Nn]ame\s+[Ii]s\s+((?:\p{Lu}\.|[\p{Lu}][\p{L}\p{M}'’-]*)(?:\s+(?:\p{Lu}\.|[\p{Lu}][\p{L}\p{M}'’-]*)){0,2})(?=\s*(?:[,.!?]|\band\b|$))/u;
+  /\b[Mm]y\s+(?:[Ff]ull\s+)?[Nn]ame\s+[Ii]s\s*["'“‘「『]?((?:\p{Lu}\.|[\p{Lu}][\p{L}\p{M}'’-]*)(?:\s+(?:\p{Lu}\.|[\p{Lu}][\p{L}\p{M}'’-]*)){0,2})(?=[\s"'”’」』]*(?:[,.!?]|\band\b|$))/u;
 const PROFILE_ROLE_WITH_ORGANIZATION_AND_LOCATION_PATTERN =
   /(?:remember that\s+)?i(?:'m| am)\s+(?:an?|the)\s+(.+?)\s+at\s+([A-Z][A-Za-z0-9&.,' -]*?)\s+in\s+([A-Z][A-Za-z.-]*(?:\s+[A-Z][A-Za-z.-]*)*(?:,\s*[A-Z][A-Za-z.-]*(?:\s+[A-Z][A-Za-z.-]*)*)?)(?=\.|$)/i;
 const PROFILE_ROLE_WITH_ORGANIZATION_PATTERN =
@@ -485,7 +487,7 @@ const ENGLISH_SUBJECT_CLAUSE_PATTERN =
 const ENGLISH_SUBJECT_PREDICATE_BOUNDARY_PATTERN =
   /\s+(?:is|are|was|were|remains?|stays?|needs?|requires?|has|have)\b/gi;
 const ENGLISH_INDEPENDENT_EXPLICIT_FACT_PATTERN =
-  /^(?!(?:and|but|because|that|when|where|which|while|who|whose)\b)(?:[^,，、;；.!?。！？]{1,80}\s+(?:is|are|was|were)|[^,，、;；.!?。！？]{1,80}[=＝])\s*\S/iu;
+  /^(?!(?:and|but|because|that|when|where|which|while|who|whose)\b)(?:[^,，、;；.!?。！？]{1,80}\s+(?:is|are|was|were|uses?)|[^,，、;；.!?。！？]{1,80}[=＝])\s*\S/iu;
 const ENGLISH_DEPENDENT_EXPLICIT_FACT_PATTERN =
   /^(?:although|because|if|unless|when|whereas|while)\b/iu;
 
@@ -1518,7 +1520,7 @@ function maybeExtractCandidatesFromClause(
   }
 
   const nameMatch = trimmed.match(PROFILE_NAME_PATTERN);
-  const name = nameMatch ? cleanExtractedValue(nameMatch[1]!) : undefined;
+  const name = nameMatch ? cleanExtractedValue(nameMatch[1]!).replace(/["'”’」』]+$/u, "") : undefined;
   if (name) {
     candidates.push(createProfileCandidate(index, nextId, "name", name));
   }
@@ -2025,9 +2027,10 @@ function maybeExtractCandidatesFromClause(
     );
   }
 
-  const preferenceMatch = trimmed.match(PREFERENCE_PATTERN);
-  if (preferenceMatch) {
-    const preferenceValue = preferenceMatch[1]!.trim();
+  const personalPreferences = parsePersonalPreferenceStatements(trimmed);
+  const preferenceMatch = personalPreferences.length > 0;
+  for (const statement of personalPreferences) {
+    const preferenceValue = statement.value;
 
     candidates.push({
       id: nextId(),
@@ -2102,7 +2105,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "21-explicit-compound-facts",
+    analyzerVersion: "22-personal-source-attribution",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -2175,49 +2178,72 @@ export function createEnglishLanguagePack(): LanguagePack {
           behavioralDirective: canonicalSourceAnalysis.behavioralDirective,
           interrogative: canonicalSourceAnalysis.interrogative,
         };
-        const clauses = expandExplicitFactCandidateClauses(
-          message.content,
-          extractExplicitFactClauses,
-          splitEnglishClauses,
-        );
-        for (const clause of clauses) {
-          const clauseAnalysis = clauses.length === 1 && clause.content === message.content
-            ? sourceAnalysis
-            : analyzeEnglishContent(clause.content);
-          if (
-            clause.disposition === "ordinary" &&
-            (clauseAnalysis.interrogative === true ||
-              clauseAnalysis.behavioralDirective === "one_off")
-          ) {
-            continue;
+        candidates.push(...extractWithPersonalAttribution(message.content, (content) => {
+          const candidates: MemoryCandidate[] = [];
+          // A semicolon list with one explicit instruction is parsed before
+          // splitting only when EVERY source clause is an independent fact.
+          // Otherwise retain the established per-clause opt-out/question path.
+          const sourceClauses = splitEnglishClauses(content);
+          const explicitList = /[;；]/u.test(content) && sourceClauses.length > 1
+            ? extractExplicitFactClauses(content) : undefined;
+          const clauses = explicitList?.status === "complete" &&
+            explicitList.clauses.length === sourceClauses.length &&
+            explicitList.clauses.every((clause) => clause.disposition === "fact")
+            ? explicitList.clauses
+            : expandExplicitFactCandidateClauses(
+              content,
+              extractExplicitFactClauses,
+              splitEnglishClauses,
+            );
+          for (const clause of clauses) {
+            const clauseAnalysis = clauses.length === 1 && clause.content === content
+              ? sourceAnalysis
+              : analyzeEnglishContent(clause.content);
+            if (
+              clause.disposition === "ordinary" &&
+              (clauseAnalysis.interrogative === true ||
+                clauseAnalysis.behavioralDirective === "one_off")
+            ) {
+              continue;
+            }
+            const sourceOfTruthReference = clause.disposition === "feedback"
+              ? undefined
+              : createSourceOfTruthReferenceCandidate({
+                analysis: clauseAnalysis,
+                nextId: input.nextId,
+                sourceMessageIndex,
+                subject: extractReferenceSubject(clause.content) ?? "unknown",
+              });
+            if (sourceOfTruthReference) {
+              candidates.push(sourceOfTruthReference);
+            }
+            candidates.push(
+              ...maybeExtractCandidatesFromClause(
+                clause.content,
+                sourceMessageIndex,
+                input.nextId,
+                clauseAnalysis,
+                Boolean(sourceOfTruthReference),
+                clause.disposition,
+                {
+                  locale: input.locale,
+                  observedAt: message.observedAt,
+                  timezone: message.timezone,
+                },
+              ),
+            );
           }
-          const sourceOfTruthReference = clause.disposition === "feedback"
-            ? undefined
-            : createSourceOfTruthReferenceCandidate({
-              analysis: clauseAnalysis,
-              nextId: input.nextId,
-              sourceMessageIndex,
-              subject: extractReferenceSubject(clause.content) ?? "unknown",
-            });
-          if (sourceOfTruthReference) {
-            candidates.push(sourceOfTruthReference);
+          for (let index = 1; index < sourceClauses.length; index += 1) {
+            const prior = sourceClauses[index - 1]!;
+            if (!/\bmy\s+(?:full\s+)?name\b/iu.test(prior) ||
+              !/\b(?:misspelled|mistyped|spelling|typo|correct(?:ed|ion)?)\b/iu.test(prior)) continue;
+            const correction = /^\s*(?:the\s+)?correct\s+spelling\s+is\s+(.+)$/iu.exec(sourceClauses[index]!);
+            if (!correction) continue;
+            const name = PROFILE_NAME_PATTERN.exec(`My name is ${correction[1]}`)?.[1];
+            if (name) candidates.push(createProfileCandidate(sourceMessageIndex, input.nextId, "name", cleanExtractedValue(name)));
           }
-          candidates.push(
-            ...maybeExtractCandidatesFromClause(
-              clause.content,
-              sourceMessageIndex,
-              input.nextId,
-              clauseAnalysis,
-              Boolean(sourceOfTruthReference),
-              clause.disposition,
-              {
-                locale: input.locale,
-                observedAt: message.observedAt,
-                timezone: message.timezone,
-              },
-            ),
-          );
-        }
+          return candidates;
+        }));
       });
 
       return dedupeCandidates(candidates).map(attachEnglishDurableTarget);
