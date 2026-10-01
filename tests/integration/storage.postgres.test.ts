@@ -65,11 +65,17 @@ function createSchemaName(prefix: string): string {
   return `gm_test_${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
-async function dropSchema(url: string, schema: string): Promise<void> {
-  const sql = new SQL(url);
+async function dropSchema(url: string, ...schemas: string[]): Promise<void> {
+  const sql = new SQL(url, { max: 1 });
 
   try {
-    await sql.unsafe(`DROP SCHEMA IF EXISTS ${quoteIdentifier(schema)} CASCADE`);
+    for (const schema of schemas) {
+      try {
+        await sql.unsafe(`DROP SCHEMA IF EXISTS ${quoteIdentifier(schema)} CASCADE`);
+      } catch (error) {
+        throw new Error(`Postgres test schema cleanup failed: ${schema}`, { cause: error });
+      }
+    }
   } finally {
     await sql.close();
   }
@@ -298,9 +304,7 @@ if (POSTGRES_URL) {
           child.kill();
           await child.exited;
         }
-        await Promise.all(schemas.map((schema) =>
-          dropSchema(POSTGRES_URL, schema)
-        ));
+        await dropSchema(POSTGRES_URL, ...schemas);
       }
     }, 30_000);
 
