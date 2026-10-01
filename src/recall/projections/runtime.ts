@@ -27,6 +27,7 @@ import {
   buildRecallProjectionBuildId,
   createProjectionManifestTracker,
 } from "./manifest";
+import { createManifestWriteCoordinatedStore } from "./manifestWriteQueue";
 import { createKeyedMutationLock } from "./mutationLock";
 import { createRecallProjectionOperations } from "./operations";
 import { createRecallProjectionRepairs } from "./repairs";
@@ -73,6 +74,10 @@ export function createRecallProjectionRuntime(
       ),
     },
   );
+  const coordinatedDocumentStore = createManifestWriteCoordinatedStore(
+    scopeAwareDocumentStore,
+    rawDocumentStore,
+  );
   const now = config.now ?? (() => new Date().toISOString());
   const language = config.language ?? createLanguageService();
   const analyzerFingerprint =
@@ -82,11 +87,11 @@ export function createRecallProjectionRuntime(
   const mutationLock = createKeyedMutationLock();
   const manifests = createProjectionManifestTracker({
     buildId: config.persistentScopeProof?.buildId,
-    documentStore: scopeAwareDocumentStore,
+    documentStore: coordinatedDocumentStore,
     now,
   });
   const validationFence = createProjectionValidationFence(
-    scopeAwareDocumentStore,
+    coordinatedDocumentStore,
   );
   const documentStore = validationFence.documentStore;
   const operations = createRecallProjectionOperations({

@@ -110,6 +110,33 @@ Next.js mapping:
 - `examples/vercel-ai-chat.ts` remains as the lower-level wrapper-first example.
 - The HTTP boundary should reject malformed `scope` input instead of silently soft-failing memory semantics.
 
+### Concurrent memory writes
+
+Built-in SQLite facades sharing the same resolved database path coordinate the
+short projection-manifest commit window within one process and module instance.
+Different durable scopes use different queues; extraction, model calls, and
+projection synchronization run outside this window. Each queued waiter has a
+30-second acquisition limit and is removed without executing when that limit is
+reached. Once a storage commit starts, it is allowed to finish; timing out an
+active write would make its outcome uncertain.
+
+Caller snapshots, ownership conditions, source checks, and projection-validation
+conditions still apply. A queue is an admission aid, not a replacement for atomic
+storage checks or a promise that conflicting writes always succeed. Distinct
+in-memory databases and separate files do not share queues. Relative paths and
+symbolic links are resolved after the SQLite database opens; arbitrary hard-link
+aliases, renames, independent module copies, and separate processes are outside
+this coordination boundary. Custom adapters coordinate only when they reuse the
+same documentStore object instance. No new custom-adapter capability is required.
+
+Concurrent writes from separate processes can still fail, including a reproduced
+SQLite vector-upsert read-to-write transaction lock conflict. The explicit
+`bun test ./scripts/diagnostics/sqlite-concurrent-remember.test.ts` diagnostic
+retains this known failure; it is not represented as a passing release guarantee.
+Hosts should inspect memory writeback results independently of successful chat
+responses. This coordination does not change the separately published npm 0.8.1
+package until a later release is made.
+
 ### Runtime Kit temporal handoff
 
 Hosts using `goodmemory/runtime-kit` directly should carry the anchor returned

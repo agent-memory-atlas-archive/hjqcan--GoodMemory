@@ -440,10 +440,10 @@ export function createProjectionAwareDocumentStore(input: {
       persistedBatch = {
         ...persistedBatch,
         set: [...batch.set, ...invalidation.set],
-        unchanged: [
-          ...(persistedBatch.unchanged ?? []),
-          ...invalidation.unchanged,
-        ],
+        // Invalidating a proof does not require its previous generation to
+        // survive unrelated writes. This fresh dirty marker commits with the
+        // canonical mutation; caller/source conditions and validation CAS stay
+        // intact. Never reuse a prepared marker for another submission.
       };
     }
     if (!writeThrough) {

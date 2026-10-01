@@ -1,3 +1,7 @@
+import {
+  bindDocumentStoreIdentity,
+  resolveDocumentStoreIdentity,
+} from "./documentStoreIdentity";
 import type {
   DocumentStore,
   ProjectionCapableDocumentStore,
@@ -86,7 +90,7 @@ export function setSQLitePublicModuleLoaderForTests(
 function createDeferredDocumentStore(
   resolveStore: () => Promise<DocumentStore>,
 ): ProjectionCapableDocumentStore {
-  return {
+  return bindDocumentStoreIdentity({
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
     async set(collection, id, document) {
       const store = await resolveStore();
@@ -127,7 +131,7 @@ function createDeferredDocumentStore(
       const store = await resolveStore();
       return store.delete(collection, id);
     },
-  };
+  }, async () => resolveDocumentStoreIdentity(await resolveStore()));
 }
 
 function createDeferredSessionStore(

@@ -1,3 +1,7 @@
+import {
+  bindDocumentStoreIdentity,
+  resolveDocumentStoreIdentity,
+} from "./documentStoreIdentity";
 import type {
   DocumentQueryPageInput,
   DocumentStore,
@@ -62,7 +66,7 @@ function describeAutoStorageProbeError(error: unknown): string {
 function createAutoDocumentStore(
   resolveBackend: () => Promise<ResolvedStorageBackend>,
 ): ProjectionCapableDocumentStore {
-  return {
+  return bindDocumentStoreIdentity({
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
     async set<TDocument extends StorageDocument>(
       collection: string,
@@ -120,7 +124,8 @@ function createAutoDocumentStore(
       const backend = await resolveBackend();
       return backend.documentStore.delete(collection, id);
     },
-  };
+  }, async () =>
+    resolveDocumentStoreIdentity((await resolveBackend()).documentStore));
 }
 
 function createAutoSessionStore(

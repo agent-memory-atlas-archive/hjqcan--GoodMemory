@@ -1,4 +1,5 @@
 import { Database } from "bun:sqlite";
+import { bindSQLiteDocumentStoreIdentity } from "./documentStoreIdentity";
 import { Buffer } from "node:buffer";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
@@ -804,7 +805,7 @@ export function createSQLiteDocumentStore(
     }
   }
 
-  return {
+  return bindSQLiteDocumentStoreIdentity({
     projectionBatchSemantics: PROJECTION_BATCH_SEMANTICS,
     async set<TDocument extends StorageDocument>(
       collection: string,
@@ -981,7 +982,7 @@ export function createSQLiteDocumentStore(
         deleteStatement.run(collection, id);
       });
     },
-  };
+  }, path);
 }
 
 function createSQLiteScopedStore<TValue>(
