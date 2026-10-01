@@ -2148,7 +2148,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "25-explicit-project-assignment",
+    analyzerVersion: "26-document-containers",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",

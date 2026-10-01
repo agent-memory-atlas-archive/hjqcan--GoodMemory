@@ -115,6 +115,30 @@ candidate extractor. Changing either admission signal requires an
 `analyzerVersion` bump and a rebuild of derived projections. Canonical memories
 are not rewritten or deleted by that rebuild.
 
+The shared author-attribution view recognizes a bounded line-based email
+container: `From:` followed by an optional header block and `Body:`, closed by
+an `End of email` line (also `pasted`, `quoted`, or `forwarded email`). Header
+blocks are bounded to 16 lines and nesting to 32 containers. Quoted, code, and
+serialized-role spans cannot supply outer markers. Recognized unclosed
+containers, unresolved nested boundaries, and exceeded bounds conservatively
+withhold the remaining document from personal attribution. Blank lines, sender
+display names, and document-local SELF declarations do not restore authorship.
+Genuine self-statements outside a balanced container remain eligible.
+
+This view is shared by English/Chinese deterministic personal extraction and
+the existing profile/preference source-grounding filter, including assisted
+candidates and the marked author-derived branches. Raw source records and
+literal non-personal facts remain unchanged. Where this grounding check is
+required, original authorship and final policy-safe value support are checked
+against the same source index. Removing a container header during redaction
+cannot grant original authorship, and original text cannot restore a final value
+that redaction removed. Consistent anonymization of genuine self-statements
+remains supported. Other email/RFC layouts and
+arbitrary producer-supplied fact text are outside this bounded contract.
+The change protects new admission; it does not roll back previously stored
+contaminated profiles or preferences. Rebuilding recall projections likewise
+does not repair those canonical records.
+
 Register a custom pack through `GoodMemoryConfig.language.packs`. To replace a
 built-in pack, reuse its id and locale claims; a different id that claims an
 already-owned locale is rejected at startup.

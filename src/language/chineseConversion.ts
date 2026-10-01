@@ -4,7 +4,7 @@ import {
 } from "./generic";
 import type { LanguagePack } from "./contracts";
 
-export const CHINESE_ANALYZER_VERSION = "23-adjacent-identifiers";
+export const CHINESE_ANALYZER_VERSION = "24-document-containers";
 
 const SEGMENTERS = new Map<string, Intl.Segmenter>();
 type Tokenizer = LanguagePack["tokenizeForScoring"];

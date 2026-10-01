@@ -19,7 +19,7 @@ const DENIED = /\b(?:not\s+true\s+that|false\s+that|not\s+the\s+case\s+that|does
 const QUOTE_PAIRS = new Map([["\"", "\""], ["'", "'"], ["“", "”"], ["‘", "’"], ["「", "」"], ["『", "』"], ["«", "»"], ["‹", "›"]]);
 
 function apostrophe(text: string, index: number): boolean {
-  return text[index] === "'" && /[\p{L}\p{N}]/u.test(text[index - 1] ?? "") && /[\p{L}\p{N}]/u.test(text[index + 1] ?? "");
+  return (text[index] === "'" || text[index] === "’") && /[\p{L}\p{N}]/u.test(text[index - 1] ?? "") && /[\p{L}\p{N}]/u.test(text[index + 1] ?? "");
 }
 
 function escaped(text: string, index: number): boolean {
@@ -83,6 +83,65 @@ function maskSerializedRoleSpans(text: string): string {
   return result + text.slice(previous);
 }
 
+function documentContainerSpans(structuralText: string): Array<[number, number]> {
+  const from = /^\s*from\s*:/iu;
+  const header = /^\s*(?:to|cc|bcc|subject|date|reply-to|message-id|mime-version|content-type|content-transfer-encoding)\s*:/iu;
+  const body = /^\s*body\s*:\s*/iu;
+  const close = /^end\s+(?:of\s+)?(?:(?:pasted|quoted|forwarded)\s+)?e-?mail\s*[.!]?$/iu;
+  const spans: Array<[number, number]> = [];
+  let pending: { start: number; lines: number } | undefined;
+  let outerStart: number | undefined;
+  let depth = 0;
+  // One pass over bounded header blocks. Blank lines never restore authorship.
+  for (const match of structuralText.matchAll(/[^\n]*(?:\n|$)/gu)) {
+    if (!match[0]) break;
+    const line = match[0].replace(/\r?\n$/u, "");
+    const start = match.index;
+    const end = start + match[0].length;
+    if (depth > 0 && close.test(line.trim())) {
+      // An unresolved nested header cannot release its enclosing document.
+      if (pending) { pending = undefined; continue; }
+      depth -= 1;
+      if (depth === 0) {
+        spans.push([outerStart!, end]);
+        outerStart = undefined;
+      }
+      continue;
+    }
+    const bodyMatch = body.exec(line);
+    if (pending && bodyMatch) {
+      outerStart ??= pending.start;
+      depth += 1;
+      pending = undefined;
+      if (depth > 32) return [...spans, [outerStart, structuralText.length]];
+      // A forwarded header may start directly after the outer Body: label.
+      if (from.test(line.slice(bodyMatch[0].length))) pending = { start, lines: 1 };
+      continue;
+    }
+    if (from.test(line)) {
+      pending = pending ? { ...pending, lines: pending.lines + 1 } : { start, lines: 1 };
+    } else if (pending && (header.test(line) || !line.trim())) {
+      pending.lines += 1;
+    } else {
+      pending = undefined;
+    }
+    if (pending && pending.lines > 16) {
+      return [...spans, [outerStart ?? pending.start, structuralText.length]];
+    }
+  }
+  if (outerStart !== undefined) spans.push([outerStart, structuralText.length]);
+  return spans;
+}
+
+function maskSpans(text: string, spans: readonly [number, number][]): string {
+  let result = "", previous = 0;
+  for (const [start, end] of spans) {
+    result += text.slice(previous, start) + blank(text.slice(start, end));
+    previous = end;
+  }
+  return result + text.slice(previous);
+}
+
 function maskEmbeddedSpeakers(text: string): string {
   // Serialized role tags are document data, never the enclosing live speaker.
   let result = maskSerializedRoleSpans(text);
@@ -96,11 +155,19 @@ function maskEmbeddedSpeakers(text: string): string {
     if (!closing || apostrophe(declarationView, index) || escaped(declarationView, index)) continue;
     const width = opening === "`" ? closing.length : 1;
     let end = declarationView.indexOf(closing, index + width);
-    while (end >= 0 && escaped(declarationView, end)) end = declarationView.indexOf(closing, end + 1);
+    while (end >= 0 && (escaped(declarationView, end) ||
+      ((closing === "'" || closing === "’") && apostrophe(declarationView, end)))) {
+      end = declarationView.indexOf(closing, end + 1);
+    }
     const stop = end < 0 ? declarationView.length : end + closing.length;
     declarationView = declarationView.slice(0, index) + blank(declarationView.slice(index, stop)) + declarationView.slice(stop);
     index = stop - 1;
   }
+  // Header/body containers are external data. Mask them before recognizing
+  // any document-local declaration that would otherwise grant SELF authority.
+  const documentSpans = documentContainerSpans(declarationView);
+  result = maskSpans(result, documentSpans);
+  declarationView = maskSpans(declarationView, documentSpans);
   const prefaceLines = declarationView.split(/\r?\n/u);
   const firstSpeaker = prefaceLines.findIndex((line) => roles.test(line));
   const preface = prefaceLines.slice(0, firstSpeaker < 0 ? undefined : firstSpeaker).join("\n");
@@ -140,7 +207,7 @@ export function speakerAttributedText(text: string): string {
     if (!closing || apostrophe(text, index) || escaped(text, index)) continue;
     const width = code ? closing.length : 1;
     let end = text.indexOf(closing, index + width);
-    while (end >= 0 && (escaped(text, end) || (closing === "'" && apostrophe(text, end)))) end = text.indexOf(closing, end + 1);
+    while (end >= 0 && (escaped(text, end) || ((closing === "'" || closing === "’") && apostrophe(text, end)))) end = text.indexOf(closing, end + 1);
     const closed = end >= 0;
     if (!closed) end = text.length;
     const body = text.slice(index + width, end);

@@ -294,61 +294,73 @@ export function createRememberWritePipeline(
         };
 
         const personalSourceCandidates = new Map<string, MemoryCandidate[]>();
-        const hasAttributionRisk = producerInput.messages.some((message) =>
-          hasUnattributedPersonalClaims(message.content));
+        const hasAttributionRisk = [producerInput, policySafeInput].some((view) =>
+          view.messages.some((message) => hasUnattributedPersonalClaims(message.content)));
         const withheldSources = producerInput.messages.map((message) => withheldPersonalText(message.content));
+        const safeWithheldSources = policySafeInput.messages.map((message) => withheldPersonalText(message.content));
+        const hasPersonalSourceSupport = (
+          target: MemoryCandidate,
+          source: MemoryExtractionInput["messages"][number] | undefined,
+          index: number,
+          phase: "original" | "safe",
+          requiresCurrentAssertion: boolean,
+          withheld: readonly string[],
+        ): boolean => {
+          if (!source || source.role !== "user") return false;
+          const sourceLanguage = sourceAnalyses.get(index)?.context ?? requestLanguage.context;
+          const targetValue = target.kindHint === "preference"
+            ? target.metadata?.preferenceValue ?? target.content
+            : target.content;
+          const value = language.normalizeForEquality(targetValue, sourceLanguage);
+          const borrowedFromWithheldSource = withheld.some((text) =>
+            language.normalizeForEquality(text, sourceLanguage).includes(value));
+          const authorSource = speakerAttributedText(source.content);
+          // Keep open assisted grammar only when the value is supported in the
+          // author view and is not borrowed from an external claim in this view.
+          if (!requiresCurrentAssertion && value.length > 0 &&
+            !borrowedFromWithheldSource &&
+            language.normalizeForEquality(authorSource, sourceLanguage).includes(value)) return true;
+          const cacheKey = `${requiresCurrentAssertion ? "current" : "personal"}:${phase}:${index}`;
+          let grounded = personalSourceCandidates.get(cacheKey);
+          if (!grounded) {
+            let next = 0;
+            grounded = language.extractCandidates({
+              messages: [{ ...source, content: authorSource, sourceMessageIndex: index }],
+              locale: sourceLanguage.locale,
+              nextId: () => `attributed-${phase}-${index}-${++next}`,
+            }, sourceLanguage);
+            personalSourceCandidates.set(cacheKey, grounded);
+          }
+          return grounded.some((item) => item.kindHint === target.kindHint &&
+            (target.kindHint !== "profile" ||
+              (item.metadata?.profileField ?? "name") === (target.metadata?.profileField ?? "name")) &&
+            language.normalizeForEquality(item.kindHint === "preference"
+              ? sourcePreferenceStatement(String(item.metadata?.preferenceValue ?? item.content), [source.content])?.renderedValue ?? item.metadata?.preferenceValue ?? item.content
+              : item.content, sourceLanguage) === value);
+        };
         const personalCandidateIsGrounded = (candidate: MemoryCandidate, original: MemoryCandidate): boolean => {
           // Read the restriction from the original candidate: a redactor that
           // returns a new object must not accidentally erase this requirement.
           const requiresDerivedSource = requiresFinalSourceGrounding(original);
           if (!requiresDerivedSource && candidate.kindHint !== "profile" && candidate.kindHint !== "preference") return true;
           const indexes = candidateSourceMessageIndexes(candidate);
+          const originalIndexes = new Set(candidateSourceMessageIndexes(original));
           const requiresCurrentAssertion = requiresDerivedSource || (candidate.kindHint === "profile" &&
             candidate.metadata?.profileField === "currentProject" &&
             /^(?:en|zh-Hans|zh-Hant)$/u.test(
               resolveCandidateLanguage(candidate, sourceAnalyses, requestLanguage).languagePackId,
             ));
-          // Producer-supplied source indexes cannot turn off the check: a model
-          // may attach a quoted name to a different, unrelated user message.
+          // Producer indexes cannot turn off the risk check. Redaction may
+          // remove a document boundary, but cannot create original authorship.
           if (!hasAttributionRisk && !requiresCurrentAssertion) return true;
-          return indexes.some((index) => {
-            // Structured current-project writes need affirmative current source
-            // support even without quotes. Use only the final policy-safe view:
-            // raw source must not restore proof that a redaction removed.
-            const source = (requiresCurrentAssertion ? policySafeInput : producerInput).messages[index];
-            if (!source || source.role !== "user") return false;
-            const sourceLanguage = sourceAnalyses.get(index)?.context ?? requestLanguage.context;
-            const candidateValue = candidate.kindHint === "preference"
-              ? candidate.metadata?.preferenceValue ?? candidate.content
-              : candidate.content;
-            const value = language.normalizeForEquality(candidateValue, sourceLanguage);
-            // A clean mention is not authority to borrow a quoted identity.
-            // Preserve open assisted grammar only when its literal value has
-            // not appeared in a withheld personal claim elsewhere in the input.
-            const borrowedFromWithheldSource = withheldSources.some((text) =>
-              language.normalizeForEquality(text, sourceLanguage).includes(value));
-            const authorSource = speakerAttributedText(source.content);
-            if (!requiresCurrentAssertion && value.length > 0 &&
-              !borrowedFromWithheldSource &&
-              language.normalizeForEquality(authorSource, sourceLanguage).includes(value)) return true;
-            const cacheKey = `${requiresCurrentAssertion ? "current" : "personal"}:${index}`;
-            let grounded = personalSourceCandidates.get(cacheKey);
-            if (!grounded) {
-              let next = 0;
-              grounded = language.extractCandidates({
-                messages: [{ ...source, content: speakerAttributedText(source.content), sourceMessageIndex: index }],
-                locale: sourceLanguage.locale,
-                nextId: () => `attributed-${index}-${++next}`,
-              }, sourceLanguage);
-              personalSourceCandidates.set(cacheKey, grounded);
-            }
-            return grounded.some((item) => item.kindHint === candidate.kindHint &&
-              (candidate.kindHint !== "profile" ||
-                (item.metadata?.profileField ?? "name") === (candidate.metadata?.profileField ?? "name")) &&
-              language.normalizeForEquality(item.kindHint === "preference"
-                ? sourcePreferenceStatement(String(item.metadata?.preferenceValue ?? item.content), [source.content])?.renderedValue ?? item.metadata?.preferenceValue ?? item.content
-                : item.content, sourceLanguage) === value);
-          });
+          return indexes.some((index) =>
+            originalIndexes.has(index) &&
+            hasPersonalSourceSupport(original, producerInput.messages[index], index,
+              "original", requiresCurrentAssertion, withheldSources) &&
+            // Only final policy-safe text can support the final stored value;
+            // the original proof must never restore a value redaction removed.
+            hasPersonalSourceSupport(candidate, policySafeInput.messages[index], index,
+              "safe", requiresCurrentAssertion, safeWithheldSources));
         };
         const storageUnsafeCandidateIds = new Set<string>();
         const rejectUngroundedOptOutSourceCandidate = (
