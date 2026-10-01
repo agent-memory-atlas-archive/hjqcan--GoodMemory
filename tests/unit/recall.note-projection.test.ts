@@ -37,7 +37,7 @@ function buildNote(input: { id: string; lifecycle?: "active" | "superseded" }) {
 describe("note projection", () => {
   it("registers notes as a projection source under a bumped pipeline version", () => {
     expect(RECALL_PROJECTION_SOURCE_COLLECTIONS).toContain("notes");
-    expect(RECALL_PROJECTION_PIPELINE_VERSION).toBe("gm-projection-v6");
+    expect(RECALL_PROJECTION_PIPELINE_VERSION).toBe("gm-projection-v7");
   });
 
   it("projects a note as memory and field documents but never sentence documents", async () => {

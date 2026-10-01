@@ -1,3 +1,4 @@
+import { OBSERVATION_PROOF_ATTRIBUTE } from "../../domain/observation";
 import { createHash } from "node:crypto";
 
 import { isActiveMemoryLifecycle } from "../../domain/records";
@@ -155,7 +156,11 @@ function collectTextFields(
     pushField(fields, "content", record.content);
     pushField(fields, "subject", record.subject);
     pushField(fields, "tags", record.tags);
-    pushField(fields, "attributes", record.attributes);
+    // Integrity metadata is not a user-authored retrieval key.
+    const attributes = isRecord(record.attributes)
+      ? Object.fromEntries(Object.entries(record.attributes).filter(([key]) => key !== OBSERVATION_PROOF_ATTRIBUTE))
+      : record.attributes;
+    pushField(fields, "attributes", attributes);
   } else if (collection === "episodes") {
     pushField(fields, "summary", record.summary);
     pushField(fields, "keyDecisions", record.keyDecisions);

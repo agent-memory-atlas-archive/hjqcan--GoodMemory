@@ -129,7 +129,7 @@ describe("persisted scope identity migration", () => {
     }
   });
 
-  it("preserves a legacy observation until its members change, then retires only that scope", async () => {
+  it("regenerates unsupported legacy observations from live members without retiring another scope", async () => {
     const store = createInMemoryDocumentStore();
     const scope = { userId: "observer", workspaceId: "project" };
     const memory = createGoodMemory({ storage: { provider: "memory" }, adapters: { documentStore: store, sessionStore: createInMemorySessionStore(), observationSynthesizer: { async synthesize() { return "Updated observation."; } } } });
@@ -138,16 +138,29 @@ describe("persisted scope identity migration", () => {
       await store.set("facts", fact.id, fact);
     }
     const old = createFactMemory({ ...scope, id: "observation:observer:project:project", subject: "project", category: "work", content: "Original observation.", confidence: 0.7, importance: 0.7, source: { method: "inferred", extractedAt: NOW }, attributes: { observationOf: "project", observationMemberIds: "member-0\nmember-1\nmember-2\nmember-3" } });
+    const foreign = { ...old, id: "foreign-observation", workspaceId: "another-project" };
     await store.set("facts", old.id, old);
-    await memory.runMaintenance({ scope, jobs: ["observationSynthesis"] });
+    await store.set("facts", foreign.id, foreign);
     expect(await store.get("facts", old.id)).toEqual(old);
+    const first = await memory.runMaintenance({ scope, jobs: ["observationSynthesis"] });
+    expect(first.maintenance?.jobs[0]?.applied).toBe(1);
+    const retired = await store.get<FactMemory>("facts", old.id);
+    expect(retired).toMatchObject({ content: old.content, lifecycle: "inactive", isActive: false });
+    expect(await store.get("facts", foreign.id)).toEqual(foreign);
+    const firstActive = (await store.query<FactMemory>("facts")).filter((fact) => scopeToKey(fact) === scopeToKey(scope) && fact.attributes?.observationOf === "project" && fact.lifecycle === "active");
+    expect(firstActive).toHaveLength(1);
+    expect(firstActive[0]?.attributes?.observationSupportV1).toEqual(expect.any(String));
+    expect((await memory.runMaintenance({ scope, jobs: ["observationSynthesis"] })).maintenance?.jobs[0]?.applied).toBe(0);
     const extra = createFactMemory({ ...scope, id: "member-4", subject: "project", category: "work", content: "New detail", confidence: 0.9, importance: 0.6, source: { method: "explicit", extractedAt: NOW } });
     await store.set("facts", extra.id, extra);
-    await memory.runMaintenance({ scope, jobs: ["observationSynthesis"] });
-    expect(await store.get("facts", old.id)).toMatchObject({ lifecycle: "inactive", isActive: false });
-    const active = (await store.query<FactMemory>("facts")).filter((fact) => fact.attributes?.observationOf === "project" && fact.lifecycle === "active");
+    expect((await memory.runMaintenance({ scope, jobs: ["observationSynthesis"] })).maintenance?.jobs[0]?.applied).toBe(1);
+    expect(await store.get("facts", old.id)).toEqual(retired);
+    expect(await store.get("facts", foreign.id)).toEqual(foreign);
+    const active = (await store.query<FactMemory>("facts")).filter((fact) => scopeToKey(fact) === scopeToKey(scope) && fact.attributes?.observationOf === "project" && fact.lifecycle === "active");
     expect(active).toHaveLength(1);
     expect(active[0]?.id.startsWith("observation_v2:")).toBe(true);
+    expect(active[0]?.id).toBe(firstActive[0]?.id);
+    expect(active[0]?.attributes?.observationMemberIds).toContain("member-4");
   });
 
   it("does not overwrite a foreign observation at the derived target ID", async () => {

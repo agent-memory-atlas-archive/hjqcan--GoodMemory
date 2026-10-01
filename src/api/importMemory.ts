@@ -1,3 +1,5 @@
+import { checkFactSnapshots } from "../storage/factSnapshots";
+import { filterSupportedObservations } from "../domain/observation";
 import { createHash } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 
@@ -129,12 +131,17 @@ async function shouldRememberPage(
 async function writeEmbeddings(
   deps: ImportMemoryDeps,
   writes: MemoryEmbeddingWrite[],
+  importedFacts: readonly FactMemory[] = [],
 ): Promise<void> {
   if (!deps.embedding || !deps.vectorIndex || writes.length === 0) {
     return;
   }
+  const supported = await filterSupportedObservations(importedFacts,
+    (id) => deps.documentStore.get<FactMemory>("facts", id), () => deps.now().toISOString(),
+    (facts) => checkFactSnapshots(deps.documentStore, facts));
+  const permitted = writes.filter((write) => write.memoryType !== "fact" || !supported.rejectedIds.has(write.id));
   await upsertPreparedMemoryEmbeddings(
-    await prepareMemoryEmbeddingWrites(writes, deps.embedding),
+    await prepareMemoryEmbeddingWrites(permitted, deps.embedding),
     deps.vectorIndex,
   );
 }
@@ -416,6 +423,7 @@ async function importDurable(
     };
   }
   const pendingEmbeddings: MemoryEmbeddingWrite[] = [];
+  const pendingFacts: FactMemory[] = [];
   const undo: Undo[] = [];
   const importRecord = async (
     collection: string,
@@ -440,6 +448,7 @@ async function importDurable(
       }
       undo.push(() => deps.documentStore.delete(collection, id));
       await deps.documentStore.set(collection, id, record);
+      if (collection === "facts") pendingFacts.push(record as FactMemory);
       if (entry?.embed) {
         pendingEmbeddings.push(entry.embed(record as never));
       }
@@ -456,7 +465,7 @@ async function importDurable(
       }
     }
     if (!dryRun) {
-      await writeEmbeddings(deps, pendingEmbeddings);
+      await writeEmbeddings(deps, pendingEmbeddings, pendingFacts);
     }
   } catch (error) {
     return rollback(undo, error);

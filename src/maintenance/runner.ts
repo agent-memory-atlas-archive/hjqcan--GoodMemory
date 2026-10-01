@@ -1,4 +1,12 @@
 import {
+  buildObservationSupport,
+  filterSupportedObservations,
+  isObservation,
+  isUsableObservationSource,
+  MAX_OBSERVATION_SOURCES,
+  OBSERVATION_PROOF_ATTRIBUTE,
+} from "../domain/observation";
+import {
   createEpisodeMemory,
   createFactMemory,
   isActiveMemoryLifecycle,
@@ -734,6 +742,7 @@ async function runEmbeddingRepair(
   vectorIndex: MaintenanceVectorPort | null,
   scope: MemoryScope,
   embedding?: EmbeddingAdapter,
+  referenceTime: () => string = () => new Date().toISOString(),
 ): Promise<MaintenanceJobReport> {
   if (!embedding || !vectorIndex) {
     return {
@@ -747,17 +756,6 @@ async function runEmbeddingRepair(
     repositories.references.listByScope(scope),
     repositories.episodes.listByScope(scope),
   ]);
-  const writes = [
-    ...facts
-      .filter((fact) => fact.lifecycle === "active")
-      .map((fact) => buildFactEmbeddingWrite(fact)),
-    ...references
-      .filter((reference) => isActiveMemoryLifecycle(reference))
-      .map((reference) => buildReferenceEmbeddingWrite(reference)),
-    ...episodes
-      .filter((episode) => !episode.archivedAt)
-      .map((episode) => buildEpisodeEmbeddingWrite(episode)),
-  ];
   for (const fact of facts.filter((fact) => fact.lifecycle !== "active")) {
     await vectorIndex.deleteFactEmbedding(fact.id);
   }
@@ -767,6 +765,20 @@ async function runEmbeddingRepair(
   for (const episode of episodes.filter((episode) => Boolean(episode.archivedAt))) {
     await vectorIndex.deleteEpisodeEmbedding(episode.id);
   }
+  const supported = await filterSupportedObservations(facts,
+    repositories.facts.get?.bind(repositories.facts), referenceTime,
+    repositories.facts.checkSnapshots?.bind(repositories.facts));
+  const writes = [
+    ...supported.facts
+      .filter((fact) => fact.lifecycle === "active")
+      .map((fact) => buildFactEmbeddingWrite(fact)),
+    ...references
+      .filter((reference) => isActiveMemoryLifecycle(reference))
+      .map((reference) => buildReferenceEmbeddingWrite(reference)),
+    ...episodes
+      .filter((episode) => !episode.archivedAt)
+      .map((episode) => buildEpisodeEmbeddingWrite(episode)),
+  ];
   const applied = await upsertMemoryEmbeddings(
     writes,
     embedding,
@@ -798,6 +810,7 @@ async function runRetrievalCueBackfill(
   generator: MaintenanceRunnerConfig["retrievalCues"],
   scope: MemoryScope,
   timestamp: string,
+  currentTime: () => string = () => new Date().toISOString(),
 ): Promise<MaintenanceJobReport> {
   const updateIfUnchanged = repositories.facts.updateIfUnchanged?.bind(repositories.facts);
   if (!generator || !updateIfUnchanged) {
@@ -819,6 +832,10 @@ async function runRetrievalCueBackfill(
   let applied = 0;
 
   for (const fact of facts) {
+    const supported = await filterSupportedObservations([fact],
+      repositories.facts.get?.bind(repositories.facts), currentTime,
+      repositories.facts.checkSnapshots?.bind(repositories.facts));
+    if (supported.facts.length === 0) continue;
     let cues: string[];
     try {
       cues = await generator.generate({
@@ -874,17 +891,19 @@ const OBSERVATION_MEMBER_IDS_ATTRIBUTE = "observationMemberIds";
 // active facts. The observation is a regular fact with inferred provenance
 // and attribute pointers to its member fact ids, so it indexes into recall
 // like any memory and stays auditable/forgettable through existing paths.
-// Idempotent by member set: a stored observation whose member-id list still
-// matches is skipped; when the set changes, the stale observation is
-// replaced (demoted to inactive) and one fresh observation is written.
+// Idempotent by the ordered generation inputs, not just member IDs. Commit
+// compares every source and the target together; recall separately checks
+// versioned support so a retained audit record need not remain current context.
 async function runObservationSynthesis(
   repositories: MaintenanceRepositoryPort,
   synthesizer: MaintenanceRunnerConfig["observationSynthesis"],
   vectorIndex: MaintenanceVectorPort | null,
   scope: MemoryScope,
   timestamp: string,
+  currentTime: () => string = () => new Date().toISOString(),
 ): Promise<MaintenanceJobReport> {
-  if (!synthesizer) {
+  const commit = repositories.facts.commitDerivedIfUnchanged?.bind(repositories.facts);
+  if (!synthesizer || !commit || !repositories.facts.get || !repositories.facts.checkSnapshots) {
     return { name: "observationSynthesis", applied: 0 };
   }
   const minFacts = Math.max(
@@ -900,7 +919,7 @@ async function runObservationSynthesis(
         OBSERVATION_SYNTHESIS_DEFAULT_MAX_SUBJECTS_PER_RUN,
     ),
   );
-  const active = (await repositories.facts.listByScope(scope)).filter(
+  const active = (await repositories.facts.listByScope(scope)).map((fact) => structuredClone(fact)).filter(
     (fact) => isSameDurableScope(fact, scope) &&
       fact.lifecycle === "active" && fact.isActive !== false,
   );
@@ -913,9 +932,7 @@ async function runObservationSynthesis(
   }
   const members = new Map<string, FactMemory[]>();
   for (const fact of sortFactsForMaintenance(active)) {
-    if (typeof fact.attributes?.[OBSERVATION_OF_ATTRIBUTE] === "string") {
-      continue;
-    }
+    if (!isUsableObservationSource(fact, timestamp)) continue;
     const subject = fact.subject?.trim();
     if (!subject || subject === "unknown") {
       continue;
@@ -932,14 +949,24 @@ async function runObservationSynthesis(
   for (const [subject, facts] of [...members.entries()].sort(([left], [right]) =>
     left.localeCompare(right),
   )) {
-    if (facts.length < minFacts) {
-      continue;
+    if (facts.length < minFacts || facts.length > MAX_OBSERVATION_SOURCES) continue;
+    facts.sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+    const support = buildObservationSupport(subject, facts);
+    if (support.length > 512_000 || facts.some((fact) => fact.id.length > 8192)) continue;
+    const observationId = `observation_v2:${scopeKeyForObservation(scope)}:${subject}`;
+    const target = structuredClone(await repositories.facts.get(observationId));
+    if (target && !isSameDurableScope(target, scope)) {
+      throw new Error("Observation ID belongs to a different scope.");
+    }
+    if (target && !isObservation(target)) {
+      throw new Error("Observation ID is occupied by a non-derived fact.");
     }
     const memberIds = facts.map((fact) => fact.id).sort().join("\n");
     const existing = observations.get(subject);
     if (
       existing &&
-      existing.attributes?.[OBSERVATION_MEMBER_IDS_ATTRIBUTE] === memberIds
+      existing.id === observationId &&
+      existing.attributes?.[OBSERVATION_PROOF_ATTRIBUTE] === support
     ) {
       continue;
     }
@@ -949,6 +976,8 @@ async function runObservationSynthesis(
     processed += 1;
     let content: string | null;
     try {
+      if (!await repositories.facts.checkSnapshots(facts) ||
+        facts.some((fact) => !isUsableObservationSource(fact, currentTime()))) continue;
       content = await synthesizer.synthesize({
         contents: facts.map((fact) => fact.content),
         subject,
@@ -970,30 +999,9 @@ async function runObservationSynthesis(
     if (!trimmed) {
       continue;
     }
-    // Stable per-subject identity: replacement is a same-id overwrite, so a
-    // stale observation can never coexist with its successor. A legacy
-    // observation under a different id (if any) is demoted first.
-    const observationId = `observation_v2:${scopeKeyForObservation(scope)}:${subject}`;
-    const target = await repositories.facts.get?.(observationId);
-    if (target && !isSameDurableScope(target, scope)) {
-      throw new Error("Observation ID belongs to a different scope.");
-    }
-    if (existing && existing.id !== observationId) {
-      await repositories.facts.add(
-        createFactMemory({
-          ...existing,
-          lifecycle: "inactive",
-          isActive: false,
-          demotedAt: timestamp,
-          demotionReason: "superseded_observation",
-          updatedAt: timestamp,
-        }),
-      );
-      await vectorIndex?.deleteFactEmbedding(existing.id);
-    }
+    if (facts.some((fact) => !isUsableObservationSource(fact, currentTime()))) continue;
     const template = facts[0]!;
-    await repositories.facts.add(
-      createFactMemory({
+    const fact = createFactMemory({
         id: observationId,
         userId: template.userId,
         tenantId: template.tenantId,
@@ -1008,11 +1016,18 @@ async function runObservationSynthesis(
         attributes: {
           [OBSERVATION_OF_ATTRIBUTE]: subject,
           [OBSERVATION_MEMBER_IDS_ATTRIBUTE]: memberIds,
+          [OBSERVATION_PROOF_ATTRIBUTE]: support,
         },
         createdAt: timestamp,
         updatedAt: timestamp,
-      }),
-    );
+      });
+    const retire = existing && existing.id !== observationId ? {
+      expected: existing,
+      fact: createFactMemory({ ...existing, lifecycle: "inactive", isActive: false,
+        demotedAt: timestamp, demotionReason: "superseded_observation", updatedAt: timestamp }),
+    } : undefined;
+    if (!await commit({ expected: target, fact, sources: facts, ...(retire ? { retire } : {}) })) continue;
+    if (retire) await vectorIndex?.deleteFactEmbedding(retire.expected.id);
     applied += 1;
   }
   return { name: "observationSynthesis", applied };
@@ -1108,6 +1123,7 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
               vectorIndex,
               scope,
               config.embedding,
+              now,
             ),
           );
           continue;
@@ -1145,6 +1161,7 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
               config.retrievalCues,
               scope,
               timestamp,
+              now,
             ),
           );
           continue;
@@ -1158,6 +1175,7 @@ export function createMaintenanceRunner(config: MaintenanceRunnerConfig) {
               vectorIndex,
               scope,
               timestamp,
+              now,
             ),
           );
           continue;

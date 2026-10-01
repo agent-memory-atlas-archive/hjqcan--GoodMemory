@@ -1,3 +1,4 @@
+import { filterSupportedObservations } from "../domain/observation";
 import { createHash } from "node:crypto";
 import { checkPreferenceChronology } from "./preferenceChronology";
 import { candidateSourceMessageIndexes } from "./sourceMessages";
@@ -814,9 +815,12 @@ export async function writeRememberCandidate(input: {
   }
 
   if (candidate.memoryType === "fact") {
-    const facts = (
+    const scopedFacts = (
       await context.repositories.facts.listByScope(context.input.scope)
     ).filter((fact) => isSameDurableScope(fact, context.input.scope));
+    const { facts } = await filterSupportedObservations(scopedFacts,
+      context.repositories.facts.get?.bind(context.repositories.facts), context.now,
+      context.repositories.facts.checkSnapshots?.bind(context.repositories.facts));
     const occurrence = resolveCandidateOccurrence(
       candidate,
       context.input.messages,

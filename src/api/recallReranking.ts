@@ -1,3 +1,4 @@
+import { filterSupportedObservations } from "../domain/observation";
 import type {
   EpisodeMemory,
   FactMemory,
@@ -597,6 +598,35 @@ export function applyDurableSelectionToResult(input: {
     }),
     pool,
   );
+}
+
+export async function applyObservationFenceToResult(input: {
+  language: LanguageService;
+  query: string;
+  result: RecallResult;
+  loadFact: (id: string) => Promise<FactMemory | null>;
+  verifySnapshots: (facts: readonly FactMemory[]) => Promise<boolean>;
+  referenceTime: () => string;
+}): Promise<RecallResult> {
+  const sourcePool = getRecallRerankPool(input.result) ?? buildSelectedResultPool(input.result);
+  const checked = await filterSupportedObservations([
+    ...input.result.facts,
+    ...sourcePool.candidates.flatMap((candidate) => candidate.collection === "facts" ? [candidate.record as FactMemory] : []),
+  ], input.loadFact, input.referenceTime, input.verifySnapshots);
+  if (checked.rejectedIds.size === 0) return input.result;
+  const allowed = (candidate: RecallRerankCandidate) => candidate.collection !== "facts" ||
+    !checked.rejectedIds.has(candidate.record.id);
+  const pool = { ...sourcePool, candidates: sourcePool.candidates.filter(allowed),
+    claims: sourcePool.claims.filter((claim) => !checked.rejectedIds.has(claim.sourceMemoryId)) };
+  const result = rebuildDurablySelectedResult({
+    candidates: buildSelectedResultPool(input.result).candidates.filter(allowed),
+    language: input.language, pool, query: input.query, result: input.result,
+  });
+  return setRecallRerankPool({ ...result, metadata: { ...result.metadata,
+    policyApplied: [...new Set([...result.metadata.policyApplied, "observation_support_unverified"])],
+    candidateTraces: result.metadata.candidateTraces.map((trace) => checked.rejectedIds.has(trace.memoryId)
+      ? { ...trace, returned: false, whyReturned: undefined, whySuppressed: "observation_support_unverified" } : trace),
+  } }, pool);
 }
 
 export function applyOccurrenceFenceToResult(input: {

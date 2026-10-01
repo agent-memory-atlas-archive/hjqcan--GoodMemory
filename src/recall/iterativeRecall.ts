@@ -117,7 +117,7 @@ export type FollowUpDecision =
       sufficient: false;
     };
 
-export interface IterativeRecallOptions {
+export interface IterativeRecallOptions<TFact extends { content: string } = { content: string }> {
   // Required for the built-in bridge strategy. The caller must use the same
   // LanguageService as the surrounding recall request.
   analyzeBridgeText?: (text: string) => BridgeTextAnalysis;
@@ -131,7 +131,7 @@ export interface IterativeRecallOptions {
   // null means the decision adapter was unavailable. When provided it replaces
   // lexical bridge expansion, so bridgeEntities stays empty.
   decideNextHop?: (input: {
-    evidence: readonly { content: string }[];
+    evidence: readonly TFact[];
     originalQuery: string;
     query: string;
     hop: number;
@@ -170,7 +170,7 @@ export async function iterativeRecall<
   query: string;
   recall: (query: string) => Promise<TResult>;
   merge?: (primary: TResult, supplementary: TResult[]) => TResult;
-  options?: IterativeRecallOptions;
+  options?: IterativeRecallOptions<TResult["facts"][number]>;
 }): Promise<IterativeRecallOutcome<TResult>> {
   const maxHops = Math.min(
     MAX_HOPS_CEILING,
@@ -191,7 +191,7 @@ export async function iterativeRecall<
   const bridgeEntities: string[] = [];
   const seenBridge = new Set<string>();
   const seenFactIds = new Set(result.facts.map((fact) => fact.id));
-  const accumulatedEvidence = [...result.facts];
+  const accumulatedEvidence: Array<TResult["facts"][number]> = [...result.facts];
   const steps: IterativeRecallStep[] = [
     {
       bridgeEntities: [],

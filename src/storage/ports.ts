@@ -50,11 +50,21 @@ interface NoteRepositoryPort {
   };
 }
 
+export interface DerivedFactWrite {
+  expected: FactMemory | null;
+  fact: FactMemory;
+  sources: readonly FactMemory[];
+  retire?: { expected: FactMemory; fact: FactMemory };
+}
+
 interface FactRepositoryPort {
   facts: {
     add(fact: FactMemory): Promise<void>;
     /** Atomically replace the exact existing snapshot; never insert a missing fact. */
     updateIfUnchanged?(expected: FactMemory, fact: FactMemory): Promise<boolean>;
+    /** Atomically compare all source/target snapshots before writing a derivation. */
+    commitDerivedIfUnchanged?(input: DerivedFactWrite): Promise<boolean>;
+    checkSnapshots?(facts: readonly FactMemory[]): Promise<boolean>;
     get?(id: string): Promise<FactMemory | null>;
     listByScope(scope: MemoryScope): Promise<FactMemory[]>;
   };

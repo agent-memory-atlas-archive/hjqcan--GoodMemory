@@ -332,7 +332,7 @@ describe("recall projection runtime", () => {
     );
 
     expect(first).toBe(second);
-    expect(first).toStartWith("gm-projection-v6:");
+    expect(first).toStartWith("gm-projection-v7:");
     expect(alternateDefault).not.toBe(first);
   });
 
@@ -401,7 +401,7 @@ describe("recall projection runtime", () => {
         ...scope,
         analyzerFingerprint: expect.any(String),
         coverage: "partial",
-        projectionVersion: "gm-projection-v6",
+        projectionVersion: "gm-projection-v7",
         searchSchemaVersion: "gm-search-v3",
         firstSeenAt: NOW,
         lastSeenAt: NOW,
@@ -1072,7 +1072,7 @@ describe("recall projection runtime", () => {
     ).toMatchObject({
       analyzerFingerprint: "language-manifest-fingerprint",
       coverage: "complete",
-      projectionVersion: "gm-projection-v6",
+      projectionVersion: "gm-projection-v7",
       schemaVersion: 2,
     });
   });

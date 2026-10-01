@@ -1,3 +1,4 @@
+import { filterSupportedObservations } from "../domain/observation";
 import {
   applyRecallAssistantRerank,
   buildRecallAssistantCandidates,
@@ -189,7 +190,7 @@ export async function assembleRecallResult(input: {
             : {}),
         }
       : undefined;
-  const factSelectionPool = retrieved.claimReplacementSourceIds.size > 0
+  const unverifiedFactPool = retrieved.claimReplacementSourceIds.size > 0
     ? [
         ...content.facts.filter(
           (fact) => !retrieved.claimReplacementSourceIds.has(fact.id),
@@ -197,6 +198,22 @@ export async function assembleRecallResult(input: {
         ...retrieved.selectedClaimSourceFacts,
       ]
     : content.facts;
+  const supportTime = () => new Date(now()).toISOString();
+  const checkSupport = (records: typeof unverifiedFactPool) => filterSupportedObservations(records,
+    config.repositories.facts.get?.bind(config.repositories.facts), supportTime,
+    config.repositories.facts.checkSnapshots?.bind(config.repositories.facts));
+  const support = await checkSupport(unverifiedFactPool);
+  const observationSuppressedIds = new Set(support.rejectedIds);
+  const factIsSupported = async (fact: typeof unverifiedFactPool[number]) => {
+    const checked = await checkSupport([fact]);
+    if (checked.rejectedIds.size) {
+      policyApplied.add("observation_support_unverified");
+      for (const id of checked.rejectedIds) observationSuppressedIds.add(id);
+    }
+    return checked.rejectedIds.size === 0;
+  };
+  const factSelectionPool = support.facts;
+  if (support.rejectedIds.size > 0) policyApplied.add("observation_support_unverified");
   const occurrenceFacts = filterFactsByOccurrence(
     factSelectionPool,
     context.recallPlan.temporalConstraints,
@@ -234,10 +251,16 @@ export async function assembleRecallResult(input: {
     occurrenceFactIds,
     config.longRecordAdmission ? { longRecordCoverage: true } : undefined,
   );
+  selectedFacts.traces.push(...[...support.rejectedIds].map((memoryId): RecallCandidateTrace => ({
+    memoryId, memoryType: "fact", slot: "generic", returned: false,
+    whySuppressed: "observation_support_unverified", intentScore: 0, lexicalScore: 0,
+    freshnessScore: 0, explicitnessScore: 0, fallback: "none",
+  })));
   let facts = await applyRecallPolicyToRecords(
     selectedFacts.facts,
     "fact",
     policyContext,
+    factIsSupported,
   );
   const visibleFeedback = includeGuidanceLanes
     ? await applyRecallPolicyToRecords(
@@ -359,6 +382,10 @@ export async function assembleRecallResult(input: {
     config.assistedRouter &&
     !assistantInfluence?.fallbackReason
   ) {
+    const currentSupport = await checkSupport(facts);
+    for (const id of currentSupport.rejectedIds) observationSuppressedIds.add(id);
+    if (currentSupport.rejectedIds.size) policyApplied.add("observation_support_unverified");
+    facts = currentSupport.facts;
     const rerankSelection = { archives, episodes, facts, references };
     const protectedCandidateIds = collectAssistantProtectedCandidateIds([
       selectedFacts.traces,
@@ -412,6 +439,7 @@ export async function assembleRecallResult(input: {
       }),
       "fact",
       policyContext,
+      factIsSupported,
     ),
   ];
   const poolReferences = [
@@ -580,7 +608,9 @@ export async function assembleRecallResult(input: {
     assistantInfluence?.suppressedCandidateIds ?? [],
   );
   const factSuppressionTraceReason = (trace: RecallCandidateTrace): string =>
-    occurrenceSuppressedFactIds.has(trace.memoryId)
+    observationSuppressedIds.has(trace.memoryId)
+      ? "observation_support_unverified"
+      : occurrenceSuppressedFactIds.has(trace.memoryId)
       ? "event_occurrence_mismatch"
       : assistantSuppressionTraceReason(trace);
   const candidateTraces = appendAssistantTraceDetails(

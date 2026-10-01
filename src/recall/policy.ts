@@ -59,6 +59,7 @@ export async function applyRecallPolicyToRecords<TRecord extends {
     policy?: Pick<GoodMemoryPolicyHooks, "shouldRecall">;
     policyApplied: Set<string>;
   },
+  isCurrent?: (record: TRecord) => Promise<boolean>,
 ): Promise<TRecord[]> {
   const policyContext: PolicyContext = {
     scope: input.scope,
@@ -76,11 +77,12 @@ export async function applyRecallPolicyToRecords<TRecord extends {
     input.scope,
     input.policyApplied,
   )) {
+    if (isCurrent && !await isCurrent(record)) continue;
     if (
       input.policy?.shouldRecall &&
       !(await input.policy.shouldRecall(
-        toPolicyMemoryRecord(record as never, memoryType),
-        policyContext,
+        structuredClone(toPolicyMemoryRecord(record as never, memoryType)),
+        structuredClone(policyContext),
       ))
     ) {
       input.policyApplied.add("custom_shouldRecall");

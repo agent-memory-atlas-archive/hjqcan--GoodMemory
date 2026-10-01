@@ -1,3 +1,6 @@
+import { checkFactSnapshots } from "../storage/factSnapshots";
+import { filterSupportedObservations } from "../domain/observation";
+import type { FactMemory } from "../domain/records";
 import { isIanaTimezone, isRfc3339Instant } from "../domain/temporal";
 import { assertStorageSafeExternalValue } from "../domain/semanticText";
 import type { LanguageService } from "../language";
@@ -34,6 +37,7 @@ import {
   applyDurableRerankingToResult,
   applyDurableSelectionToResult,
   applyOccurrenceFenceToResult,
+  applyObservationFenceToResult,
   buildSkippedRerankerTrace,
   getDurableRerankerCandidateCount,
   withRerankerTrace,
@@ -559,7 +563,7 @@ export async function orchestrateRecall(
         // continue only after naming a concrete missing-slot query. Provider
         // failures remain distinguishable from a positive sufficiency stop.
         const followUpDecisionGenerator = dependencies.assembly.followUpDecisionGenerator;
-        const outcome = await iterativeRecall({
+        const outcome = await iterativeRecall<RecallResult>({
           query: context.query,
           recall: singlePassRecall,
           merge: (primary, supplementary) =>
@@ -580,8 +584,12 @@ export async function orchestrateRecall(
                     hop,
                   }) => {
                     try {
+                      const supported = await filterSupportedObservations(evidence,
+                        (id) => dependencies.assembly.documentStore.get<FactMemory>("facts", id),
+                        () => dependencies.assembly.now().toISOString(),
+                        (facts) => checkFactSnapshots(dependencies.assembly.documentStore, facts));
                       return await followUpDecisionGenerator.generate({
-                        evidence: evidence
+                        evidence: supported.facts
                           .slice(0, 8)
                           .map((fact) => fact.content.slice(0, 300)),
                         hop,
@@ -704,6 +712,13 @@ export async function orchestrateRecall(
       result,
       selectedLimit: recallPlan.selectedLimit,
     });
+    const guardObservations = (current: RecallResult) => applyObservationFenceToResult({
+      result: current, language: dependencies.assembly.language, query: input.query,
+      loadFact: (id) => dependencies.assembly.documentStore.get<FactMemory>("facts", id),
+      verifySnapshots: (facts) => checkFactSnapshots(dependencies.assembly.documentStore, facts),
+      referenceTime: () => dependencies.assembly.now().toISOString(),
+    });
+    result = await guardObservations(result);
     if (dependencies.assembly.reranker && dependencies.assembly.rerankerTarget) {
       result = input.rerank === false
         ? withRerankerTrace(
@@ -724,6 +739,7 @@ export async function orchestrateRecall(
             target: dependencies.assembly.rerankerTarget,
           });
     }
+    result = await guardObservations(result);
     result = applyOccurrenceFenceToResult({
       constraints: recallPlan.temporalConstraints,
       eventOccurrenceIntervalUnresolved:

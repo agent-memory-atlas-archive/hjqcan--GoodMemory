@@ -243,7 +243,8 @@ export interface GoodMemoryConfig {
     };
     // R9 opt-in synthesizer for the observationSynthesis maintenance job:
     // one compact observation memory per subject with enough active facts,
-    // stored with inferred provenance and member-id attribute pointers.
+    // stored with inferred provenance and versioned source-input support.
+    // Generation and current recall require atomic source/target validation.
     observationSynthesizer?: {
       synthesize(input: {
         contents: readonly string[];

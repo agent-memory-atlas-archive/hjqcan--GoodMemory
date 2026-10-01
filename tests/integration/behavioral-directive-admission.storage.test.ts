@@ -130,7 +130,7 @@ async function expectStorageAdmission(
     ({ scopeKey }) => scopeKey === recallScopeKey(scope),
   );
   expect(manifest?.validatedGeneration).toBe(manifest?.sourceGeneration);
-  expect(manifest?.projectionBuildId).toStartWith("gm-projection-v6:");
+  expect(manifest?.projectionBuildId).toStartWith("gm-projection-v7:");
 }
 
 describe("behavioral directive admission storage", () => {

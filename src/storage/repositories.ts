@@ -1,3 +1,5 @@
+import { checkFactSnapshots } from "./factSnapshots";
+import type { DerivedFactWrite } from "./ports";
 import type {
   EpisodeMemory,
   FactMemory,
@@ -117,6 +119,8 @@ export interface MemoryRepositories {
     add(fact: FactMemory): Promise<void>;
     /** Present only when the document store supplies an atomic conditional batch. */
     updateIfUnchanged?(expected: FactMemory, fact: FactMemory): Promise<boolean>;
+    commitDerivedIfUnchanged?(input: DerivedFactWrite): Promise<boolean>;
+    checkSnapshots?(facts: readonly FactMemory[]): Promise<boolean>;
     get(id: string): Promise<FactMemory | null>;
     listByUser(userId: string): Promise<FactMemory[]>;
     listByScope(scope: MemoryScope): Promise<FactMemory[]>;
@@ -456,6 +460,30 @@ export function createMemoryRepositories(
       },
 
       ...(typeof config.documentStore.writeBatchIfUnchanged === "function" ? {
+        async checkSnapshots(facts: readonly FactMemory[]): Promise<boolean> {
+          return checkFactSnapshots(config.documentStore, facts);
+        },
+        async commitDerivedIfUnchanged(input: DerivedFactWrite): Promise<boolean> {
+          const { expected, fact, sources, retire } = input;
+          const compared = [...sources, ...(expected ? [expected] : []), ...(retire ? [retire.expected] : [])];
+          if ((expected && expected.id !== fact.id) || sources.length < 2 ||
+            new Set(sources.map(({ id }) => id)).size !== sources.length ||
+            sources.some(({ id }) => id === fact.id || id === retire?.expected.id) ||
+            compared.some((record) => !isSameDurableScope(record, fact)) ||
+            (retire && (retire.expected.id === fact.id || retire.expected.id !== retire.fact.id ||
+              !isSameDurableScope(retire.fact, fact)))) {
+            throw new Error("Derived fact write must preserve exact source identity and durable scope.");
+          }
+          return config.documentStore.writeBatchIfUnchanged!({
+            expected: { collection: "facts", id: fact.id, document: expected },
+            unchanged: [...sources, ...(retire ? [retire.expected] : [])].map((record) => ({
+              collection: "facts", id: record.id, document: record,
+            })),
+            set: [fact, ...(retire ? [retire.fact] : [])].map((record) => ({
+              collection: "facts", id: record.id, document: record,
+            })),
+          });
+        },
         async updateIfUnchanged(expected: FactMemory, fact: FactMemory): Promise<boolean> {
           if (expected.id !== fact.id || !isSameDurableScope(expected, fact)) {
             throw new Error("Conditional fact update must preserve identity and durable scope.");
