@@ -129,10 +129,29 @@ aliases, renames, independent module copies, and separate processes are outside
 this coordination boundary. Custom adapters coordinate only when they reuse the
 same documentStore object instance. No new custom-adapter capability is required.
 
-Concurrent writes from separate processes can still fail, including a reproduced
-SQLite vector-upsert read-to-write transaction lock conflict. The explicit
-`bun test ./scripts/diagnostics/sqlite-concurrent-remember.test.ts` diagnostic
-retains this known failure; it is not represented as a passing release guarantee.
+SQLite vector upserts with records and vector deletes acquire writer admission
+before reading vector identity. This avoids upgrading a stale deferred read
+snapshot after another process commits. The existing one-second SQLite busy
+timeout applies at admission; that wait is synchronous, and sustained contention
+can still return `SQLITE_BUSY`. Batch rollback, vector-index updates and all
+canonical source conditions are unchanged. Empty upserts keep their existing
+non-writing initialization behavior, including the read-only rejection.
+
+Cold connection setup also applies the existing one-second budget when enabling
+WAL mode. That SQLite operation can bypass the native busy handler, so only its
+`SQLITE_BUSY` and competing-recovery `SQLITE_BUSY_RECOVERY` failures are retried
+with short synchronous waits under one shared deadline. Other codes, including
+`SQLITE_BUSY_SNAPSHOT`, are not retried here. A persistent
+lock or other setup error remains visible, and a connection whose journal/timeout
+setup fails is closed. Read-only and in-memory connections keep their prior path.
+The budget covers WAL retries and waits, not every setup or schema operation.
+This does not add retries to memory writes or change the host's error recovery.
+
+The two/four-process, sixteen-writes-per-process regression now runs in the
+canonical suite; the original
+`bun test ./scripts/diagnostics/sqlite-concurrent-remember.test.ts` command remains
+available. These bounded checks do not promise arbitrary-process fairness,
+unlimited contention tolerance or atomic canonical-and-vector deletion.
 Hosts should inspect memory writeback results independently of successful chat
 responses. This coordination does not change the separately published npm 0.8.1
 package until a later release is made.

@@ -2438,6 +2438,13 @@ describe("release metadata and docs", () => {
           BUN_INSTALL_CACHE_DIR: join(workspaceRoot, ".bun-install-cache"),
         },
       });
+      if (install.exitCode !== 0) {
+        console.error("Clean write-CLI consumer installation failed", {
+          exitCode: install.exitCode,
+          stdout: install.stdout,
+          stderr: install.stderr,
+        });
+      }
       expect(install.exitCode).toBe(0);
 
       expect(

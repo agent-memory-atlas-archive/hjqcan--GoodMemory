@@ -139,6 +139,7 @@ const DOCUMENT_TEXT_KEY_SCHEMA_COMPONENT = "document_text_fts_keys";
 const DOCUMENT_SCHEMA_VERSION = 2;
 const DOCUMENT_FILTER_INDEX_SCHEMA_VERSION = 2;
 const SQLITE_BUSY_TIMEOUT_MS = 1_000;
+const SQLITE_INITIALIZATION_WAIT = new Int32Array(new SharedArrayBuffer(4));
 
 function ensureSQLiteCustomLibraryConfigured(): SQLiteCustomLibraryConfig {
   if (!sqliteCustomLibraryConfig) {
@@ -170,6 +171,28 @@ function ensureParentDirectory(path: string, options?: SQLiteStoreOptions): void
   });
 }
 
+function initializeSQLiteWal(database: Database): void {
+  // Journal-mode activation can return SQLITE_BUSY without invoking SQLite's
+  // busy handler. Bound retries to the same budget before enabling normal waits.
+  database.exec("PRAGMA busy_timeout = 0");
+  const deadline = performance.now() + SQLITE_BUSY_TIMEOUT_MS;
+  while (true) {
+    try {
+      database.exec("PRAGMA journal_mode = WAL");
+      return;
+    } catch (error) {
+      if (!(error instanceof Error) || !("code" in error) ||
+        (error.code !== "SQLITE_BUSY" && error.code !== "SQLITE_BUSY_RECOVERY")) {
+        throw error;
+      }
+      const remaining = deadline - performance.now();
+      if (remaining <= 0) throw error;
+      Atomics.wait(SQLITE_INITIALIZATION_WAIT, 0, 0, Math.min(5, remaining));
+      if (performance.now() >= deadline) throw error;
+    }
+  }
+}
+
 function createDatabase(
   path: string,
   options?: SQLiteStoreOptions,
@@ -181,11 +204,20 @@ function createDatabase(
     readonly: options?.readOnly ?? false,
     strict: true,
   });
-  database.exec(`PRAGMA busy_timeout = ${SQLITE_BUSY_TIMEOUT_MS}`);
-  if (!options?.readOnly && path !== ":memory:") {
-    database.exec("PRAGMA journal_mode = WAL");
+  try {
+    if (!options?.readOnly && path !== ":memory:") {
+      initializeSQLiteWal(database);
+    }
+    database.exec(`PRAGMA busy_timeout = ${SQLITE_BUSY_TIMEOUT_MS}`);
+    return database;
+  } catch (error) {
+    try {
+      database.close();
+    } catch {
+      // Preserve the setup failure.
+    }
+    throw error;
   }
-  return database;
 }
 
 export function serializeSQLiteDatabase(path: string): Uint8Array {
@@ -1561,7 +1593,14 @@ export function createSQLiteVectorStore(
         }
       });
 
-      transaction(records);
+      // Acquire writer admission before reading vector identity. A deferred
+      // read snapshot cannot be upgraded after another connection commits.
+      // Empty batches retain their existing non-writing initialization path.
+      if (records.length === 0) {
+        transaction(records);
+      } else {
+        transaction.immediate(records);
+      }
     },
 
     async get(collection, id) {
@@ -1690,7 +1729,7 @@ export function createSQLiteVectorStore(
         deleteStatement!.run(collection, id);
       });
 
-      transaction();
+      transaction.immediate();
     },
   };
 }
