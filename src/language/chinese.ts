@@ -34,8 +34,10 @@ import {
 import type { DirectiveGrammarMatch } from "./generic";
 import {
   buildChineseSearchTerms,
+  additionalChineseIdentifierTokens,
   CHINESE_ANALYZER_VERSION,
   normalizeChineseForEquality,
+  registerChineseIdentifierTokenizer,
   tokenizeChineseForScoring,
 } from "./chineseConversion";
 import {
@@ -1613,11 +1615,11 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
     splitSentences(text: string): string[] {
       return splitSentencesGeneric(text);
     },
-    tokenizeForScoring(
+    tokenizeForScoring: registerChineseIdentifierTokenizer((
       text: string,
       _mode: "bm25" | "overlap",
       options?: { excludeStopwords?: boolean },
-    ): string[] {
+    ): string[] => {
       const tokens = tokenizeChineseForScoring(text, locale);
       if (options?.excludeStopwords) {
         return tokenizeChineseForScoring(
@@ -1626,7 +1628,10 @@ export function createChineseLanguagePack(script: ChineseScript): LanguagePack {
         ).filter((token) => !CHINESE_STOPWORDS.has(token));
       }
       return tokens;
-    },
+    }, (text, options) => additionalChineseIdentifierTokens(
+      options?.excludeStopwords ? stripChineseInterrogativeRetrievalNoise(text) : text,
+      locale,
+    )),
     buildSearchTerms(text: string): string[] {
       return buildChineseSearchTerms(
         stripChineseInterrogativeRetrievalNoise(text),

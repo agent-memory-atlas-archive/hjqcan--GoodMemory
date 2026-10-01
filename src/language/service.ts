@@ -16,6 +16,7 @@ import {
   durableTargetIdentityKey,
 } from "../domain/memoryCandidate";
 import { createChineseLanguagePack } from "./chinese";
+import { removeUnpairedChineseIdentifierAliases } from "./chineseConversion";
 import { createEnglishLanguagePack } from "./english";
 import { createFrenchLanguagePack } from "./french";
 import { createNeutralLanguagePack } from "./generic";
@@ -663,6 +664,9 @@ export function createLanguageService(
           rightSize: rightTokens.size,
         };
       }
+      removeUnpairedChineseIdentifierAliases(
+        pack.tokenizeForScoring, left, right, options, leftTokens, rightTokens,
+      );
       const leftHasNumeric = [...leftTokens].some((token) =>
         PURE_NUMERIC_TOKEN.test(token)
       );

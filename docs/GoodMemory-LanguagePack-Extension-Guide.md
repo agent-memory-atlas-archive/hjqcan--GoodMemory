@@ -172,6 +172,17 @@ and a persistent projection proof must fail closed. A detector is ignored in
 
 ## Chinese script-local contract
 
+The built-in Chinese analyzers preserve a contiguous Han word plus a digit-bearing
+ASCII identifier as an additional retrieval key, for example `项目7` or `專案A7`.
+These keys distinguish numbered subjects without changing canonical text,
+equality, entity ownership, or recall thresholds. Unsupported separated identifiers
+(such as `项目A-7`) retain their previous tokenization; this expansion does not
+add a bare-number search channel. Existing search terms keep priority under the
+128-term index limit, so long inputs can exhaust the space for new identifier
+keys. In overlap scoring, aliases present on only one side do not dilute an
+unnumbered question. A custom tokenizer replacing the built-in pack retains its
+own token semantics. The analyzer version change rebuilds affected projections.
+
 The two Chinese packs share implementation primitives but have distinct
 compatibility groups and analyzer identities. Each pack normalizes and indexes
 its own script. GoodMemory 0.7 guarantees Simplified query-to-Simplified source

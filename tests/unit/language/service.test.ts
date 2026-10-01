@@ -526,7 +526,7 @@ describe("language service", () => {
     expect(
       manifest.packs.find(({ id }) => id === "zh-Hant"),
     ).toMatchObject({
-      analyzerVersion: "22-current-project-source",
+      analyzerVersion: "23-adjacent-identifiers",
       apiVersion: 1,
       compatibilityGroup: "zh-Hant",
       defaultLocale: "zh-Hant",
