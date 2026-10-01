@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "bun:test";
-import { mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createHash } from "node:crypto";
@@ -17,7 +17,7 @@ afterEach(async () => {
 
 describe("release verifier filesystem and Git boundaries", () => {
   it("reads writer-produced synthetic receipts and rejects dirty, wrong-tag and symlink inputs", async () => {
-    const root = await mkdtemp(join(tmpdir(), "goodmemory-release-verifier-"));
+    const root = await realpath(await mkdtemp(join(tmpdir(), "goodmemory-release-verifier-")));
     roots.push(root);
     const repoRoot = join(root, "source");
     const artifactDirectory = join(root, "artifacts");

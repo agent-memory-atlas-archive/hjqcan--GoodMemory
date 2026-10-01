@@ -16,9 +16,10 @@ describe("v0.8 public records from older storage", () => {
     await store.set("facts", fact.id, fact);
     await store.set("feedback", feedback.id, feedback);
     await store.set(EXPERIENCES_COLLECTION, experience.id, experience);
-    const memory = createGoodMemory({ storage: { provider: "memory" }, adapters: { documentStore: store, sessionStore: createInMemorySessionStore(), vectorStore: createInMemoryVectorStore(), terminalDeletionSemantics: "shared-coordinated-backends-v1" } });
+    const memory = createGoodMemory({ storage: { provider: "memory" }, adapters: { documentStore: store, sessionStore: createInMemorySessionStore(), vectorStore: createInMemoryVectorStore(), terminalDeletionSemantics: "shared-coordinated-backends-v1" }, testing: { now: () => new Date(source.extractedAt) } });
     const recalled = await memory.recall({ scope, query: "Neovim editor focused changes" });
     expect(recalled.facts.map(record => record.id)).toContain(fact.id);
+    expect(recalled.metadata.verificationHints).toEqual([]);
     for (const record of recalled.facts) {
       expect(record).not.toHaveProperty("accessCount");
       expect(record).not.toHaveProperty("lastAccessedAt");
