@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
+import { checkPreferenceChronology } from "./preferenceChronology";
 import { candidateSourceMessageIndexes } from "./sourceMessages";
-import { preferenceSupersessionIds, sourcePreferenceStatement } from "../language/personalPreferences";
+import { preferenceOppositionIds, preferenceSupersessionIds, sourcePreferenceStatement } from "../language/personalPreferences";
 import {
   buildFeedbackIdentityKey,
   createFactMemory,
@@ -20,7 +22,7 @@ import {
   buildReferenceEmbeddingWrite,
 } from "../embedding/vectorWrites";
 import { EVIDENCE_COLLECTION } from "../evidence/contracts";
-import type { SourceMessageRecord } from "../evidence/contracts";
+import type { EvidenceRecord, SourceMessageRecord } from "../evidence/contracts";
 import {
   resolvePolicyConflict,
   toPolicyMemoryRecord,
@@ -168,6 +170,48 @@ async function persistCandidateEvidence(input: {
   return sourceMessages;
 }
 
+async function preparePreferenceEvidence(
+  context: RememberWriteContext,
+  candidate: ClassifiedCandidate,
+  memoryId: string,
+  timestamp: string,
+) {
+  const sourceMessages = [...new Map(candidateSourceMessageIndexes(candidate).flatMap((index) => {
+    const source = context.sourceMessagesByIndex.get(index);
+    return source ? [[source.id, source] as const] : [];
+  })).values()];
+  // Some policy transformations cannot safely preserve the raw source. Keep
+  // that existing admission behavior without manufacturing source evidence.
+  if (sourceMessages.length === 0) return null;
+  // Bind confirmations to immutable source records, not ingestion time or a
+  // caller's reusable message ID. Replaying the same source keeps its evidence.
+  const sourceIds = [...new Set(sourceMessages.map(({ id }) => id))].sort();
+  const id = `preference-evidence:v1:${createHash("sha256")
+    .update(JSON.stringify([memoryId, sourceIds])).digest("hex")}`;
+  const existing = await context.getDocument<EvidenceRecord>(EVIDENCE_COLLECTION, id);
+  if (existing && (
+    !isSameDurableScope(existing, context.input.scope) ||
+    existing.sessionId !== context.input.scope.sessionId ||
+    existing.linkedMemoryIds.length !== 1 ||
+    existing.linkedMemoryIds[0] !== memoryId ||
+    JSON.stringify([...(existing.sourceRecordIds ?? [])].sort()) !== JSON.stringify(sourceIds)
+  )) {
+    throw new Error(`Preference evidence identity conflict: ${id}`);
+  }
+  return {
+    id,
+    constraint: { collection: EVIDENCE_COLLECTION, id, document: existing },
+    writes: existing ? [] : [{
+      collection: EVIDENCE_COLLECTION,
+      id,
+      document: buildCandidateEvidence(
+        context.input.scope, candidate, memoryId, id, timestamp,
+        languageMetadata(context.candidateLanguage), sourceMessages,
+      ),
+    }],
+  };
+}
+
 function queueClaimProjection(input: {
   candidate: ClassifiedCandidate;
   evidenceId: string;
@@ -291,8 +335,9 @@ export async function writeRememberCandidate(input: {
     );
     const preferenceWrite = await context.writeDocumentBatchWithRollback<{
       memoryId: string;
-      outcome: "merged" | "superseded" | "written";
+      outcome: "merged" | "superseded" | "written" | "rejected";
       reason: string;
+      evidenceId?: string;
     }>(
       createPreferenceCategoryFence(context.input.scope, category),
       async () => {
@@ -325,7 +370,32 @@ export async function writeRememberCandidate(input: {
           ) === normalizedValue;
         });
 
+        const chronologicalTargets = retiredPreferences.filter((preference) => preference.id !== duplicate?.id);
+        const oppositionIds = preferenceOppositionIds(categoryPreferences, preferenceStatement);
+        const admissionTargets = categoryPreferences.filter((preference) => preference.id !== duplicate?.id && oppositionIds.has(preference.id));
+        const firstChronologyTarget = chronologicalTargets[0] ?? admissionTargets[0];
+        const chronology = await checkPreferenceChronology({
+          scope: context.input.scope, value, active: categoryPreferences, targets: chronologicalTargets, admissionTargets,
+          incomingSources: candidateSourceMessageIndexes(candidate).flatMap((index) => {
+            const source = context.sourceMessagesByIndex.get(index);
+            return source ? [source] : [];
+          }),
+          preparedSources: new Map([...context.sourceMessagesByIndex.values()].map((source) => [source.id, source])),
+          get: context.getDocument, query: context.queryDocuments,
+        });
+        if (chronology.reason && !duplicate) {
+          return {
+            batch: {
+              expected: { collection: "preferences", id: firstChronologyTarget!.id, document: firstChronologyTarget! },
+              unchanged: [...chronology.unchanged, ...categoryPreferences.slice(0).map((document) => ({ collection: "preferences", id: document.id, document }))],
+              set: [],
+            },
+            result: { memoryId: firstChronologyTarget!.id, outcome: "rejected" as const, reason: chronology.reason },
+          };
+        }
+
         if (duplicate) {
+          const evidence = await preparePreferenceEvidence(context, candidate, duplicate.id, timestamp);
           const enrichedDuplicate = enrichDuplicatePreference(
             duplicate,
             candidate,
@@ -345,7 +415,7 @@ export async function writeRememberCandidate(input: {
           const explicitCorrection = preferenceStatement?.polarity === "withdrawn" ||
             preferenceStatement?.explicitUpdate === true;
           const stalePreferences = retiredPreferences.filter(
-            (preference) => explicitCorrection && preference.id !== duplicate.id,
+            (preference) => !chronology.reason && explicitCorrection && preference.id !== duplicate.id,
           );
           return {
             batch: {
@@ -354,12 +424,13 @@ export async function writeRememberCandidate(input: {
                 document: duplicate,
                 id: duplicate.id,
               },
-              unchanged: stalePreferences.map((preference) => ({
+              unchanged: [...chronology.unchanged, ...(evidence ? [evidence.constraint] : []), ...stalePreferences.map((preference) => ({
                 collection: "preferences",
                 document: preference,
                 id: preference.id,
-              })),
+              }))],
               set: [
+                ...(evidence?.writes ?? []),
                 ...(updatedDuplicate
                   ? [{
                       collection: "preferences",
@@ -383,6 +454,7 @@ export async function writeRememberCandidate(input: {
               memoryId: duplicate.id,
               outcome: "merged" as const,
               reason: "duplicate_preference",
+              evidenceId: evidence?.id,
             },
           };
         }
@@ -397,6 +469,7 @@ export async function writeRememberCandidate(input: {
           ),
           updatedAt,
         });
+        const evidence = await preparePreferenceEvidence(context, candidate, preference.id, timestamp);
         return {
           batch: {
             expected: {
@@ -404,12 +477,13 @@ export async function writeRememberCandidate(input: {
               document: null,
               id: preference.id,
             },
-            unchanged: categoryPreferences.map((existing) => ({
+            unchanged: [...chronology.unchanged, ...(evidence ? [evidence.constraint] : []), ...categoryPreferences.map((existing) => ({
               collection: "preferences",
               document: existing,
               id: existing.id,
-            })),
+            }))],
             set: [
+              ...(evidence?.writes ?? []),
               {
                 collection: "preferences",
                 document: preference,
@@ -432,21 +506,30 @@ export async function writeRememberCandidate(input: {
                 memoryId: preference.id,
                 outcome: "superseded" as const,
                 reason: "superseded_preference",
+                evidenceId: evidence?.id,
               }
             : {
                 memoryId: preference.id,
                 outcome: "written" as const,
                 reason: "explicit_preference",
+                evidenceId: evidence?.id,
               },
         };
       },
     );
+    if (preferenceWrite.outcome === "rejected") {
+      state.rejected += 1;
+      state.events.push({ candidateId, outcome: "rejected", memoryType: "preference", reason: preferenceWrite.reason,
+        ...buildRememberEventTrace(candidate) });
+      return;
+    }
     pushAcceptedEvent(state, {
       candidateId,
       outcome: preferenceWrite.outcome,
       memoryType: "preference",
       memoryId: preferenceWrite.memoryId,
       reason: preferenceWrite.reason,
+      ...(preferenceWrite.evidenceId ? { evidenceIds: [preferenceWrite.evidenceId] } : {}),
       ...buildRememberEventTrace(candidate),
     });
     return;

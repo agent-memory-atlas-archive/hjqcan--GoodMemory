@@ -1123,6 +1123,14 @@ describe("public remember API", () => {
       updatedAt: "2026-01-01T00:00:00.000Z",
     };
     await backingStore.set("preferences", original.id, original);
+    // Supply actual source evidence so this test reaches its fallback-write
+    // failure instead of being rejected as an unverified legacy correction.
+    await createGoodMemory({ adapters: { documentStore: backingStore, sessionStore: createInMemorySessionStore() } }).remember({
+      scope: { ...scope, sessionId: "original-confirmation" },
+      messages: [{ id: "original", role: "user", content: "I prefer bullet points in project summaries." }],
+    });
+    const originalSources = await backingStore.query(SOURCE_MESSAGES_COLLECTION, scope);
+    const originalEvidence = await backingStore.query(EVIDENCE_COLLECTION, scope);
     const documentStore: DocumentStore = {
       async set<TDocument extends object>(
         collection: string,
@@ -1175,7 +1183,8 @@ describe("public remember API", () => {
     })).rejects.toThrow("fallback preference replacement failed");
 
     expect(await backingStore.query("preferences", scope)).toEqual([original]);
-    expect(await backingStore.query(SOURCE_MESSAGES_COLLECTION, scope)).toEqual([]);
+    expect(await backingStore.query(SOURCE_MESSAGES_COLLECTION, scope)).toEqual(originalSources);
+    expect(await backingStore.query(EVIDENCE_COLLECTION, scope)).toEqual(originalEvidence);
   });
 
   it("retains every active preference sibling as superseded when writing the replacement", async () => {
@@ -1222,6 +1231,13 @@ describe("public remember API", () => {
       supersededBy: null,
       updatedAt: "2026-01-02T00:00:00.000Z",
     });
+
+    // Reaffirm both manually seeded records without changing their identities.
+    // The incoming replacement must use linked, genuinely undated sources.
+    await memory.remember({ scope: { ...scope, sessionId: "prior-confirmations" }, messages: [
+      { id: "old-1", role: "user", content: "I prefer bullet points in project summaries." },
+      { id: "old-2", role: "user", content: "I also prefer numbered lists in project summaries." },
+    ] });
 
     const result = await memory.remember({
       scope: { ...scope, sessionId: "s-1" },

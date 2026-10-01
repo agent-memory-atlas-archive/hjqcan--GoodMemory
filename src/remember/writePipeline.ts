@@ -541,6 +541,8 @@ export function createRememberWritePipeline(
               now,
               policy: config.policy,
               sourceMessagesByIndex,
+              getDocument: (collection, id) => config.documentStore.get(collection, id),
+              queryDocuments: (collection, filter) => config.documentStore.query(collection, filter),
               setDocumentWithRollback,
               deleteDocumentWithRollback,
               writeDocumentBatchWithRollback,

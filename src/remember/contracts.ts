@@ -148,6 +148,8 @@ export interface RememberWriteContext {
   now: () => string;
   policy?: Pick<GoodMemoryPolicyHooks, "redact" | "resolveConflict">;
   sourceMessagesByIndex: ReadonlyMap<number, SourceMessageRecord>;
+  getDocument: DocumentStore["get"];
+  queryDocuments: DocumentStore["query"];
   setDocumentWithRollback: <TDocument extends object>(
     collection: string,
     id: string,

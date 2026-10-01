@@ -1,3 +1,4 @@
+import { buildSourceMessageRecord } from "../../src/remember/builders";
 import { describe, expect, it } from "bun:test";
 import type { GoodMemoryTraceSpan, MemoryCandidate } from "../../src";
 import { createGoodMemory, createLanguageService } from "../../src";
@@ -1460,6 +1461,18 @@ describe("public reviseMemory API", () => {
       revision: { content: "I prefer numbered lists in project summaries." },
       scope,
       target: { memoryId: originalId },
+    });
+    // Give the revision an explicit undated user confirmation so this
+    // concurrency test reaches its second category-CAS write. Revision audit
+    // timestamps alone deliberately cannot establish source chronology.
+    const confirmation = buildSourceMessageRecord(scope, {
+      id: "revision-confirmation", role: "user", content: "I prefer numbered lists in project summaries.",
+    }, 0, "2026-09-30T00:00:00.000Z");
+    await backingStore.set("source_messages_v1", confirmation.id, confirmation);
+    const revisionEvidence = (await backingStore.query<import("../../src/evidence/contracts").EvidenceRecord>("evidence", scope))
+      .find((entry) => entry.kind === "correction_context" && entry.linkedMemoryIds.includes(revision.newMemoryId!))!;
+    await backingStore.set("evidence", revisionEvidence.id, { ...revisionEvidence,
+      sourceRecordIds: [confirmation.id], sourceMessageIds: [confirmation.sourceMessageId!],
     });
     releasePreferenceSnapshot();
     const replacement = await pendingRemember;

@@ -149,3 +149,16 @@ export function preferenceSupersessionIds(
   }
   return retired;
 }
+
+/** Exact contradictory assertions for read-only chronology admission, not retirement. */
+export function preferenceOppositionIds(
+  records: readonly StoredPreference[], statement: PersonalPreferenceStatement | null,
+): Set<string> {
+  if (!statement) return new Set();
+  return new Set(records.flatMap((record) => {
+    const stored = typeof record.value === "string" ? storedStatement(record.value) : null;
+    return stored && stored.polarity !== statement.polarity &&
+      normalizePreferenceSurface(stored.object) === normalizePreferenceSurface(statement.object) &&
+      sameContext(stored.context, statement.context) ? [record.id] : [];
+  }));
+}

@@ -341,7 +341,15 @@ describe("public governance API", () => {
     expect(durableOnly.durable.facts).toHaveLength(1);
     expect(durableOnly.durable.preferences).toHaveLength(1);
     expect(durableOnly.durable.archives).toHaveLength(1);
-    expect(durableOnly.durable.evidence).toHaveLength(2);
+    expect(durableOnly.durable.evidence).toHaveLength(3);
+    const preferenceEvidence = durableOnly.durable.evidence.find((record) =>
+      record.linkedMemoryIds.includes(durableOnly.durable.preferences[0]!.id)
+    );
+    expect(preferenceEvidence?.excerpt).toBe("I prefer bullet points in project summaries.");
+    expect(preferenceEvidence?.sourceRecordIds).toHaveLength(1);
+    expect(durableOnly.durable.sourceMessages?.find((record) =>
+      record.id === preferenceEvidence!.sourceRecordIds![0]
+    )?.content).toBe("I prefer bullet points in project summaries.");
     expect(durableOnly.durable.sourceMessages?.some(({ content }) =>
       content === "Remember that the migration rollout is blocked on prod verification."
     )).toBe(true);
@@ -362,7 +370,7 @@ describe("public governance API", () => {
     expect(durableOnly.runtime).toBeUndefined();
     expect(globalExport.durable.profile?.identity.name).toBe("Lin");
     expect(globalExport.durable.archives).toHaveLength(2);
-    expect(globalExport.durable.evidence).toHaveLength(4);
+    expect(globalExport.durable.evidence).toHaveLength(5);
     expect(globalExport.durable.experiences).toHaveLength(2);
     expect(globalExport.durable.proposals).toHaveLength(1);
     expect(globalExport.durable.promotions).toHaveLength(1);
