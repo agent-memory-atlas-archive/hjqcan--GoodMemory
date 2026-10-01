@@ -1596,10 +1596,16 @@ export function createSQLiteVectorStore(
       // Acquire writer admission before reading vector identity. A deferred
       // read snapshot cannot be upgraded after another connection commits.
       // Empty batches retain their existing non-writing initialization path.
-      if (records.length === 0) {
-        transaction(records);
-      } else {
-        transaction.immediate(records);
+      try {
+        if (records.length === 0) {
+          transaction(records);
+        } else {
+          transaction.immediate(records);
+        }
+      } catch (error) {
+        // A rollback may remove tables already remembered by this facade.
+        vssTables.clear();
+        throw error;
       }
     },
 
@@ -1729,7 +1735,12 @@ export function createSQLiteVectorStore(
         deleteStatement!.run(collection, id);
       });
 
-      transaction.immediate();
+      try {
+        transaction.immediate();
+      } catch (error) {
+        vssTables.clear();
+        throw error;
+      }
     },
   };
 }
