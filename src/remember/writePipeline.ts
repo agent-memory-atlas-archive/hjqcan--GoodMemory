@@ -1,4 +1,5 @@
-import { hasUnattributedPersonalClaims, requiresFinalSourceGrounding, speakerAttributedText, withheldPersonalText } from "../language/speakerAttribution";
+import { requiresFinalSourceGrounding, sourceAttributionSnapshot } from "../language/speakerAttribution";
+import { matchesAttributionSnapshot } from "../language/attributionSnapshot";
 import { sourcePreferenceStatement } from "../language/personalPreferences";
 import { hasPersistableSemanticText } from "../domain/semanticText";
 import { buildEpisodeEmbeddingWrite } from "../embedding/vectorWrites";
@@ -294,10 +295,18 @@ export function createRememberWritePipeline(
         };
 
         const personalSourceCandidates = new Map<string, MemoryCandidate[]>();
-        const hasAttributionRisk = [producerInput, policySafeInput].some((view) =>
-          view.messages.some((message) => hasUnattributedPersonalClaims(message.content)));
-        const withheldSources = producerInput.messages.map((message) => withheldPersonalText(message.content));
-        const safeWithheldSources = policySafeInput.messages.map((message) => withheldPersonalText(message.content));
+        // Operation-local snapshots remain bound to their original index and
+        // phase. Redacted content cannot reuse an original ownership view.
+        const attributionViews = {
+          original: producerInput.messages.map((message, sourceMessageIndex) =>
+            sourceAttributionSnapshot(message.content, { sourceMessageIndex, phase: "original" })),
+          safe: policySafeInput.messages.map((message, sourceMessageIndex) =>
+            sourceAttributionSnapshot(message.content, { sourceMessageIndex, phase: "safe" })),
+        };
+        const hasAttributionRisk = Object.values(attributionViews).some((views) =>
+          views.some((view) => view.hasRestrictions));
+        const withheldSources = attributionViews.original.map((view) => view.withheldText);
+        const safeWithheldSources = attributionViews.safe.map((view) => view.withheldText);
         const hasPersonalSourceSupport = (
           target: MemoryCandidate,
           source: MemoryExtractionInput["messages"][number] | undefined,
@@ -306,7 +315,9 @@ export function createRememberWritePipeline(
           requiresCurrentAssertion: boolean,
           withheld: readonly string[],
         ): boolean => {
-          if (!source || source.role !== "user") return false;
+          const view = attributionViews[phase][index];
+          if (!source || source.role !== "user" || !view ||
+            !matchesAttributionSnapshot(view, source.content, { sourceMessageIndex: index, phase })) return false;
           const sourceLanguage = sourceAnalyses.get(index)?.context ?? requestLanguage.context;
           const targetValue = target.kindHint === "preference"
             ? target.metadata?.preferenceValue ?? target.content
@@ -314,7 +325,7 @@ export function createRememberWritePipeline(
           const value = language.normalizeForEquality(targetValue, sourceLanguage);
           const borrowedFromWithheldSource = withheld.some((text) =>
             language.normalizeForEquality(text, sourceLanguage).includes(value));
-          const authorSource = speakerAttributedText(source.content);
+          const authorSource = view.authorText;
           // Keep open assisted grammar only when the value is supported in the
           // author view and is not borrowed from an external claim in this view.
           if (!requiresCurrentAssertion && value.length > 0 &&

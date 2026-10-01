@@ -2,6 +2,7 @@
 // about the message author. Preserve offsets while withholding those spans from
 // deterministic personal extraction; canonical source messages stay unchanged.
 import type { MemoryCandidate } from "../domain/memoryCandidate";
+import { createAttributionSnapshot, type AttributionSnapshot, type AttributionSourceBinding } from "./attributionSnapshot";
 
 // An internal restriction, not producer metadata or permission to write. It
 // survives internal object spreads but is absent from JSON/wire representations.
@@ -195,7 +196,7 @@ function maskEmbeddedSpeakers(text: string): string {
   return result;
 }
 
-export function speakerAttributedText(text: string): string {
+function maskSpeakerAttributedText(text: string): string {
   text = maskEmbeddedSpeakers(text);
   text = text.replace(/^[\t ]*>[^\n]*/gm, (line) => FIRST_PERSON.test(line) ? blank(line) : line);
   let result = "";
@@ -240,17 +241,22 @@ export function speakerAttributedText(text: string): string {
   });
 }
 
+export function sourceAttributionSnapshot(text: string, binding?: AttributionSourceBinding): AttributionSnapshot {
+  return createAttributionSnapshot(text, maskSpeakerAttributedText(text), binding);
+}
+
+export function speakerAttributedText(text: string): string {
+  return sourceAttributionSnapshot(text).authorText;
+}
+
 export function hasUnattributedPersonalClaims(text: string): boolean {
   // Structural document/quotation boundaries apply across language packs.
   // They must not depend on an English-only list of personal verbs.
-  return speakerAttributedText(text) !== text;
+  return sourceAttributionSnapshot(text).hasRestrictions;
 }
 
 export function withheldPersonalText(text: string): string {
-  if (!hasUnattributedPersonalClaims(text)) return "";
-  const attributed = speakerAttributedText(text);
-  return Array.from({ length: text.length }, (_, index) =>
-    text[index] === attributed[index] ? " " : text[index]).join("");
+  return sourceAttributionSnapshot(text).withheldText;
 }
 
 /** Attribution masking must never rewrite commands, quoted facts or pointers. */
@@ -266,8 +272,9 @@ export function extractWithPersonalAttribution(
     Object.assign(candidate, { [FINAL_SOURCE_GROUNDING]: true });
     return candidate;
   };
-  const attributed = speakerAttributedText(text);
-  if (attributed === text) return extract(text, markAuthorDerived);
+  const view = sourceAttributionSnapshot(text);
+  const attributed = view.authorText;
+  if (!view.hasRestrictions) return extract(text, markAuthorDerived);
   const personal = (candidate: MemoryCandidate) =>
     candidate.kindHint === "profile" || candidate.kindHint === "preference" || authorDerived.has(candidate);
   return [

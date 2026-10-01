@@ -139,6 +139,20 @@ The change protects new admission; it does not roll back previously stored
 contaminated profiles or preferences. Rebuilding recall projections likewise
 does not repair those canonical records.
 
+Internally, the existing mask is captured as one immutable restriction snapshot.
+Its intervals identify only UTF-16 code units replaced with spaces, not complete
+document-origin boundaries; unchanged punctuation or whitespace and the
+intervals' complement do not prove authorship. The author and withheld views
+are derived from those intervals without changing the masking grammar.
+Snapshots use SHA-256 of exact UTF-16LE code units, with no normalization or BOM;
+this private digest is distinct from persisted sources' UTF-8 `contentSha256`.
+The write operation binds separate original and policy-safe snapshots to their
+source index and phase, validates those bindings before reuse, and never accepts
+a producer-supplied snapshot. An invalid mask raises an invariant error rather
+than falling back to unmasked input. This is behavior-preserving infrastructure,
+not a new classifier, origin credential, public configuration, or claim of wider
+document coverage. No analyzer-version or canonical-data migration is needed.
+
 Register a custom pack through `GoodMemoryConfig.language.packs`. To replace a
 built-in pack, reuse its id and locale claims; a different id that claims an
 already-owned locale is rejected at startup.
