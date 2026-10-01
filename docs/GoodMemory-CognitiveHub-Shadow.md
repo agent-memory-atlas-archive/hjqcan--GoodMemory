@@ -74,6 +74,53 @@ comparison owns that label. `wait` and `deliberate` become abstention. A failed 
 turn produces an invalid answer for GoodMemory's strict boundary to reject.
 Confidence remains diagnostic and never grants permission.
 
+## Explicit configuration in the example host
+
+The source/local-tarball example now accepts one explicitly selected JSON file via
+`examples/cognitivehub-shadow/configured-host.mjs`. Copy the neighboring
+`shadow.config.example.json` to your private host configuration and leave
+`memory.shadow.enabled` false unless you intentionally enable the advisor.
+There is no implicit HOME, `.env`, or configuration-directory discovery.
+
+Enabled configuration requires an explicit Jev model pin and `apiKeyEnv`, the name
+of an environment variable whose value you supply yourself. Raw `apiKey` fields
+are rejected; never commit a real key or put one into a preset, report, or log.
+The example host reads only the named variable when enabled. The Hub factory
+`createConfiguredGoodMemoryShadowAdvisor(config, { readEnv, fetch? })` itself has
+no ambient environment or filesystem lookup. Missing/blank keys and invalid
+enabled configuration fail with value-free errors before an HTTP request.
+
+```js
+import { evaluateMemoryDecisionShadow } from 'goodmemory/experimental/shadow';
+import { loadConfiguredMemoryShadow, evaluateConfiguredMemoryShadow } from './configured-host.mjs';
+
+const configured = await loadConfiguredMemoryShadow({ configPath: './shadow.config.json' });
+const report = await evaluateConfiguredMemoryShadow({
+  configured,
+  createSnapshot: () => hostOwnedEligibleSnapshot,
+  readCurrentVersion: signal => readHostOwnedVersion(signal),
+  evaluate: evaluateMemoryDecisionShadow,
+});
+```
+
+Disabled mode returns before importing the optional Hub package, resolving a key,
+constructing a snapshot, reading a version, or making a provider call. Enabled
+mode constructs the real Jev provider; a later eligible evaluation sends the
+host-approved snapshot content to the configured HTTPS endpoint. The host remains
+responsible for privacy, transmission approval, source attribution and redaction.
+The tests inject synthetic keys and fake HTTP; no live model call is demonstrated.
+The configured timeout bounds Jev/Hub decision waiting; this example leaves the
+outer GoodMemory evaluator's separate 1000 ms budget unchanged and does not claim
+a single end-to-end timeout or expose an external cancellation signal.
+
+This is an explicit example-host configuration seam, not a production Tachikoma
+preset addition. The `memory.shadow` spelling aligns with that possible future
+location, but current Tachikoma presets do not accept it and registry
+GoodMemory 0.8.1 cannot supply the experimental subpath. Install the tested local
+tarballs and copy the example loader beside your consumer. There is no automatic
+remember/recall hook or automatic application of advice. A completed real
+replacement invalidates the old snapshot and must still refuse advice as stale.
+
 History is disabled by default (`maxReplayRecords: 0`). Explicit retention is
 bounded to 0..128 completion records. Records contain only request/previous-version
 hashes, a decision ID, finite choice/outcome/failure category, elapsed milliseconds,

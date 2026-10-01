@@ -1,0 +1,11 @@
+{
+  "memory": {
+    "shadow": {
+      "enabled": false,
+      "apiKeyEnv": "JEV_API_KEY",
+      "model": "replace-with-an-explicit-Jev-model-pin",
+      "timeoutMs": 1000,
+      "maxReplayRecords": 0
+    }
+  }
+}

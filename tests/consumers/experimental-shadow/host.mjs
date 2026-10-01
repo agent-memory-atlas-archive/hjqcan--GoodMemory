@@ -8,7 +8,7 @@ import { ModelRuntime } from '@earendil-works/pi-coding-agent';
 import { fauxProvider, fauxAssistantMessage } from '@earendil-works/pi-ai';
 import { createGoodMemory } from 'goodmemory';
 import { createMemoryDecisionSnapshot, evaluateMemoryDecisionShadow, memoryShadowContextVersion } from 'goodmemory/experimental/shadow';
-import { createGoodMemoryShadowAdvisor } from '@cognitive-hub/core/goodmemory-shadow';
+import { loadConfiguredMemoryShadow, evaluateConfiguredMemoryShadow } from './configured-host.mjs';
 const outputPath = process.argv[2];
 if (!outputPath) throw new Error('Expected OUTPUT_DIRECTORY');
 async function createFauxHarness() {
@@ -110,25 +110,31 @@ for (const scenario of [
       baseline,
     });
     let providerCalls = 0;
-    const provider = createGoodMemoryShadowAdvisor({
-      maxReplayRecords: 1,
-      decision: {
-        name: 'deterministic-tachikoma-fixture',
-        async decide(request) {
-          providerCalls++;
-          const candidate = request.candidates.find((item) => item.key === 'keep');
-          assert.ok(candidate);
-          return {
-            kind: 'action',
-            candidateId: candidate.id,
-            metadata: { confidence: 1 },
-          };
-        },
+    const configPath = join(harness.dataDir, 'shadow.config.json');
+    await writeFile(configPath, JSON.stringify({ memory: { shadow: {
+      enabled: true, apiKeyEnv: 'JEV_API_KEY', model: 'fixture-model', maxReplayRecords: 1,
+    } } }));
+    const configured = await loadConfiguredMemoryShadow({ configPath,
+      readEnv: name => { assert.equal(name, 'JEV_API_KEY'); return 'fake-host-key'; },
+      fetch: async (_url, request) => {
+        providerCalls++;
+        assert.equal(request.headers.Authorization, 'Bearer fake-host-key');
+        assert.equal(request.redirect, 'error');
+        const body = JSON.parse(request.body);
+        const keys = Object.keys(body.questions.next.criteria);
+        assert.ok(keys.includes('c0'));
+        return Response.json({ model: 'fixture-model', answers: { next: {
+          type: 'choice', choice: 'c0', confidence: 1,
+          probabilities: Object.fromEntries(keys.map(key => [key, key === 'c0' ? 1 : 0])),
+        } }, usage: { input_tokens: 1, output_tokens: 1 } });
       },
     });
-    const report = await evaluateMemoryDecisionShadow(snapshot, {
-      enabled: true,
-      provider,
+    assert.equal(configured.enabled, true);
+    const provider = configured.provider;
+    const report = await evaluateConfiguredMemoryShadow({
+      configured,
+      createSnapshot: () => snapshot,
+      evaluate: evaluateMemoryDecisionShadow,
       async readCurrentVersion() {
         const current = context(await memory.exportMemory({ scope: { userId } }));
         return current ? memoryShadowContextVersion(current) : null;
