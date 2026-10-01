@@ -790,14 +790,17 @@ const RETRIEVAL_CUES_DEFAULT_MAX_FACTS_PER_RUN = 16;
 // documents, and the context builder never renders attributes, so cues are
 // retrieval keys only. Generator failures skip the fact and never fail the
 // run; facts that already carry cues are never re-generated, so repeated runs
-// converge.
+// converge. Committing requires an atomic snapshot update; stores without that
+// capability skip this job before invoking the generator. A changed or deleted
+// source discards the generated cues and may be reconsidered by a later run.
 async function runRetrievalCueBackfill(
   repositories: MaintenanceRepositoryPort,
   generator: MaintenanceRunnerConfig["retrievalCues"],
   scope: MemoryScope,
   timestamp: string,
 ): Promise<MaintenanceJobReport> {
-  if (!generator) {
+  const updateIfUnchanged = repositories.facts.updateIfUnchanged?.bind(repositories.facts);
+  if (!generator || !updateIfUnchanged) {
     return { name: "retrievalCues", applied: 0 };
   }
   const maxFacts = Math.max(
@@ -842,7 +845,10 @@ async function runRetrievalCueBackfill(
     if (sanitized.length === 0) {
       continue;
     }
-    await repositories.facts.add(
+    // The generator may finish after forget, revision, or another backfill.
+    // Its result is only valid for the exact source snapshot it was given.
+    const committed = await updateIfUnchanged(
+      fact,
       createFactMemory({
         ...fact,
         attributes: {
@@ -852,7 +858,7 @@ async function runRetrievalCueBackfill(
         updatedAt: timestamp,
       }),
     );
-    applied += 1;
+    if (committed) applied += 1;
   }
 
   return { name: "retrievalCues", applied };

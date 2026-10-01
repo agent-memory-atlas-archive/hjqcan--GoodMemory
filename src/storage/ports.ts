@@ -53,6 +53,8 @@ interface NoteRepositoryPort {
 interface FactRepositoryPort {
   facts: {
     add(fact: FactMemory): Promise<void>;
+    /** Atomically replace the exact existing snapshot; never insert a missing fact. */
+    updateIfUnchanged?(expected: FactMemory, fact: FactMemory): Promise<boolean>;
     get?(id: string): Promise<FactMemory | null>;
     listByScope(scope: MemoryScope): Promise<FactMemory[]>;
   };

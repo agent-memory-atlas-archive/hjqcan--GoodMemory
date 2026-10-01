@@ -10,7 +10,7 @@ import type {
   UserProfile,
   WorkingMemorySnapshot,
 } from "../domain/records";
-import type { MemoryScope } from "../domain/scope";
+import { isSameDurableScope, type MemoryScope } from "../domain/scope";
 import type { EvidenceRecord, SourceMessageRecord } from "../evidence/contracts";
 import {
   EVIDENCE_COLLECTION,
@@ -115,6 +115,8 @@ export interface MemoryRepositories {
   };
   facts: {
     add(fact: FactMemory): Promise<void>;
+    /** Present only when the document store supplies an atomic conditional batch. */
+    updateIfUnchanged?(expected: FactMemory, fact: FactMemory): Promise<boolean>;
     get(id: string): Promise<FactMemory | null>;
     listByUser(userId: string): Promise<FactMemory[]>;
     listByScope(scope: MemoryScope): Promise<FactMemory[]>;
@@ -452,6 +454,18 @@ export function createMemoryRepositories(
       async add(fact: FactMemory): Promise<void> {
         await config.documentStore.set("facts", fact.id, fact);
       },
+
+      ...(typeof config.documentStore.writeBatchIfUnchanged === "function" ? {
+        async updateIfUnchanged(expected: FactMemory, fact: FactMemory): Promise<boolean> {
+          if (expected.id !== fact.id || !isSameDurableScope(expected, fact)) {
+            throw new Error("Conditional fact update must preserve identity and durable scope.");
+          }
+          return config.documentStore.writeBatchIfUnchanged!({
+            expected: { collection: "facts", id: expected.id, document: expected },
+            set: [{ collection: "facts", id: fact.id, document: fact }],
+          });
+        },
+      } : {}),
 
       async get(id: string): Promise<FactMemory | null> {
         return config.documentStore.get<FactMemory>("facts", id);
