@@ -239,6 +239,30 @@ const USER_IDENTITY_PATTERN =
   /^as\s+(?:an?\s+)?([^,.!?]+?)\s+user\s*,/i;
 const EXPLICIT_FACT_DIRECTIVE_PATTERN =
   /^(?:please\s*,?\s+)?remember\s+(?:(?:that|this)\b|(?:one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+things?\b)\s*[:：,]?\s*/iu;
+const BARE_REMEMBER_PREFIX_PATTERN = /^(?:please\s*,?\s+)?remember\s+/iu;
+const EXPLICIT_PROJECT_ASSIGNMENT_PATTERN =
+  /^project\s+([\p{L}\p{N}-]{1,80})\s*:\s*([\p{L}_][\p{L}\p{N}_ -]{0,79})\s*=\s*(\S[\s\S]{0,1023})$/iu;
+const literalProjectClauses = new WeakMap<object, string>();
+
+function matchBareProjectAssignment(content: string) {
+  // This leaf matcher admits a scoped data assignment, not a generic command
+  // containing '='. It must not recurse through the behavioral classifier.
+  if (content.length > 2048 || splitClausesGeneric(content).length !== 1) return null;
+  const prefix = content.match(BARE_REMEMBER_PREFIX_PATTERN);
+  if (!prefix) return null;
+  const body = content.slice(prefix[0].length).trim();
+  const unquoted = maskQuotedText(body);
+  if (hasUnterminatedQuote(body) || /[;；\r\n]/u.test(unquoted) ||
+    EXPLICIT_FACT_OPT_OUT_CLAUSE_BOUNDARY_PATTERN.test(unquoted)) return null;
+  const assignment = body.match(EXPLICIT_PROJECT_ASSIGNMENT_PATTERN);
+  if (!assignment || !assignment[1]!.split("-").every((part) => /^[\p{L}\p{N}]+$/u.test(part))) return null;
+  return { prefix, body, subject: assignment[1]! };
+}
+
+function matchExplicitFactDirective(content: string): RegExpMatchArray | null {
+  return content.match(EXPLICIT_FACT_DIRECTIVE_PATTERN) ??
+    matchBareProjectAssignment(content)?.prefix ?? null;
+}
 const COUNTED_EXPLICIT_FACT_DIRECTIVE_PATTERN =
   /^(?:please\s*,?\s+)?remember\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+things?\b/iu;
 const REMEMBER_QUESTION_PATTERN =
@@ -493,11 +517,21 @@ const ENGLISH_DEPENDENT_EXPLICIT_FACT_PATTERN =
   /^(?:although|because|if|unless|when|whereas|while)\b/iu;
 
 function splitEnglishClauses(text: string): string[] {
+  // The scoped field value is data, including first-person or directive text.
+  // First honor unquoted sentence boundaries so later author instructions
+  // remain independent; punctuation inside quoted values remains literal.
   return splitClausesGeneric(text)
+    .flatMap((clause) => matchBareProjectAssignment(clause)
+      ? [clause]
+      : splitEnglishNonAssignmentClause(clause));
+}
+
+function splitEnglishNonAssignmentClause(text: string): string[] {
+  return [text]
     .filter(Boolean)
     .flatMap((clause) => clause.split(/,\s*\bbut\b\s+/iu))
     .flatMap((clause) =>
-      EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) ||
+      matchExplicitFactDirective(clause.trim()) !== null ||
         EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
         ? [clause]
         : splitTrailingClause(
@@ -511,7 +545,7 @@ function splitEnglishClauses(text: string): string[] {
         )
     )
     .flatMap((clause) =>
-      EXPLICIT_FACT_DIRECTIVE_PATTERN.test(clause.trim()) ||
+      matchExplicitFactDirective(clause.trim()) !== null ||
         EXPLICIT_FACT_OPT_OUT_PATTERN.test(clause.trim())
         ? [clause]
         : splitTrailingClause(
@@ -546,9 +580,9 @@ function splitEnglishClauses(text: string): string[] {
 }
 
 function cleanExplicitFactContent(value: string): string {
-  return value
-    .trim()
-    .replace(EXPLICIT_FACT_DIRECTIVE_PATTERN, "")
+  const trimmed = value.trim();
+  const directive = matchExplicitFactDirective(trimmed);
+  return (directive ? trimmed.slice(directive[0].length) : trimmed)
     .replace(/^[：:,;；\s]+/u, "")
     .replace(/[：:,;；]+$/u, "")
     .trim();
@@ -663,7 +697,7 @@ function classifyEnglishExplicitCompoundClause(
     : "unknown";
 }
 
-function extractExplicitFactClauses(content: string) {
+function extractExplicitFactClauses(content: string, allowBareAssignment = false) {
   const trimmed = content.trim();
   if (EXPLICIT_FACT_OPT_OUT_PATTERN.test(trimmed)) {
     return {
@@ -672,9 +706,20 @@ function extractExplicitFactClauses(content: string) {
     };
   }
 
-  const directive = trimmed.match(EXPLICIT_FACT_DIRECTIVE_PATTERN);
+  const directive = matchExplicitFactDirective(trimmed);
   if (!directive) {
     return undefined;
+  }
+
+  const assignment = matchBareProjectAssignment(trimmed);
+  if (assignment) {
+    if (!allowBareAssignment) return undefined;
+    if (isEnglishInterrogativeClause(assignment.body, assignment.body)) {
+      return { clauses: [], status: "invalid" as const };
+    }
+    const clause = { content: assignment.body, disposition: "fact" as const };
+    literalProjectClauses.set(clause, assignment.subject);
+    return { clauses: [clause], status: "complete" as const };
   }
 
   const countMatch = trimmed.match(COUNTED_EXPLICIT_FACT_DIRECTIVE_PATTERN);
@@ -806,7 +851,7 @@ function classifyEnglishBehavioralDirective(
 ): NonNullable<LanguageContentAnalysis["behavioralDirective"]> {
   const trimmed = content.trim();
   if (
-    EXPLICIT_FACT_DIRECTIVE_PATTERN.test(trimmed) ||
+    matchExplicitFactDirective(trimmed) !== null ||
     EXPLICIT_FACT_OPT_OUT_PATTERN.test(trimmed) ||
     analysis.sourceOfTruthDirective ||
     isEnglishTechnicalReferenceDirective(trimmed) ||
@@ -2103,7 +2148,7 @@ function maybeExtractCandidatesFromClause(
 
 export function createEnglishLanguagePack(): LanguagePack {
   return {
-    analyzerVersion: "24-current-project-source",
+    analyzerVersion: "25-explicit-project-assignment",
     apiVersion: 1,
     compatibilityGroup: "en",
     defaultLocale: "en-US",
@@ -2170,6 +2215,16 @@ export function createEnglishLanguagePack(): LanguagePack {
         }
 
         const sourceMessageIndex = message.sourceMessageIndex ?? index;
+        // Only a direct assignment at the start of the original live message
+        // grants this new authority. Splitting a document/report must not
+        // manufacture an author command from a later embedded clause.
+        const firstSourceClause = splitClausesGeneric(message.content)[0];
+        const directAssignment = firstSourceClause && matchBareProjectAssignment(firstSourceClause)
+          ? firstSourceClause : undefined;
+        const parseExplicitFacts = (content: string) => extractExplicitFactClauses(
+          content,
+          directAssignment !== undefined && content.trim() === directAssignment,
+        );
         const canonicalSourceAnalysis = analyzeEnglishContent(message.content);
         const sourceAnalysis = {
           ...(message.analysis ?? canonicalSourceAnalysis),
@@ -2183,17 +2238,35 @@ export function createEnglishLanguagePack(): LanguagePack {
           // Otherwise retain the established per-clause opt-out/question path.
           const sourceClauses = splitEnglishClauses(content);
           const explicitList = /[;；]/u.test(content) && sourceClauses.length > 1
-            ? extractExplicitFactClauses(content) : undefined;
+            ? parseExplicitFacts(content) : undefined;
           const clauses = explicitList?.status === "complete" &&
             explicitList.clauses.length === sourceClauses.length &&
             explicitList.clauses.every((clause) => clause.disposition === "fact")
             ? explicitList.clauses
             : expandExplicitFactCandidateClauses(
               content,
-              extractExplicitFactClauses,
+              parseExplicitFacts,
               splitEnglishClauses,
             );
           for (const clause of clauses) {
+            const projectSubject = literalProjectClauses.get(clause);
+            if (projectSubject !== undefined) {
+              candidates.push({
+                id: input.nextId(),
+                kindHint: "fact",
+                explicitness: "explicit",
+                content: clause.content,
+                sourceMessageIndex,
+                sourceRole: "user",
+                metadata: {
+                  category: "project",
+                  factKind: "generic_project",
+                  scopeKind: "project",
+                  subject: projectSubject,
+                },
+              });
+              continue;
+            }
             const clauseAnalysis = clauses.length === 1 && clause.content === content
               ? sourceAnalysis
               : analyzeEnglishContent(clause.content);

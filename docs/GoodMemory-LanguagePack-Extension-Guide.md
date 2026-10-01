@@ -263,6 +263,25 @@ for the full cutover and rollback procedure.
 
 ## Acceptance checklist
 
+The built-in English pack accepts the explicit data form
+`Please remember project Cedar-24B: review label=BRONZE.` (optional `please`).
+This bounded form requires a complete project identifier, a nonempty field and
+value, and no unquoted question or list separator within that clause. The new
+request must begin the original user message; splitting an embedded document
+does not grant authority to its later `remember` clauses. A second bare project
+assignment in the same message does not gain this explicit-fact handling.
+Later unquoted
+sentences keep their own question, opt-out, or legacy-instruction handling.
+It retains the full project
+assignment as one fact and binds its subject to the project header. First-person
+or directive text in the field value remains literal project data; it does not
+create a profile, preference, behavioral rule, or source-of-truth reference.
+The existing `remember that`, `remember this`, and counted-fact paths retain
+their established behavior. Other bare `remember` phrasing, reminders to act,
+and quoted or reported requests do not gain explicit-fact authority from this
+form. Normal source policy, redaction, and scope checks still apply. This is an
+admission improvement, not a general English understanding or recall guarantee.
+
 A new pack is ready only when tests cover:
 
 - explicit locale, auto-detection, default fallback, and ambiguous text;
