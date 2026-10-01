@@ -6,14 +6,17 @@
     "noEmit": false,
     "outDir": "./dist",
     "rootDir": "./src",
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
   "files": [
     "./src/index.ts",
     "./src/ai-sdk/index.ts",
     "./src/host/index.ts",
     "./src/http/index.ts",
-    "./src/runtime-kit/index.ts"
+    "./src/runtime-kit/index.ts",
+    "./src/experimental/shadow.ts"
   ],
   "include": [],
   "exclude": []

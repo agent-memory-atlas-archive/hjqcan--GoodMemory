@@ -29,6 +29,7 @@ const result = await Bun.build({
     join(REPO_ROOT, "src/host/index.ts"),
     join(REPO_ROOT, "src/http/index.ts"),
     join(REPO_ROOT, "src/runtime-kit/index.ts"),
+    join(REPO_ROOT, "src/experimental/shadow.ts"),
   ],
   external: ["bun", "bun:sqlite"],
   format: "esm",

@@ -65,14 +65,15 @@
     "docs/GoodMemory-Reference-Integration-Guide.md",
     "docs/GoodMemory-Standalone-MCP-Setup-Guide.md",
     "docs/GoodMemory-Strategy-Rollout-Guide.md",
-    "docs/GoodMemory-记忆数据分层设计.md",
+    "docs/GoodMemory-\u8bb0\u5fc6\u6570\u636e\u5206\u5c42\u8bbe\u8ba1.md",
     "llms.txt",
     "package.json",
     "reports/quality-gates/phase-75/default-enablement-20260905.md",
     "scripts/goodmemory-cli.js",
     "scripts/goodmemory-http-bridge.js",
     "scripts/goodmemory-mcp.js",
-    "server.json"
+    "server.json",
+    "docs/GoodMemory-CognitiveHub-Shadow.md"
   ],
   "bin": {
     "goodmemory": "./scripts/goodmemory-cli.js",
@@ -101,7 +102,11 @@
       "types": "./dist/runtime-kit/index.d.ts",
       "import": "./dist/runtime-kit/index.js"
     },
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./experimental/shadow": {
+      "types": "./dist/experimental/shadow.d.ts",
+      "import": "./dist/experimental/shadow.js"
+    }
   },
   "scripts": {
     "clean": "rm -rf dist",

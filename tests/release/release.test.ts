@@ -842,6 +842,7 @@ describe("release metadata and docs", () => {
       "scripts/goodmemory-http-bridge.js",
       "scripts/goodmemory-mcp.js",
       "server.json",
+      "docs/GoodMemory-CognitiveHub-Shadow.md",
     ]);
     expect(pkg.bin?.goodmemory).toBe("./scripts/goodmemory-cli.js");
     expect(pkg.bin?.["goodmemory-http-bridge"]).toBe(
@@ -868,6 +869,10 @@ describe("release metadata and docs", () => {
     expect(pkg.exports?.["./runtime-kit"]).toEqual({
       import: "./dist/runtime-kit/index.js",
       types: "./dist/runtime-kit/index.d.ts",
+    });
+    expect(pkg.exports?.["./experimental/shadow"]).toEqual({
+      import: "./dist/experimental/shadow.js",
+      types: "./dist/experimental/shadow.d.ts",
     });
     expect(pkg.exports?.["./package.json"]).toBe("./package.json");
     expect(Object.keys(pkg.exports ?? {})).not.toContain("./cli");

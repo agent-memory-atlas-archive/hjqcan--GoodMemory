@@ -43,6 +43,9 @@ bulk-load. Start here, then open only the file that matches the question.
 
 ## Public Integration Docs
 
+- `GoodMemory-CognitiveHub-Shadow.md` - opt-in experimental shadow subpath in the
+  unpublished local candidate, typed private Hub bridge, and tarball-only checks.
+
 - `GoodMemory-15-Minute-App-Integration.md` - shortest app integration path.
 - `GoodMemory-LanguagePack-Extension-Guide.md` - built-in locale behavior,
   custom language-pack contract, analyzer versioning, and projection migration.

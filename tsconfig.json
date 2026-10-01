@@ -30,6 +30,9 @@
       ],
       "goodmemory/runtime-kit": [
         "./src/runtime-kit/index.ts"
+      ],
+      "goodmemory/experimental/shadow": [
+        "./src/experimental/shadow.ts"
       ]
     }
   },
@@ -40,6 +43,7 @@
   ],
   "exclude": [
     "tests/consumers/reference-package-smoke/smoke-types.ts",
-    "scripts/codex-coding-effect/level2-authoring"
+    "scripts/codex-coding-effect/level2-authoring",
+    "tests/consumers/experimental-shadow/consumer-types.ts"
   ]
 }
