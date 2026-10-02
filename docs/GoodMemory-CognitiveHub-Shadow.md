@@ -1,10 +1,10 @@
 # Experimental CognitiveHub shadow integration
 
-This unpublished local candidate adds the opt-in `goodmemory/experimental/shadow`
+The 0.8.2 release source includes the opt-in `goodmemory/experimental/shadow`
 ESM and TypeScript subpath. It is separate from the root API and is never installed
 in `remember`, conflict resolution, profile handling, or deletion. The registry
-release 0.8.1 does not contain this subpath. Package versions are unchanged in this
-development checkpoint; do not mistake its local tarball for a release artifact.
+release 0.8.1 does not contain this subpath. Registry installation requires 0.8.2
+to be published; only the exact prepared artifact set is release evidence.
 
 GoodMemory keeps its Node >=20 runtime boundary and has no CognitiveHub dependency.
 The optional bridge is `@cognitive-hub/core/goodmemory-shadow`, with its own JS and
@@ -115,9 +115,10 @@ a single end-to-end timeout or expose an external cancellation signal.
 
 This is an explicit example-host configuration seam, not a production Tachikoma
 preset addition. The `memory.shadow` spelling aligns with that possible future
-location, but current Tachikoma presets do not accept it and registry
-GoodMemory 0.8.1 cannot supply the experimental subpath. Install the tested local
-tarballs and copy the example loader beside your consumer. There is no automatic
+location, but current Tachikoma presets do not accept it. GoodMemory 0.8.2 supplies
+the experimental subpath after publication; the optional CognitiveHub bridge
+still requires its tested local tarball. Copy the example loader beside your
+consumer. There is no automatic
 remember/recall hook or automatic application of advice. A completed real
 replacement invalidates the old snapshot and must still refuse advice as stale.
 
@@ -138,8 +139,8 @@ timeouts from dispatching additional calls behind an uncooperative call.
 
 ## Run the offline replay
 
-The normal source-evidence replay requires the unpublished preference-evidence
-chronology candidate. Stable 0.8.1 lacks preference evidence records and is
+The normal source-evidence replay requires the preference-evidence chronology
+included in the 0.8.2 release source. Stable 0.8.1 lacks preference evidence records and is
 intentionally refused instead of inventing provenance. Do not replace a released
 package or infer a release-quality gate from these fixtures.
 
