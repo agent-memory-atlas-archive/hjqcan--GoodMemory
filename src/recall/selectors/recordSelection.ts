@@ -28,9 +28,10 @@ import {
   preferenceSearchText,
 } from "./selectionContext";
 
-export function selectFeedback(
+function selectMatchingFeedback(
   feedback: FeedbackMemory[],
-  retrievalProfile: RetrievalProfile = "general_chat",
+  retrievalProfile: RetrievalProfile,
+  matches?: (record: FeedbackMemory) => boolean,
 ): FeedbackMemory[] {
   const selected: FeedbackMemory[] = [];
   const seen = new Set<string>();
@@ -55,6 +56,9 @@ export function selectFeedback(
     }
 
     seen.add(dedupeKey);
+    if (matches && !matches(record)) {
+      continue;
+    }
     selected.push(record);
     if (selected.length >= FEEDBACK_RECALL_LIMIT) {
       break;
@@ -62,6 +66,13 @@ export function selectFeedback(
   }
 
   return selected;
+}
+
+export function selectFeedback(
+  feedback: FeedbackMemory[],
+  retrievalProfile: RetrievalProfile = "general_chat",
+): FeedbackMemory[] {
+  return selectMatchingFeedback(feedback, retrievalProfile);
 }
 
 export function selectFeedbackForProfile(
@@ -79,7 +90,6 @@ export function selectFeedbackForQuery(
   retrievalProfile: RetrievalProfile,
   providedQueryAnalysis?: LanguageQueryAnalysis,
 ): FeedbackMemory[] {
-  const selected = selectFeedback(feedback, retrievalProfile);
   const queryAnalysis = providedQueryAnalysis ??
     language.analyzeQuery(query, queryLocale);
 
@@ -89,10 +99,10 @@ export function selectFeedbackForQuery(
     queryAnalysis.continuation ||
     queryAnalysis.guidanceSeeking
   ) {
-    return selected;
+    return selectFeedback(feedback, retrievalProfile);
   }
 
-  return selected.filter(
+  return selectMatchingFeedback(feedback, retrievalProfile,
     (record) => {
       const fullOverlap = language.tokenOverlap(
         feedbackSearchText(record),

@@ -385,7 +385,7 @@ describe("public storage wrappers", () => {
     ]);
   });
 
-  it("wraps sqlite runtime failures and allows a later retry with a fresh loader", async () => {
+  it("wraps sqlite runtime failures and retries through the same wrapper", async () => {
     let loaderCalls = 0;
 
     setSQLitePublicModuleLoaderForTests(async () => {
@@ -417,13 +417,76 @@ describe("public storage wrappers", () => {
       };
     });
 
-    const recoveredStore = createSQLiteDocumentStore("/tmp/test.sqlite");
-    await expect(recoveredStore.get("facts", "fact-1")).resolves.toEqual({
+    await expect(failingStore.get("facts", "fact-1")).resolves.toEqual({
       id: "fact-1",
       collection: "facts",
     });
-    expect(loaderCalls).toBe(2);
+    expect(loaderCalls).toBe(3);
   });
+
+  it.each(["document", "session", "vector"] as const)(
+    "retries failed %s initialization single-flight and retains a healthy store after operation errors",
+    async (kind) => {
+      let constructionCalls = 0;
+      let unavailable = true;
+      let failOperation = false;
+      const initializationError = new Error("SQLite open unavailable");
+      const operationError = new Error("SQLite write unavailable");
+      const initialize = () => {
+        constructionCalls += 1;
+        if (unavailable) throw initializationError;
+      };
+      const read = async () => {
+        if (failOperation) throw operationError;
+        return null;
+      };
+      setSQLitePublicModuleLoaderForTests(async () => ({
+        createSQLiteDocumentStore() {
+          initialize();
+          return { ...createTrackedDocumentStore([]), get: read };
+        },
+        createSQLiteSessionStore() {
+          initialize();
+          return { ...createTrackedSessionStore([]), getBuffer: read };
+        },
+        createSQLiteVectorStore() {
+          initialize();
+          return { ...createTrackedVectorStore([]), get: read };
+        },
+      }));
+      const operation: () => Promise<unknown> = kind === "document"
+        ? (() => {
+          const store = createSQLiteDocumentStore("/tmp/test.sqlite");
+          return () => store.get("facts", "fact-1");
+        })()
+        : kind === "session"
+        ? (() => {
+          const store = createSQLiteSessionStore("/tmp/test.sqlite");
+          return () => store.getBuffer(scope);
+        })()
+        : (() => {
+          const store = createSQLiteVectorStore("/tmp/test.sqlite");
+          return () => store.get("facts", "vec-1");
+        })();
+
+      const failures = await Promise.allSettled([operation(), operation(), operation()]);
+      for (const failure of failures) {
+        expect(failure).toEqual({ status: "rejected", reason: initializationError });
+      }
+      expect(constructionCalls).toBe(1);
+      await expect(operation()).rejects.toBe(initializationError);
+      expect(constructionCalls).toBe(2);
+
+      unavailable = false;
+      expect(await Promise.all([operation(), operation(), operation()])).toEqual([null, null, null]);
+      expect(constructionCalls).toBe(3);
+      failOperation = true;
+      await expect(operation()).rejects.toBe(operationError);
+      failOperation = false;
+      await expect(operation()).resolves.toBeNull();
+      expect(constructionCalls).toBe(3);
+    },
+  );
 
   it("delegates postgres bootstrap and every deferred wrapper method through the lazily loaded module", async () => {
     const log: string[] = [];

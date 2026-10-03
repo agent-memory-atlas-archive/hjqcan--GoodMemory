@@ -231,38 +231,38 @@ function createDeferredVectorStore(
   };
 }
 
+// Share an in-flight/successful initialization, but let a later operation retry
+// an unavailable database. Failures from methods on a ready store do not evict it.
+function createStoreResolver<TStore>(initialize: () => Promise<TStore>): () => Promise<TStore> {
+  let storePromise: Promise<TStore> | null = null;
+  return () => {
+    if (!storePromise) {
+      const attempt = initialize().catch((error) => {
+        if (storePromise === attempt) storePromise = null;
+        throw error;
+      });
+      storePromise = attempt;
+    }
+    return storePromise;
+  };
+}
+
 export function createSQLiteDocumentStore(
   path: string,
   options?: SQLiteStoreOptions,
 ): ProjectionCapableDocumentStore {
-  let storePromise: Promise<DocumentStore> | null = null;
-
-  return createDeferredDocumentStore(async () => {
-    if (!storePromise) {
-      storePromise = loadSQLiteModule().then((module) =>
-        module.createSQLiteDocumentStore(path, options)
-      );
-    }
-
-    return storePromise;
-  });
+  return createDeferredDocumentStore(createStoreResolver(() =>
+    loadSQLiteModule().then((module) => module.createSQLiteDocumentStore(path, options))
+  ));
 }
 
 export function createSQLiteSessionStore(
   path: string,
   options?: SQLiteStoreOptions,
 ): SessionStore {
-  let storePromise: Promise<SessionStore> | null = null;
-
-  return createDeferredSessionStore(async () => {
-    if (!storePromise) {
-      storePromise = loadSQLiteModule().then((module) =>
-        module.createSQLiteSessionStore(path, options)
-      );
-    }
-
-    return storePromise;
-  });
+  return createDeferredSessionStore(createStoreResolver(() =>
+    loadSQLiteModule().then((module) => module.createSQLiteSessionStore(path, options))
+  ));
 }
 
 export function createSQLiteVectorStore(
@@ -270,15 +270,7 @@ export function createSQLiteVectorStore(
   options?: SQLiteStoreOptions,
   dependencies?: SQLiteVectorStoreDependencies,
 ): VectorStore {
-  let storePromise: Promise<VectorStore> | null = null;
-
-  return createDeferredVectorStore(async () => {
-    if (!storePromise) {
-      storePromise = loadSQLiteModule().then((module) =>
-        module.createSQLiteVectorStore(path, options, dependencies)
-      );
-    }
-
-    return storePromise;
-  });
+  return createDeferredVectorStore(createStoreResolver(() =>
+    loadSQLiteModule().then((module) => module.createSQLiteVectorStore(path, options, dependencies))
+  ));
 }
